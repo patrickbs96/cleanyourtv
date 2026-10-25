@@ -68,4 +68,11 @@
         <item quantity="other">%1$d Apps</item>
     </plurals>
     <string name="greeting_with_name">%1$s, %2$s</string>
+    <string name="world">Welt</string>
+    <string name="world_clean">Clean</string>
+    <string name="world_hogwarts">Hogwarts</string>
+    <string name="world_marvel">Marvel</string>
+    <string name="world_starwars">Star Wars</string>
+    <string name="world_hint">Farbtasten der Fernbedienung wechseln direkt</string>
+    <string name="world_hog_hero_prefix">Zauberspiegel zeigt</string>
 </resources>

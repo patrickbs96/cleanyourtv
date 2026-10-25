@@ -149,4 +149,14 @@
     <!-- Cinematic top shelf (cinematic_home): the line under the focused dock app's name; %1$s is when it was
          last opened, e.g. "5 minutes ago" or "yesterday, 9:40 pm". -->
     <string name="last_opened">Last opened %1$s</string>
+
+    <!-- Worlds (World): the colour keys switch between them. -->
+    <string name="world">World</string>
+    <string name="world_clean">Clean</string>
+    <string name="world_hogwarts">Hogwarts</string>
+    <string name="world_marvel">Marvel</string>
+    <string name="world_starwars">Star Wars</string>
+    <string name="world_hint">The remote\'s colour keys switch directly</string>
+    <!-- Hogwarts: the line in front of the hero's app name. -->
+    <string name="world_hog_hero_prefix">The magic mirror shows</string>
 </resources>
