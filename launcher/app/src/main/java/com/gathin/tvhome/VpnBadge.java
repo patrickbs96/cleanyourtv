@@ -17,7 +17,8 @@ final class VpnBadge extends ReplacementSpan {
 
     private static final int GREEN = 0xFF30D158;
     private static final int INK = 0xFF06290F;
-    private static final int RED = 0xFFFF453A;
+    /** The "VPN off" capsule's red; the worlds' warning dot (WorldChrome) uses it too. */
+    static final int RED = 0xFFFF453A;
     private static final int INK_OFF = 0xFFFFFFFF;
 
     private final Drawable lock;

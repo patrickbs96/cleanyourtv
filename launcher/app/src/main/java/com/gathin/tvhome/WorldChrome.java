@@ -13,8 +13,10 @@ import android.graphics.RectF;
 import android.graphics.Shader;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.text.Editable;
 import android.text.Layout;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.view.View;
 import android.view.ViewGroup;
@@ -39,6 +41,8 @@ final class WorldChrome {
     /** HUD and scanlines reach this far past the header's text on its right, and (layout margins) 12dp on its left. */
     private static final int FIELD_END_DP = 16;
     private static final int FIELD_START_DP = 12;
+    /** The VPN warning dot's diameter. */
+    private static final int VPN_DOT_DP = 9;
 
     static void apply(World w, Activity a, TextView btnInputs, TextView btnWifi, TextView btnSettings,
                       View worldHud, TextView worldOrnament, View scanlines) {
@@ -76,6 +80,46 @@ final class WorldChrome {
      */
     static boolean ownsNetworkIcon(World w) {
         return w == World.HOGWARTS;
+    }
+
+    /**
+     * The worlds' stand-in for the red "VPN off" capsule, which icon-only pills have no text for: a red dot on the
+     * top-right corner of the network pill's icon, in the capsule's red with a dark rim so it reads on the light
+     * focused pill too. Drawn in the pill's overlay, so icon changes and the status tint leave it alone; it starts
+     * hidden (alpha 0), and {@link #showVpnWarning} shows it. Callers add it only outside Clean.
+     */
+    static Drawable addVpnDot(TextView pill) {
+        float dp = pill.getResources().getDisplayMetrics().density;
+        GradientDrawable dot = new GradientDrawable();
+        dot.setShape(GradientDrawable.OVAL);
+        dot.setColor(VpnBadge.RED);
+        dot.setStroke(Math.round(1.5f * dp), 0xCC000000);
+        dot.setAlpha(0);
+        int size = Math.round(VPN_DOT_DP * dp);
+        int inset = Math.round(dp);
+        pill.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+            Drawable icon = pill.getCompoundDrawablesRelative()[0];
+            int iconW = icon != null ? icon.getIntrinsicWidth() : Math.round(22 * dp);
+            int iconH = icon != null ? icon.getIntrinsicHeight() : Math.round(22 * dp);
+            int w = r - l, h = b - t;
+            // Icon-only, the icon sits centred between the paddings; with a label (wifi_label_width) at the start.
+            int iconLeft = TextUtils.isEmpty(pill.getText())
+                    ? pill.getPaddingLeft() + (w - pill.getPaddingLeft() - pill.getPaddingRight() - iconW) / 2
+                    : pill.getPaddingLeft();
+            int iconTop = (h - iconH) / 2;
+            int right = iconLeft + iconW + inset, top = iconTop - inset;
+            dot.setBounds(right - size, top, right, top + size);
+        });
+        pill.getOverlay().add(dot);
+        return dot;
+    }
+
+    /** Shows or hides the dot from {@link #addVpnDot}: shown while a configured VPN is down. */
+    static void showVpnWarning(TextView pill, Drawable dot, boolean vpnDown) {
+        int alpha = vpnDown ? 255 : 0;
+        if (dot.getAlpha() == alpha) return;
+        dot.setAlpha(alpha);
+        pill.invalidate();
     }
 
     /** The world's pill background; Clean's pill_bg for Clean. */
@@ -132,7 +176,8 @@ final class WorldChrome {
         Runnable refit = () -> {
             int right = 0;
             for (TextView text : texts) {
-                if (text != null && text.getVisibility() == View.VISIBLE) right = Math.max(right, textRight(text, block));
+                // isShown, not the own visibility: shamsiDate and lunarDate can sit in a gone parent.
+                if (text != null && text.isShown()) right = Math.max(right, textRight(text, block));
             }
             int width = Math.min(right, block.getWidth()) + start + end;
             ViewGroup.LayoutParams lp = field.getLayoutParams();

@@ -800,6 +800,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // The world's pill backgrounds and icons, HUD corners, scanlines and ornament; Clean returns untouched.
         WorldChrome.apply(world, this, (TextView) btnInputs, btnWifi, (TextView) btnSettings,
                 findViewById(R.id.worldHud), findViewById(R.id.worldOrnament), findViewById(R.id.worldScanlines));
+        // Icon-only, the network pill has no room for the red "VPN off" capsule: a world shows a red dot instead.
+        if (!world.isClean()) worldVpnDot = WorldChrome.addVpnDot(btnWifi);
 
         // Keep focus on the top bar at its ends and at the top: Android's focus finder would otherwise
         // jump to a tile far below when there is nothing in that direction.
@@ -2712,6 +2714,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         // With a VPN app configured, a VPN that is down matters too: show a red "VPN off" capsule then.
         boolean vpnDown = !vpn && online && !vpnApp.isEmpty();
+        if (worldVpnDot != null) WorldChrome.showVpnWarning(btnWifi, worldVpnDot, vpnDown);
         if (vpn || vpnDown) {
             // Network name, then the green lock-and-VPN (or red "VPN off") capsule drawn in place of the word.
             String badge = getString(vpn ? R.string.vpn : R.string.vpn_off);
@@ -2765,6 +2768,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     /** config.xml icon_only_buttons. */
     private boolean iconOnlyButtons;
+    /** A world's red "VPN off" dot on the network pill (WorldChrome.addVpnDot); null in Clean. */
+    private Drawable worldVpnDot;
     /** config.xml top_menu: Inputs, Wi-Fi and Settings folded into one gear. */
     private boolean topMenu;
     /** show_inputs_pill as configured: top_menu clears showInputsPill, so its Inputs row reads this. */
