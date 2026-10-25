@@ -531,7 +531,6 @@ public class WeatherTest {
 - [ ] **Step 7: Fehlerpfad** – kein WLAN-Trennen per adb möglich; der JVM-Test `parseRejectsGarbage` deckt den Parser, Logcat den nächsten echten Ausfall. Die Zeile bleibt bei Fehler auf dem letzten Wert, nie leer flackernd (Code-Review-Punkt).
 - [ ] **Step 8: Commit** – `git add launcher/app/src/main/java/com/gathin/tvhome/Weather.java launcher/app/src/main/java/com/gathin/tvhome/WeatherWords.java launcher/app/src/main/AndroidManifest.xml launcher/app/src/main/res/layout/activity_main.xml launcher/app/src/main/res/values/config.xml launcher/app/src/main/res/values/strings.xml launcher/app/src/main/res/values-de/strings.xml launcher/app/src/main/java/com/gathin/tvhome/Config.java launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java README.md themes/README.md launcher/app/src/test/java/com/gathin/tvhome/WeatherTest.java && git commit -m "Wetterzeile: Temperatur und Wetterwort von Open-Meteo unter dem Datum, alle 30 Minuten"`
 
-**Reihenfolge der Ausführung:** 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 13 → 14 → 15 → 12.
 
 ---
 
