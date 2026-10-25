@@ -653,6 +653,21 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         return !animations ? 1f : advancedEffects ? 1.12f : 1.10f;
     }
 
+    /**
+     * Ends a tile's focus zoom where the Holder's animation was heading: the zoom and lift of a focused tile, or none.
+     * For the worlds' app start (WorldLaunchMotion), which must neither start from nor give back a half-run zoom.
+     */
+    void settleFocus(View card) {
+        card.animate().cancel();
+        boolean lifted = card.hasFocus() && animations;
+        float s = card.hasFocus() ? focusScale() : 1f;
+        float density = ctx.getResources().getDisplayMetrics().density;
+        card.setScaleX(s);
+        card.setScaleY(s);
+        card.setTranslationY(lifted && advancedEffects ? -4f * density : 0f);
+        card.setTranslationZ(lifted && advancedEffects ? 8f * density : 0f);
+    }
+
     /** A vivid colour sampled from the app's banner (or icon), cached per entry; a card's accent when it set one. */
     int ambientColorAt(int position) {
         if (position < 0 || position >= items.size()) return 0xFF444444;

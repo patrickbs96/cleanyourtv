@@ -520,7 +520,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             focusMotion = new WorldFocusMotion(glass, worldOverlay, sparks, scan);
             // The world's app start (spec § 4.7); its overlay is added only while an effect plays.
-            launchMotion = new WorldLaunchMotion(glass, worldScene);
+            // The tile's focus zoom ends where it was heading (the adapter is made further down, read at call time).
+            launchMotion = new WorldLaunchMotion(glass, worldScene, c -> adapter.settleFocus(c));
         }
         cinematic = cfg.cinematicHome;
         glowStyle = cfg.glowStyle;
@@ -1387,9 +1388,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         // While a world's app start plays (and its blend stands), keys wait: a second OK opens nothing twice, a held
-        // OK opens no tile menu, the D-pad moves no focus away from the growing tile. Volume still works.
-        if (launchMotion != null && launchMotion.isBusy()
-                && !WorldLaunchMotion.passesThrough(event.getKeyCode())) return true;
+        // OK opens no tile menu, the D-pad moves no focus away from the growing tile. Volume still works. Back before
+        // the app started drops the effect as leaving Home does (ruling R13): no app, Home as it was. Its release
+        // drops it, so neither half of the press reaches Home.
+        if (launchMotion != null && launchMotion.isBusy() && !WorldLaunchMotion.passesThrough(event.getKeyCode())) {
+            if (WorldLaunchMotion.cancelsEffect(event.getKeyCode()) && launchMotion.isPlaying()
+                    && event.getAction() == KeyEvent.ACTION_UP) {
+                launchMotion.cancel();
+            }
+            return true;
+        }
         if (handleSettingsKey(event)) return true;
         if (switchWorldKey(event)) return true;
         if (tileMenuEnabled && !reordering && openPopup == null && cardPrompt == null
@@ -3603,11 +3611,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     /**
-     * Hold OK on a tile: a glass menu next to it. Move starts reorder mode with this tile already picked up;
-     * Remove from Home takes the shortcut off (only with the app library on, where one press adds it back);
-     * App info opens the TV's page for the app, which is what holding OK used to do.
-     */
-    /**
      * OK on a tile. Clean, reduced motion and animations off open it at once, exactly as before; a world plays its
      * app-start effect first (spec § 4.7) and opens the tile at its end. A second OK while it plays is swallowed.
      */
@@ -3620,6 +3623,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         launchMotion.play(world, card, root, start);
     }
 
+    /**
+     * Hold OK on a tile: a glass menu next to it. Move starts reorder mode with this tile already picked up;
+     * Remove from Home takes the shortcut off (only with the app library on, where one press adds it back);
+     * App info opens the TV's page for the app, which is what holding OK used to do.
+     */
     @Override
     public void onTileLongPress(int position, View card) {
         if (reordering) return;

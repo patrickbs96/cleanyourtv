@@ -11,6 +11,8 @@ import android.widget.FrameLayout;
 
 import androidx.annotation.Nullable;
 
+import java.util.function.Consumer;
+
 /**
  * The worlds' app start (spec § 4.7), as the motion mockup (vier-welten-v4-motion.html) plays it, before the app's
  * startActivity. Hogwarts: the tile grows 1.07 to 1.25 in 400 ms and glows white-gold, a conic spark swirl turns out
@@ -24,8 +26,9 @@ import androidx.annotation.Nullable;
  * ({@link #shouldPlay}), so Clean adds no view. While an effect plays a second OK is swallowed ({@link #begin} and
  * the overlay still up); the app starts exactly once ({@link #finish}), at the effect's end or at the latest
  * {@link #timeoutMs} after it began. The overlay (LaunchFxView) stays {@link #REMOVE_AFTER_MS} after the start, so
- * the black or white holds until the app is in front, then the tile, frame and scene get their looks back. Home
- * leaving before the start (onPause) cancels the effect: the app does not start and the overlay goes at once.
+ * the black or white holds until the app is in front, then the tile (at the end of its focus zoom, never a half-run
+ * one), frame and scene get their looks back. Home leaving before the start (onPause), or Back pressed then, cancels
+ * the effect: the app does not start and the overlay goes at once.
  *
  * <p>The guard ({@link #begin}, {@link #finish}, {@link #cancel}) touches no Android class, so it runs in JVM tests.
  */
@@ -212,6 +215,11 @@ final class WorldLaunchMotion {
                 || keyCode == KeyEvent.KEYCODE_VOLUME_MUTE;
     }
 
+    /** Back while the effect plays, before the app started: the effect is dropped as on onPause (ruling R13). */
+    static boolean cancelsEffect(int keyCode) {
+        return keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_ESCAPE;
+    }
+
     boolean isPlaying() {
         return playing;
     }
@@ -225,6 +233,8 @@ final class WorldLaunchMotion {
 
     @Nullable private final View glass;
     @Nullable private final WorldScene scene;
+    /** Ends the tile's focus zoom where it was heading (AppAdapter.settleFocus); null in tests. */
+    @Nullable private final Consumer<View> settle;
     @Nullable private Handler handler;
     @Nullable private LaunchFxView fx;
     @Nullable private FrameLayout root;
@@ -239,13 +249,17 @@ final class WorldLaunchMotion {
 
     /** The guard alone, for tests. */
     WorldLaunchMotion() {
-        this(null, null);
+        this(null, null, null);
     }
 
-    /** {@code glass} fades out while the tile grows; {@code scene} zooms in Star Wars. */
-    WorldLaunchMotion(@Nullable View glass, @Nullable WorldScene scene) {
+    /**
+     * {@code glass} fades out while the tile grows; {@code scene} zooms in Star Wars; {@code settle} puts a tile at the
+     * end of its focus zoom, before the effect reads it and when the effect gives it back.
+     */
+    WorldLaunchMotion(@Nullable View glass, @Nullable WorldScene scene, @Nullable Consumer<View> settle) {
         this.glass = glass;
         this.scene = scene;
+        this.settle = settle;
     }
 
     /**
@@ -259,13 +273,17 @@ final class WorldLaunchMotion {
         handler.removeCallbacks(remove);
         this.root = root;
         this.card = card;
-        card.animate().cancel();   // a focus zoom still running would fight the effect's scale
+        // A focus zoom still running (OK right after a move) would fight the effect's scale, and cancelled halfway it
+        // would leave the tile half zoomed and half lifted: it ends where it was heading instead.
+        card.animate().cancel();
+        if (settle != null) settle.accept(card);
         cardScaleX0 = card.getScaleX();
         cardScaleY0 = card.getScaleY();
         cardAlpha0 = card.getAlpha();
         if (glass != null) {
+            // Its fade in (first focus) cancelled halfway: the frame was on its way to full, so it comes back full.
             glass.animate().cancel();
-            glassAlpha0 = glass.getAlpha();
+            glassAlpha0 = glass.getAlpha() > 0f ? 1f : 0f;
         }
         // The tile in root coordinates from its layout, plus the focus lift (translation); the scale is drawn apart.
         if (cardRect == null) cardRect = new Rect();
@@ -322,8 +340,12 @@ final class WorldLaunchMotion {
         View c = card;
         card = null;
         if (c != null) {
-            c.setScaleX(cardScaleX0);
-            c.setScaleY(cardScaleY0);
+            if (settle != null) {
+                settle.accept(c);   // the focus zoom of the tile as it is now, focused or not
+            } else {
+                c.setScaleX(cardScaleX0);
+                c.setScaleY(cardScaleY0);
+            }
             c.setAlpha(cardAlpha0);
         }
         if (glass != null && c != null) glass.setAlpha(glassAlpha0);

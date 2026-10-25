@@ -129,6 +129,21 @@ public class LaunchGuardTest {
     }
 
     @Test
+    public void backCancelsTheEffect() {
+        // Ruling R13: Back while the effect plays drops it, as leaving Home does; OK and the D-pad stay swallowed.
+        assertTrue(WorldLaunchMotion.cancelsEffect(android.view.KeyEvent.KEYCODE_BACK));
+        assertFalse(WorldLaunchMotion.cancelsEffect(android.view.KeyEvent.KEYCODE_DPAD_CENTER));
+        assertFalse(WorldLaunchMotion.cancelsEffect(android.view.KeyEvent.KEYCODE_VOLUME_UP));
+        WorldLaunchMotion m = new WorldLaunchMotion();
+        int[] starts = {0};
+        assertTrue(m.begin(World.MARVEL, () -> starts[0]++));
+        m.cancel();   // what MainActivity does on Back's release
+        m.finish();   // the timeout, had it not been removed
+        assertEquals(0, starts[0]);
+        assertFalse(m.isBusy());
+    }
+
+    @Test
     public void timeoutComesAfterTheEffect() {
         for (World w : World.values()) {
             if (w.isClean()) continue;
