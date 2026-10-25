@@ -81,7 +81,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -286,6 +285,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private AppLibraryDialog appLibrary;
     /** The world the colour keys picked (World.PREF_KEY), read once per onCreate; Clean is today's Home. */
     private World world = World.CLEAN;
+    /** The world's day or night picture behind Home; adds no views in Clean. */
+    private WorldScene worldScene;
     /** The app label behind the hero line in a world (whose text adds capitals or a prefix); unused in Clean. */
     private String heroLabel;
     private boolean appLibrarySelection;
@@ -372,6 +373,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (festive) updateWifiLabel();
             sky.update();
             wallpaperPlayer.update();
+            worldScene.update();
             handler.postDelayed(this, MINUTE_MS);
         }
     };
@@ -424,6 +426,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // black under it is a second full-screen fill on every frame for nothing. The starting window still uses
         // the theme's background, so launch looks the same.
         getWindow().setBackgroundDrawable(null);
+        // Before the wallpaper, whose picture then goes under the scene: a world wins over the theme's background.
+        worldScene = new WorldScene(this, root, world);
         wallpaperPlayer = new WallpaperPlayer(this, root, cfg);
         sky = findViewById(R.id.sky);
         sky.setIntensity(cfg.skyIntensity);
@@ -974,6 +978,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (showStats) startStats();
         sky.update();
         wallpaperPlayer.start();
+        worldScene.start();
         handler.postDelayed(minuteTick, MINUTE_MS);
         if (festive && diya != null) {
             diya.start();
@@ -1143,6 +1148,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         root.removeCallbacks(showIdleClock);
         endReorder();   // Home or another app while reordering keeps the order so far
         wallpaperPlayer.stop();
+        worldScene.stop();
         stopAmbientAnimation();
         hero.animate().cancel();
         ambient.animate().cancel();
@@ -2492,9 +2498,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
-    /** Day or night for the world's greeting words (Lumos/Nox). Task 4 swaps in the scene's sun times. */
+    /** Day or night for the world's greeting words (Lumos/Nox): the scene's, by the sun at config.xml's place. */
     private boolean worldDay() {
-        return WorldTypography.isDayHour(LocalTime.now().getHour());
+        return worldScene.isDay();
     }
 
     private void updateGreeting() {
