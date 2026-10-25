@@ -27,8 +27,9 @@ bleiben: nerdig in Licht, Farbe, Schrift und Bewegung, nicht in Logos.
 - Clean bleibt bit-identisch zum heutigen Verhalten, solange Clean gewählt ist.
 - Alles aus eigenem Code und frei lizenzierten Schriften gezeichnet; keine Logos, Figuren, Markenschriften,
   Filmbilder oder Zitate, die als Marke geschützt sind.
-- Leichtgewichtig: keine Videos, keine Shader, kein Netz, Dauerbewegung mit wenigen Dutzend Partikeln; mit
-  `reduced_motion` entfällt alle Bewegung außer dem Nötigsten.
+- Leichtgewichtig: keine Videos, keine Shader, Dauerbewegung mit wenigen Dutzend Partikeln; mit
+  `reduced_motion` entfällt alle Bewegung außer dem Nötigsten. Netz nur für die Wetterzeile (§ 4.10c), sonst nichts.
+- OLED-Schutz: Versatz der UI jede Minute (§ 4.10a), Uhr-Screensaver nach 10 min.
 
 **Nicht-Ziele**
 
@@ -209,6 +210,33 @@ Spielt beim Tastendruck/Einstellungswechsel, ≤ 900 ms, danach steht die neue H
 
 Nur kurze, generische Worte, keine geschützten Zitate: Hogwarts „Lumos“/„Nox“, Marvel „Suit up“, Star Wars „Äußerer Rand“
 als Ortsangabe hinter dem Gruß. Die vorhandene `greeting_name`-Logik bleibt und hängt hinten an.
+
+### 4.10a OLED-Versatz (Nachtrag 25.10., aus cosy-home-tv übernommen)
+
+Der heutige Launcher bewegt auf Home nichts; nur der Clock-Screensaver driftet. Neu: `oled_shift` (bool, `config.xml`
+und Theme, auf diesem TV `true`): Uhrblock, Pills, Hero, Raster samt Dock-Band und Fokusrahmen bekommen bei jedem
+Minuten-Tick denselben zufälligen Versatz von −3…+3 px in X und Y (reine Translation, 400 ms weich; Startwert 0, der
+erste Versatz kommt mit dem ersten Tick). Gilt für **alle vier Welten, auch Clean** – darum wird die
+Clean-Regression (§ 7) direkt nach dem Kaltstart gemessen, solange der Versatz 0 ist. Dazu `home_idle_clock_minutes=10`
+und `clock_glow=false` in `config.xml`: nach 10 min Stillstand auf Home läuft der driftende Uhr-Screensaver auf Schwarz.
+
+### 4.10b Ambilight-Pill (Nachtrag 25.10.)
+
+`ambilight_action` (string, `config.xml`/Theme; hier `org.droidtv.action.AMBILIGHT_OSD`, am TV geprüft: löst zu
+`org.droidtv.settings/.AmbilightOsd` auf). Nicht leer und auflösbar → vierte Pill „Ambilight“ zwischen Quellen und
+Netz, eigenes Vektor-Icon (Bildschirm mit Lichtkranz), öffnet die Aktion; in `top_menu` eine Zeile im Gear-Menü.
+In den Welten Icon-only wie die anderen Pills. Gilt auch in Clean (Konfiguration, keine Welt): die
+Clean-Vergleichsaufnahme wird nach dieser Änderung neu genommen.
+
+### 4.10c Wetterzeile (Nachtrag 25.10., bewusste Abweichung von „kein Netz“)
+
+Patrick hat am 25.10.2026 zugestimmt, dass der Launcher dafür ins Netz darf: Berechtigung `INTERNET`, genau eine
+Quelle, `api.open-meteo.com/v1/forecast` mit `latitude/longitude` aus `config.xml` (zwei Nachkommastellen, ≈ 1 km),
+`current=temperature_2m,weather_code`, `timezone=auto`. Abruf alle 30 min, solange Home im Vordergrund ist, 5 min nach
+einem Fehler, nie im Hintergrund; letzter Wert mit Zeitstempel in `SharedPreferences` und beim Start sofort gezeigt,
+wenn jünger als 2 h. Anzeige: eine Zeile unter dem Datum, „12° · Bewölkt“, WMO-Code → deutsche Wörter aus eigenen
+Strings, Typografie der Welt. `weather` (bool) schaltet sie ab; ohne Koordinaten ist sie aus und es gibt keinen
+Netzzugriff. Keine weiteren Verbindungen, keine Telemetrie. Das Add-on `addons/weather` bleibt davon unberührt.
 
 ### 4.10 Einstellungen und Persistenz
 

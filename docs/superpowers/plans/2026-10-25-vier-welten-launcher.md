@@ -442,11 +442,11 @@ public class WorldTransitionTest {
 
 ---
 
-### Task 12: Abnahme auf dem TV
+### Task 12: Abnahme auf dem TV (läuft **zuletzt**, nach Task 15)
 
 **Files:** keine Codeänderung außer Nachbesserungen; Ergebnisse in `docs/superpowers/plans/2026-10-25-vier-welten-abnahme.md`.
 
-- [ ] **Step 1: Clean-Regression** – Grün drücken; `tools/tv.py --screenshot shots/t12-clean.png`; `tools/venv/Scripts/pip install -r tools/requirements-perf.txt`; `tools/venv/Scripts/python tools/screendiff.py shots/02-home.png shots/t12-clean.png --mask 90,40,620,220 --out shots/t12-clean-diff.png`. Expected: `identical`. (Maske = Gruß/Uhr/Datum; Netflix-Fokus wie im Original.)
+- [ ] **Step 1: Clean-Regression** – Grün drücken; `tools/tv.py 'am force-stop com.gathin.tvhome; am start -a android.intent.action.MAIN -c android.intent.category.HOME -n com.gathin.tvhome/.MainActivity'`, innerhalb von 40 s (vor dem ersten Minuten-Tick, OLED-Versatz noch 0) `tools/tv.py --screenshot shots/t12-clean.png`; `tools/venv/Scripts/pip install -r tools/requirements-perf.txt`; `tools/venv/Scripts/python tools/screendiff.py shots/t14-clean-baseline.png shots/t12-clean.png --mask 90,40,620,260 --out shots/t12-clean-diff.png`. Expected: `identical`. (Baseline aus Task 14 Schritt 4, weil die Ambilight-Pill und die Wetterzeile Clean absichtlich verändern; Maske = Gruß/Uhr/Datum/Wetter; Netflix-Fokus.)
 - [ ] **Step 2: Kaltstart** – je Welt: `tools/tv.py 'am force-stop com.gathin.tvhome; am start -W -a android.intent.action.MAIN -c android.intent.category.HOME -n com.gathin.tvhome/.MainActivity | grep TotalTime'` dreimal, Mittel bilden. Expected: Welt − Clean ≤ 300 ms.
 - [ ] **Step 3: Speicher** – nach 2 min Home je Welt `tools/tv.py 'dumpsys meminfo com.gathin.tvhome | grep "TOTAL PSS"'`. Expected: Welt − Clean ≤ 25 MB.
 - [ ] **Step 4: Frames** – `tools/tv.py 'dumpsys gfxinfo com.gathin.tvhome reset'`, 20× `DPAD_RIGHT/LEFT` per `tools/tv.py`, dann `dumpsys gfxinfo com.gathin.tvhome | grep -E "Janky|95th"`. Expected: 95th ≤ 16 ms, Janky ≤ 5 %.
@@ -455,3 +455,80 @@ public class WorldTransitionTest {
 - [ ] **Step 7: Logs** – `tools/tv.py 'logcat -d | grep -iE "FATAL|AndroidRuntime|OutOfMemory" | tail -5'`. Expected: leer.
 - [ ] **Step 8: OLED-Check** – je Welt 10 min stehen lassen, dann Screenshot; die hellste statische Fläche (Sonnen, Mond, Reaktor-Kern) messen (`python -c` Luminanz > 153 = 60 %) – Fläche ≤ 2 % des Bildes. Expected: eingehalten; sonst Alpha der Quelle senken.
 - [ ] **Step 9: Abnahme-Notiz schreiben, committen, Branch pushen** – `git add docs/superpowers/plans/2026-10-25-vier-welten-abnahme.md && git commit -m "Welten: Abnahme auf dem Philips 65OLED934" && git push origin vier-welten`.
+
+---
+
+### Task 13: OLED-Versatz und Uhr-Screensaver
+
+**Files:**
+- Create: `launcher/app/src/main/java/com/gathin/tvhome/OledShift.java`
+- Modify: `launcher/app/src/main/res/values/config.xml` (neu `<bool name="oled_shift">true</bool>` mit Kommentar; `home_idle_clock_minutes` 0 → 10; `clock_glow` true → false), `Config.java` (Feld `oledShift`, Theme-Key `"oled_shift"`), `MainActivity.java` (`minuteTick` Zeile 359: `oledShift.next()`; `onCreate`: Instanz mit den Views; `onPause`: `reset()`), `themes/README.md` (Zeile für `oled_shift`)
+- Test: `launcher/app/src/test/java/com/gathin/tvhome/OledShiftTest.java`
+
+**Interfaces:**
+- Produces: `final class OledShift` mit `OledShift(List<View> views, Random rnd, boolean enabled)`, `static int[] nextOffset(Random rnd, int[] previous)` – zieht X und Y aus −3…+3 px (`density` wird außerhalb multipliziert), nie zweimal derselbe Punkt, `void next()` (animiert alle Views mit `animate().translationX/Y(...)`, 400 ms, `DecelerateInterpolator`; bei `!enabled` nichts), `void reset()` (Translation 0, ohne Animation), `int[] current()`. Views: `leftBlock`, `topButtons`, `hero`, `heroArt`, `ambient`, `grid`, `glass`, `worldHud`, `worldOrnament`, `stats`/`weather`. Der Fokusrahmen bekommt denselben Versatz wie `grid`, weil `onTileFocused` mit Layout-Koordinaten rechnet und Translationen nicht sieht: `glassScrollShift`-Mechanik vor Ort prüfen, sonst Versatz auf `glass` als zusätzliche Translation addieren (eigene `FloatProperty`, nicht die der Springs).
+- Startwert 0; erster Versatz beim ersten Minuten-Tick (Clean-Regression in Task 12 misst vorher).
+
+- [ ] **Step 1: Test schreiben**
+
+```java
+public class OledShiftTest {
+    @Test public void offsetsStayWithinThreePixels() { Random r = new Random(7); int[] p = {0, 0}; for (int i = 0; i < 500; i++) { p = OledShift.nextOffset(r, p); assertTrue(Math.abs(p[0]) <= 3 && Math.abs(p[1]) <= 3); } }
+    @Test public void neverRepeatsThePreviousPoint() { Random r = new Random(3); int[] p = {0, 0}; for (int i = 0; i < 500; i++) { int[] n = OledShift.nextOffset(r, p); assertFalse(n[0] == p[0] && n[1] == p[1]); p = n; } }
+    @Test public void disabledNeverMoves() { OledShift s = new OledShift(java.util.Collections.emptyList(), new Random(1), false); s.next(); assertArrayEquals(new int[]{0, 0}, s.current()); }
+}
+```
+
+- [ ] **Step 2–4: Fehlschlag, implementieren, grün** (`--tests 'com.gathin.tvhome.OledShiftTest'`).
+- [ ] **Step 5: Bauen; `tools/tv.py --screenshot shots/t13-a.png`, 65 s warten, `shots/t13-b.png`; `tools/venv/Scripts/python tools/screendiff.py shots/t13-a.png shots/t13-b.png --mask 90,40,620,260`.** Expected: `different` mit kleinem Versatz überall (Dock, Pills), Fokusrahmen weiterhin exakt auf der Kachel (Ausschnitt mit dem Read-Tool prüfen).
+- [ ] **Step 6: Screensaver** – Home 10 min unberührt lassen (oder vorübergehend `home_idle_clock_minutes` per Mini-Theme auf 1): `tools/tv.py 'dumpsys activity activities | grep mResumedActivity'`. Expected: `ClockActivity`; eine Taste → Home zurück. Danach Theme zurücksetzen.
+- [ ] **Step 7: Commit** – `git add launcher/app/src/main/java/com/gathin/tvhome/OledShift.java launcher/app/src/main/java/com/gathin/tvhome/Config.java launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java launcher/app/src/main/res/values/config.xml themes/README.md launcher/app/src/test/java/com/gathin/tvhome/OledShiftTest.java && git commit -m "OLED: Versatz der Oberfläche jede Minute, Uhr-Screensaver nach 10 Minuten"`
+
+---
+
+### Task 14: Ambilight-Pill
+
+**Files:**
+- Create: `launcher/app/src/main/res/drawable/ic_ambilight.xml` (22 dp: Rechteck mit sechs kurzen Strahlen, Vektor, eigene Zeichnung), `ic_ambilight_pill.xml` falls die Pills eine eigene Größe nutzen (wie `ic_home_settings_pill`)
+- Modify: `activity_main.xml` (neue `TextView android:id="@+id/btnAmbilight"` mit `style="@style/TopButton"` direkt nach `btnInputs`, `visibility="gone"`), `config.xml` (`<string name="ambilight_action" translatable="false">org.droidtv.action.AMBILIGHT_OSD</string>`), `Config.java` (Feld `ambilightAction`, Theme-Key), `MainActivity.java` (nach Zeile 691: sichtbar und verdrahtet, wenn `resolveActivity(new Intent(action))` nicht null; `pillKeys` und `advancedEffects`-Liste um die Pill ergänzen; `makeIconOnly` nach Welt-Regel; `showTopMenu` Zeile 3147: Zeile „Ambilight“), `WorldChrome.apply` (Pill-Hintergrund), `AndroidManifest.xml` `<queries>` (`<intent><action android:name="org.droidtv.action.AMBILIGHT_OSD"/></intent>`, sonst `resolveActivity` auf Android 11 null), Strings `ambilight` (en/de), `themes/README.md`
+- Test: JVM-Test nur, wenn `Config` bereits JVM-testbar ist (prüfen: gibt es eine `ConfigTest`?); sonst ist die Prüfung der Screenshot.
+
+- [ ] **Step 1: Implementieren wie oben.**
+- [ ] **Step 2: Bauen; `tools/tv.py --screenshot shots/t14-pill.png DPAD_UP DPAD_UP DPAD_RIGHT`.** Expected: Pill „Ambilight“ zwischen Quellen und Netz, fokussiert.
+- [ ] **Step 3: `tools/tv.py 'input keyevent DPAD_CENTER'`, 2 s warten, `tools/tv.py 'dumpsys activity activities | grep mResumedActivity'`.** Expected: `org.droidtv.settings/.AmbilightOsd`; `BACK` kehrt zu Home.
+- [ ] **Step 4: Clean-Baseline neu nehmen** – Grün; `am force-stop` + Start wie Task 12 Schritt 1; innerhalb 40 s `tools/tv.py --screenshot shots/t14-clean-baseline.png`. (Diese Aufnahme ist die Referenz der Abnahme.)
+- [ ] **Step 5: Commit** – `git add launcher/app/src/main/res/drawable/ic_ambilight*.xml launcher/app/src/main/res/layout/activity_main.xml launcher/app/src/main/res/values/config.xml launcher/app/src/main/res/values/strings.xml launcher/app/src/main/res/values-de/strings.xml launcher/app/src/main/java/com/gathin/tvhome/Config.java launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java launcher/app/src/main/java/com/gathin/tvhome/WorldChrome.java launcher/app/src/main/AndroidManifest.xml themes/README.md && git commit -m "Ambilight-Pill: öffnet das Philips-Ambilight-Menü, konfigurierbar über ambilight_action"`
+
+---
+
+### Task 15: Wetterzeile (Open-Meteo)
+
+**Files:**
+- Create: `launcher/app/src/main/java/com/gathin/tvhome/Weather.java`, `WeatherWords.java`
+- Modify: `AndroidManifest.xml` (`<uses-permission android:name="android.permission.INTERNET" />` mit Kommentar „nur Wetterzeile, Spec § 4.10c“), `activity_main.xml` (`TextView android:id="@+id/weather"` unter `date`, Stil wie `stats` Zeile 297–310, `visibility="gone"`), `config.xml` (`<bool name="weather">true</bool>`), `Config.java` (Feld `weather`, Theme-Key), `MainActivity.java` (`onResume`: `weather.start()`, `onPause`: `weather.stop()`; Welt-Typografie auch auf `weather`; `OledShift`-Liste), Strings `weather_line` („%1$s° · %2$s“) und WMO-Wörter (de/en), `README.md` des Forks (Abschnitt „Was der Launcher ins Netz sendet“), `themes/README.md`
+- Test: `launcher/app/src/test/java/com/gathin/tvhome/WeatherTest.java`
+
+**Interfaces:**
+- Produces: `final class Weather` mit `Weather(Context, TextView line, String latitude, String longitude, boolean enabled)`; `static String url(String lat, String lon)` = `https://api.open-meteo.com/v1/forecast?latitude=<lat>&longitude=<lon>&current=temperature_2m,weather_code&timezone=auto`; `static Reading parse(String json)` (`temperature_2m` → `int` gerundet, `weather_code` → `int`; `org.json` ist im JVM-Test nur ein Stub → `parse` mit minimalem handgeschriebenem Scanner für genau diese zwei Zahlenfelder, `null` bei allem anderen), `static boolean fresh(long savedAtMs, long nowMs)` = Alter < 2 h, `static long nextDelayMs(boolean lastFailed)` = 30 min bzw. 5 min; `void start()` (zeigt Cache wenn `fresh`, plant Abruf), `void stop()`; Abruf per `HttpURLConnection` auf `Executors.newSingleThreadExecutor()`, Timeouts 5 s, Ergebnis per `Handler` auf den Main-Thread; Cache in `SharedPreferences("weather")` (`temp`, `code`, `at`). Ohne Koordinaten oder `!enabled`: `start()` tut nichts, View bleibt `GONE`. Ein `Log.i("Weather", …)` je Abruf mit Dauer und Status, ohne Koordinaten.
+- `final class WeatherWords`: `static String key(int wmoCode)` – 0 `wmo_clear`, 1–2 `wmo_fair`, 3 `wmo_cloudy`, 45/48 `wmo_fog`, 51–57 `wmo_drizzle`, 61–67 `wmo_rain`, 71–77 `wmo_snow`, 80–82 `wmo_showers`, 85–86 `wmo_snow_showers`, 95–99 `wmo_thunder`, sonst `wmo_unknown`; `static int stringRes(Resources, String key)` über `getIdentifier`. Deutsch: klar, heiter, bewölkt, Nebel, Niesel, Regen, Schnee, Schauer, Schneeschauer, Gewitter, „—“.
+
+- [ ] **Step 1: Test schreiben**
+
+```java
+public class WeatherTest {
+    @Test public void urlUsesTwoDecimalsAndCurrentFields() { assertEquals("https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current=temperature_2m,weather_code&timezone=auto", Weather.url("52.52", "13.41")); }
+    @Test public void parseReadsTemperatureAndCode() { Weather.Reading r = Weather.parse("{\"current\":{\"time\":\"2026-10-25T19:15\",\"temperature_2m\":11.6,\"weather_code\":3}}"); assertEquals(12, r.temperature); assertEquals(3, r.code); }
+    @Test public void parseRejectsGarbage() { assertNull(Weather.parse("<html>")); assertNull(Weather.parse("{\"current\":{}}")); }
+    @Test public void freshnessIsTwoHours() { assertTrue(Weather.fresh(0, 2 * 3600_000L - 1)); assertFalse(Weather.fresh(0, 2 * 3600_000L)); }
+    @Test public void retryIsFiveMinutesAfterFailure() { assertEquals(30 * 60_000L, Weather.nextDelayMs(false)); assertEquals(5 * 60_000L, Weather.nextDelayMs(true)); }
+    @Test public void wmoWords() { assertEquals("wmo_clear", WeatherWords.key(0)); assertEquals("wmo_rain", WeatherWords.key(63)); assertEquals("wmo_thunder", WeatherWords.key(99)); assertEquals("wmo_unknown", WeatherWords.key(42)); }
+}
+```
+
+- [ ] **Step 2–4: Fehlschlag, implementieren, grün** (`--tests 'com.gathin.tvhome.WeatherTest'`).
+- [ ] **Step 5: Bauen; nach 10 s `tools/tv.py --screenshot shots/t15-weather.png`.** Expected: Zeile „<Temperatur>° · <Wort>“ unter dem Datum, in Welt-Schrift; `tools/tv.py 'dumpsys package com.gathin.tvhome | grep -c android.permission.INTERNET'` = 1 (nur diese Berechtigung neu).
+- [ ] **Step 6: Netz-Nachweis** – `tools/tv.py 'logcat -d -s Weather'`. Expected: genau ein Abruf nach dem Start, kein weiterer innerhalb von 30 min; nach `am force-stop` + Start innerhalb 2 h: Zeile sofort da, Abruf erst nach Plan.
+- [ ] **Step 7: Fehlerpfad** – kein WLAN-Trennen per adb möglich; der JVM-Test `parseRejectsGarbage` deckt den Parser, Logcat den nächsten echten Ausfall. Die Zeile bleibt bei Fehler auf dem letzten Wert, nie leer flackernd (Code-Review-Punkt).
+- [ ] **Step 8: Commit** – `git add launcher/app/src/main/java/com/gathin/tvhome/Weather.java launcher/app/src/main/java/com/gathin/tvhome/WeatherWords.java launcher/app/src/main/AndroidManifest.xml launcher/app/src/main/res/layout/activity_main.xml launcher/app/src/main/res/values/config.xml launcher/app/src/main/res/values/strings.xml launcher/app/src/main/res/values-de/strings.xml launcher/app/src/main/java/com/gathin/tvhome/Config.java launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java README.md themes/README.md launcher/app/src/test/java/com/gathin/tvhome/WeatherTest.java && git commit -m "Wetterzeile: Temperatur und Wetterwort von Open-Meteo unter dem Datum, alle 30 Minuten"`
+
+**Reihenfolge der Ausführung:** 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 13 → 14 → 15 → 12.
