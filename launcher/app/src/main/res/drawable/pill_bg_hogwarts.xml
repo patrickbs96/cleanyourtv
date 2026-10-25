@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hogwarts' top pills (spec § 4.4): round gold medallions, rim #C9A84C inside an outer ring of gold at 15 %.
+     The ring is part of the pill's 42dp, as a background cannot draw outside its view. Focused, the medallion fills
+     with the world's gold so pill_text's dark icon stands out, as on Clean's white pill. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true">
+        <layer-list>
+            <item>
+                <shape android:shape="rectangle">
+                    <stroke android:width="3dp" android:color="#59E8C87A" />
+                    <corners android:radius="21dp" />
+                </shape>
+            </item>
+            <item android:left="3dp" android:top="3dp" android:right="3dp" android:bottom="3dp">
+                <shape android:shape="rectangle">
+                    <solid android:color="#F5E8C87A" />
+                    <stroke android:width="1dp" android:color="#FFF5E9C8" />
+                    <corners android:radius="18dp" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+    <!-- Reorder button while reorder mode is on (focus is on the tiles then). -->
+    <item android:state_activated="true">
+        <layer-list>
+            <item>
+                <shape android:shape="rectangle">
+                    <stroke android:width="3dp" android:color="#26C9A84C" />
+                    <corners android:radius="21dp" />
+                </shape>
+            </item>
+            <item android:left="3dp" android:top="3dp" android:right="3dp" android:bottom="3dp">
+                <shape android:shape="rectangle">
+                    <solid android:color="#59C9A84C" />
+                    <stroke android:width="1.5dp" android:color="#FFE8C87A" />
+                    <corners android:radius="18dp" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+    <item>
+        <layer-list>
+            <item>
+                <shape android:shape="rectangle">
+                    <stroke android:width="3dp" android:color="#26C9A84C" />
+                    <corners android:radius="21dp" />
+                </shape>
+            </item>
+            <item android:left="3dp" android:top="3dp" android:right="3dp" android:bottom="3dp">
+                <shape android:shape="rectangle">
+                    <solid android:color="#8C141020" />
+                    <stroke android:width="1dp" android:color="#FFC9A84C" />
+                    <corners android:radius="18dp" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+</selector>

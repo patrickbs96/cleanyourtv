@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hogwarts' Inputs pill: a candle with its flame. One colour, tinted by the pill (pill_text). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="22dp" android:height="22dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <!-- Flame -->
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M12,1.8C12,1.8 9.4,4.9 9.4,6.8C9.4,8.3 10.6,9.4 12,9.4C13.4,9.4 14.6,8.3 14.6,6.8C14.6,4.9 12,1.8 12,1.8Z" />
+    <!-- Wick -->
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M11.55,9.2h0.9v1.6h-0.9z" />
+    <!-- Body with a drip down its left side -->
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M9.2,10.8H14.8V20H9.2V15.2C8.6,15.2 8.2,14.8 8.2,14.2V12.2C8.2,11.4 8.6,10.8 9.2,10.8Z" />
+    <!-- Holder -->
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M6.5,20.4h11a0.8,0.8 0 0,1 0.8,0.8v0a0.8,0.8 0 0,1 -0.8,0.8h-11a0.8,0.8 0 0,1 -0.8,-0.8v0a0.8,0.8 0 0,1 0.8,-0.8z" />
+</vector>

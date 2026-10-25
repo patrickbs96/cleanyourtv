@@ -757,7 +757,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
         btnLibraryTop.setVisibility(cfg.libraryButton && cfg.appLibrary ? View.VISIBLE : View.GONE);
         addTopBarApps(cfg.topBarApps);
-        iconOnlyButtons = cfg.iconOnlyButtons;
+        // The worlds show the pills as icons only (spec § 4.4); Clean keeps config.xml's choice.
+        iconOnlyButtons = cfg.iconOnlyButtons || world.forcesIconOnlyPills();
         topMenu = cfg.topMenu;
         wifiIconOnly = iconOnlyButtons && cfg.wifiLabelWidth <= 0;
         if (cfg.wifiStatusColor) {
@@ -791,11 +792,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             else makeIconOnly(btnWifi);
             makeIconOnly((TextView) btnSettings);
         }
-        if (cfg.iconOnlyInputs) makeIconOnly((TextView) btnInputs);
+        if (cfg.iconOnlyInputs || world.forcesIconOnlyPills()) makeIconOnly((TextView) btnInputs);
         btnSettings.setOnLongClickListener(v -> {
             showSettingsMenu();
             return true;
         });
+        // The world's pill backgrounds and icons, HUD corners, scanlines and ornament; Clean returns untouched.
+        WorldChrome.apply(world, this, (TextView) btnInputs, btnWifi, (TextView) btnSettings,
+                findViewById(R.id.worldHud), findViewById(R.id.worldOrnament), findViewById(R.id.worldScanlines));
 
         // Keep focus on the top bar at its ends and at the top: Android's focus finder would otherwise
         // jump to a tile far below when there is nothing in that direction.
@@ -829,7 +833,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         .setDuration(reducedMotion ? Motion.REDUCED_MS : 160).start());
             }
         }
-        if (festive) applyFestiveSkin((TextView) btnInputs, (TextView) btnSettings);
+        // A world's pills win over a festival's, as its accent and greeting do.
+        if (festive && world.isClean()) applyFestiveSkin((TextView) btnInputs, (TextView) btnSettings);
 
         // Hide the glass when focus leaves the tiles.
         getWindow().getDecorView().getViewTreeObserver().addOnGlobalFocusChangeListener((oldF, newF) -> {
@@ -2744,7 +2749,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             diya.setSteady(steady);
             diya.setFlame(flame);
         } else {
-            if (icon != wifiIcon) {
+            // Hogwarts' owl stays on the pill whatever the link; the status colours below still tint it.
+            if (icon != wifiIcon && !WorldChrome.ownsNetworkIcon(world)) {
                 wifiIcon = icon;
                 btnWifi.setCompoundDrawablesRelativeWithIntrinsicBounds(icon, 0, 0, 0);
             }

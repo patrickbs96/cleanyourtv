@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hogwarts' network pill: an owl, the post that carries the messages. One colour, tinted by the pill (pill_text,
+     or the network status colours); the eyes and beak are cut out by the even-odd fill, the pupils filled again. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="22dp" android:height="22dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M4.6,3.6L8,6.4C9.2,5.9 10.6,5.6 12,5.6C13.4,5.6 14.8,5.9 16,6.4L19.4,3.6L18.9,9C19.6,10.3 20,11.8 20,13.4C20,17.9 16.4,21.2 12,21.2C7.6,21.2 4,17.9 4,13.4C4,11.8 4.4,10.3 5.1,9Z
+            M6.6,11.4a2.4,2.4 0 1,0 4.8,0a2.4,2.4 0 1,0 -4.8,0Z
+            M12.6,11.4a2.4,2.4 0 1,0 4.8,0a2.4,2.4 0 1,0 -4.8,0Z
+            M8.05,11.4a0.95,0.95 0 1,0 1.9,0a0.95,0.95 0 1,0 -1.9,0Z
+            M14.05,11.4a0.95,0.95 0 1,0 1.9,0a0.95,0.95 0 1,0 -1.9,0Z
+            M10.9,14.2H13.1L12,16.2Z" />
+</vector>

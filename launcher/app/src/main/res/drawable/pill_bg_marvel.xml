@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Marvel's top pills (spec § 4.4): square HUD switches, 4dp corners, rim #78C8FF at 80 % with a soft inner glow.
+     Focused, the switch fills with the reactor blue so pill_text's dark icon stands out, as on Clean's white pill. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true">
+        <layer-list>
+            <item>
+                <shape android:shape="rectangle">
+                    <solid android:color="#F29FDCFF" />
+                    <stroke android:width="1dp" android:color="#FFFFFFFF" />
+                    <corners android:radius="4dp" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+    <!-- Reorder button while reorder mode is on (focus is on the tiles then). -->
+    <item android:state_activated="true">
+        <layer-list>
+            <item>
+                <shape android:shape="rectangle">
+                    <solid android:color="#5978C8FF" />
+                    <stroke android:width="1.5dp" android:color="#FF9FDCFF" />
+                    <corners android:radius="4dp" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+    <item>
+        <layer-list>
+            <item>
+                <shape android:shape="rectangle">
+                    <solid android:color="#990A141E" />
+                    <corners android:radius="4dp" />
+                </shape>
+            </item>
+            <!-- The inner glow: a wide, faint band just inside the rim. -->
+            <item android:left="1dp" android:top="1dp" android:right="1dp" android:bottom="1dp">
+                <shape android:shape="rectangle">
+                    <stroke android:width="3dp" android:color="#2678C8FF" />
+                    <corners android:radius="3dp" />
+                </shape>
+            </item>
+            <item>
+                <shape android:shape="rectangle">
+                    <stroke android:width="1dp" android:color="#CC78C8FF" />
+                    <corners android:radius="4dp" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+</selector>
