@@ -428,6 +428,15 @@
                     android:drawableStart="@drawable/ic_wifi"
                     android:nextFocusDown="@+id/grid" />
 
+                <!-- ambilight_action: shown only where that action resolves (MainActivity). -->
+                <TextView
+                    android:id="@+id/btnAmbilight"
+                    style="@style/TopButton"
+                    android:visibility="gone"
+                    android:text="@string/ambilight"
+                    android:drawableStart="@drawable/ic_ambilight"
+                    android:nextFocusDown="@+id/grid" />
+
                 <TextView
                     android:id="@+id/btnInputs"
                     style="@style/TopButton"

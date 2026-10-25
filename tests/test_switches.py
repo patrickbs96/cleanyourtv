@@ -38,6 +38,8 @@ SCREENSHOT_WANTED = {
     "wifi_status_color",
     # Vier Welten, Task 13: its screenshot waits until the TV is free again (the shift itself is 0 to 3 dp).
     "oled_shift",
+    # Vier Welten, Task 14: its screenshot waits until the TV is free again (shots/t14-pill.png).
+    "ambilight_action",
 }
 
 

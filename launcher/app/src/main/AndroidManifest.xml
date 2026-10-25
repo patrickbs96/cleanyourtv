@@ -55,6 +55,11 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="com.gathin.tvhome.category.DOCK_CARD" />
         </intent>
+        <!-- ambilight_action: the Ambilight pill shows only where this resolves (Philips' AmbilightOsd). A theme that
+             sets another action needs it here too, or package visibility hides its activity. -->
+        <intent>
+            <action android:name="org.droidtv.action.AMBILIGHT_OSD" />
+        </intent>
         <!-- stock_home_redirect: HomeKeyService looks up the stock launcher's HOME activity. -->
         <intent>
             <action android:name="android.intent.action.MAIN" />

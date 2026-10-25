@@ -187,6 +187,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private View btnInputs;
     /** config show_inputs_pill: false keeps the Inputs pill hidden even when the TV has inputs. */
     private boolean showInputsPill = true;
+    /** ambilight_action's pill, between Inputs and the network pill; gone where the action does not resolve. */
+    private TextView btnAmbilight;
+    /** The ambient-light menu ambilight_action opens, resolved once in onCreate; null where there is none. */
+    private Intent ambilightIntent;
     private TextView btnWifi;
     /** The network pill's icon as last set, so a refresh that changes nothing does not lay the top bar out again. */
     private int wifiIcon;
@@ -816,6 +820,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnInputs = findViewById(R.id.btnInputs);
         View btnSettings = findViewById(R.id.btnSettings);
         btnInputs.setOnClickListener(v -> showInputs());
+        // ambilight_action: the TV's own ambient-light menu (Philips' AmbilightOsd). Only where the action resolves,
+        // so every other TV keeps the bar as it was; the action is in the manifest's <queries> for Android 11.
+        btnAmbilight = findViewById(R.id.btnAmbilight);
+        ambilightIntent = cfg.ambilightAction.isEmpty() ? null : new Intent(cfg.ambilightAction);
+        if (ambilightIntent != null && ambilightIntent.resolveActivity(getPackageManager()) == null) ambilightIntent = null;
+        btnAmbilight.setOnClickListener(v -> openAmbilight());
+        btnAmbilight.setVisibility(ambilightIntent != null && !cfg.topMenu ? View.VISIBLE : View.GONE);
         btnWifi.setOnClickListener(v -> openNetworkPill());
         btnWifi.setOnLongClickListener(v -> {
             open(systemIntent(Settings.ACTION_WIFI_SETTINGS));
@@ -877,6 +888,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (iconOnlyButtons) {
             if (cfg.wifiLabelWidth > 0) btnWifi.setMaxWidth(Math.round(cfg.wifiLabelWidth * density));
             else makeIconOnly(btnWifi);
+            makeIconOnly(btnAmbilight);
             makeIconOnly((TextView) btnSettings);
         }
         if (cfg.iconOnlyInputs) makeIconOnly((TextView) btnInputs);
@@ -910,13 +922,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == rightButton;
         };
         btnInputs.setOnKeyListener(pillKeys);
+        btnAmbilight.setOnKeyListener(pillKeys);
         btnWifi.setOnKeyListener(pillKeys);
         btnSettings.setOnKeyListener(pillKeys);
         btnReorder.setOnKeyListener(pillKeys);
         btnLibraryTop.setOnKeyListener(pillKeys);
         for (View button : topAppButtons) button.setOnKeyListener(pillKeys);
         if (advancedEffects) {
-            List<View> pills = new ArrayList<>(Arrays.asList(btnInputs, btnWifi, btnReorder, btnLibraryTop, btnSettings));
+            List<View> pills = new ArrayList<>(Arrays.asList(btnInputs, btnAmbilight, btnWifi, btnReorder, btnLibraryTop, btnSettings));
             pills.addAll(topAppButtons);
             for (View button : pills) {
                 button.setOnFocusChangeListener((view, focused) -> view.animate()
@@ -3213,6 +3226,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         return 0xFF000000 | (r << 16) | (g << 8) | b;
     }
 
+    /** The Ambilight pill (and its top_menu row): the ambient-light menu, a fresh copy as open() adds a flag. */
+    private void openAmbilight() {
+        if (ambilightIntent != null) open(new Intent(ambilightIntent));
+    }
+
     /** The network pill opens the VPN app when one is configured and installed, otherwise Wi-Fi settings. */
     private void openNetworkPill() {
         Intent i = vpnApp.isEmpty() ? null : getPackageManager().getLeanbackLaunchIntentForPackage(vpnApp);
@@ -3623,6 +3641,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         PopupWindow popup = glassPopup(panel, (int) (220 * density));
         // Inputs opens its own list once this one has closed.
         if (showInputsMenuRow) addInputRow(rows, popup, R.drawable.ic_input, getString(R.string.inputs), -1, () -> root.post(this::showInputs));
+        if (ambilightIntent != null) addInputRow(rows, popup, R.drawable.ic_ambilight, getString(R.string.ambilight), -1, this::openAmbilight);
         addInputRow(rows, popup, R.drawable.ic_wifi, getString(R.string.quick_network), -1, this::openNetworkPill);
         CharSequence network = wifiIconOnly ? btnWifi.getContentDescription() : btnWifi.getText();
         if (!TextUtils.isEmpty(network)) {
