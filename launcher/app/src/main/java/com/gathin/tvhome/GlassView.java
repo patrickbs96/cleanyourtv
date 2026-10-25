@@ -60,7 +60,19 @@ public class GlassView extends View {
 
     /** Tints the rim and the outer glow; 0 restores the plain white glass. */
     void setAccent(int argb) {
-        if (argb == 0) {
+        setAccent(argb, false);
+    }
+
+    /**
+     * As {@link #setAccent(int)}; exact (the worlds, spec § 4.4) paints the rim in the accent itself instead of lifting
+     * it towards white. The glow is the same either way.
+     */
+    void setAccent(int argb, boolean exact) {
+        if (exact && argb != 0) {
+            glowRgb = argb & 0xFFFFFF;
+            glowAlpha = 0x70;
+            rim.setColor(argb);
+        } else if (argb == 0) {
             glowRgb = 0xFFFFFF;
             glowAlpha = 0x30;
             rim.setColor(0xCCFFFFFF);

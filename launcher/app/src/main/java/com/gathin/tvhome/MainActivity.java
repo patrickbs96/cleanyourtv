@@ -447,14 +447,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         sky = findViewById(R.id.sky);
         sky.setIntensity(cfg.skyIntensity);
         glass = findViewById(R.id.glass);
-        // A world's focus frame is the crisp rim in its accent; Marvel adds the target brackets, at rest locked on.
-        glass.setStyle(world.isClean() ? cfg.glassStyle : Config.GLASS_RIM);
+        // A world's focus frame is the rim with its glow (halo) in its exact accent; Marvel adds the target brackets,
+        // at rest locked on.
+        glass.setStyle(world.isClean() ? cfg.glassStyle : Config.GLASS_HALO);
         if (world == World.MARVEL) {
             glass.setBrackets(true);
             glass.setBracketsLocked(true);
         }
         // A world's accent wins over a festival's, the way the festival's wins over the app colours.
-        if (!world.isClean()) glass.setAccent(world.accent);
+        if (!world.isClean()) glass.setAccent(world.accent, true);
         else if (festive) glass.setAccent(festival.accentColor());
         ambient = findViewById(R.id.ambient);
         // The glow is one bitmap, so its alpha can be applied while drawing it. Otherwise every frame of
@@ -1560,7 +1561,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         drop();
         reordering = false;
         adapter.setReordering(false);
-        glass.setAccent(!world.isClean() ? world.accent : festive ? festival.accentColor() : 0);
+        if (!world.isClean()) glass.setAccent(world.accent, true);
+        else glass.setAccent(festive ? festival.accentColor() : 0);
         btnReorder.setActivated(false);
         List<String> keys = adapter.movableKeys();
         List<String> before = orderAtStart;
@@ -2121,6 +2123,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void hideGlass() {
+        // Focus left the tiles (pills, library): no section of the Star Wars scale stays lit.
+        if (worldDock != null && world == World.STARWARS) {
+            worldDock.setFocusedSlot(-1);
+            grid.invalidate();
+        }
         if (!glassShown) return;
         glassShown = false;
         glass.animate().cancel();

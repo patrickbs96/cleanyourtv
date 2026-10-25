@@ -17,6 +17,11 @@ public class WorldDockGeometryTest {
     }
 
     @Test
+    public void quarterBoundaryStartsTheNextHouse() {
+        assertEquals(0xFFC9A84C, WorldDockDecoration.stripeColorAt(0.25f));
+    }
+
+    @Test
     public void ticksEveryThreePointTwoPercent() {
         assertEquals(31, WorldDockDecoration.tickCount(1000f, 1f));
     }
