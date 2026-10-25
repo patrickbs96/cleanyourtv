@@ -309,6 +309,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private String heroLabel;
     /** A world's dock move (spec § 4.6): sparks, brackets and scan, the hero's flash and typing; null in Clean. */
     private WorldFocusMotion focusMotion;
+    /** A world's app start (spec § 4.7): the effect before the app opens; null in Clean. */
+    private WorldLaunchMotion launchMotion;
     /** Star Wars: the frame's three hard steps, then its blip; both reused, null elsewhere. */
     private ValueAnimator glassSteps, glassBlip;
     private float stepFromX, stepFromY, stepToX, stepToY;
@@ -517,6 +519,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             }
             focusMotion = new WorldFocusMotion(glass, worldOverlay, sparks, scan);
+            // The world's app start (spec § 4.7); its overlay is added only while an effect plays.
+            launchMotion = new WorldLaunchMotion(glass, worldScene);
         }
         cinematic = cfg.cinematicHome;
         glowStyle = cfg.glowStyle;
@@ -1030,6 +1034,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             recreate();
             return;
         }
+        // Back from the app: nothing of its start effect is left over Home.
+        if (launchMotion != null) launchMotion.onResume();
         restartIdleClock();
         promptsPaused = false;
         if (grid.getAdapter() == null) grid.setAdapter(adapter);   // dropped by onTrimMemory
@@ -1249,6 +1255,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         heroArt.animate().cancel();
         // Nothing of a world's dock move plays on behind another app; the frame lands on its tile.
         if (focusMotion != null) focusMotion.cancel();
+        // An app start still playing when Home is left (Home pressed mid-effect) is dropped: no app opens and the
+        // overlay goes. One whose app already started keeps its blend the 400 ms until the app is in front.
+        if (launchMotion != null) launchMotion.onPause();
         settleGlassSteps();
         flushDelayedGlassMove();
         handler.removeCallbacks(minuteTick);
@@ -1306,6 +1315,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (launchMotion != null) launchMotion.cancel();
         unregisterReceiver(packageReceiver);
         wallpaperPlayer.close();
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
@@ -1376,6 +1386,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      */
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
+        // While a world's app start plays (and its blend stands), keys wait: a second OK opens nothing twice, a held
+        // OK opens no tile menu, the D-pad moves no focus away from the growing tile. Volume still works.
+        if (launchMotion != null && launchMotion.isBusy()
+                && !WorldLaunchMotion.passesThrough(event.getKeyCode())) return true;
         if (handleSettingsKey(event)) return true;
         if (switchWorldKey(event)) return true;
         if (tileMenuEnabled && !reordering && openPopup == null && cardPrompt == null
@@ -3593,6 +3607,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * Remove from Home takes the shortcut off (only with the app library on, where one press adds it back);
      * App info opens the TV's page for the app, which is what holding OK used to do.
      */
+    /**
+     * OK on a tile. Clean, reduced motion and animations off open it at once, exactly as before; a world plays its
+     * app-start effect first (spec § 4.7) and opens the tile at its end. A second OK while it plays is swallowed.
+     */
+    @Override
+    public void onTileLaunch(int position, View card, Runnable start) {
+        if (launchMotion == null || !WorldLaunchMotion.shouldPlay(world, animations, reducedMotion)) {
+            start.run();
+            return;
+        }
+        launchMotion.play(world, card, root, start);
+    }
+
     @Override
     public void onTileLongPress(int position, View card) {
         if (reordering) return;

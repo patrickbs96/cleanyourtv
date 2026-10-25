@@ -1,0 +1,138 @@
+package com.gathin.tvhome;
+
+import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+/** The worlds' app start (spec § 4.7): who plays it, how long, and that the app starts exactly once. */
+public class LaunchGuardTest {
+
+    @Test
+    public void cleanAndReducedMotionStartImmediately() {
+        assertFalse(WorldLaunchMotion.shouldPlay(World.CLEAN, true, false));
+        assertFalse(WorldLaunchMotion.shouldPlay(World.MARVEL, true, true));
+        assertFalse(WorldLaunchMotion.shouldPlay(World.MARVEL, false, false));
+        assertTrue(WorldLaunchMotion.shouldPlay(World.MARVEL, true, false));
+    }
+
+    @Test
+    public void durationsStayUnderLimit() {
+        for (World w : World.values()) assertTrue(WorldLaunchMotion.durationMs(w) <= 1300);
+        assertEquals(0, WorldLaunchMotion.durationMs(World.CLEAN));
+        assertEquals(1200, WorldLaunchMotion.durationMs(World.HOGWARTS));
+        assertEquals(1300, WorldLaunchMotion.durationMs(World.MARVEL));
+        assertEquals(1250, WorldLaunchMotion.durationMs(World.STARWARS));
+    }
+
+    @Test
+    public void secondPressWhilePlayingIsSwallowed() {
+        WorldLaunchMotion m = new WorldLaunchMotion();
+        int[] starts = {0};
+        assertTrue(m.begin(World.HOGWARTS, () -> starts[0]++));   // begin(): nur der Guard, ohne Views
+        assertFalse(m.begin(World.HOGWARTS, () -> starts[0]++));
+        m.finish();
+        assertEquals(1, starts[0]);
+    }
+
+    @Test
+    public void finishRunsStartOnlyOnce() {
+        // The effect's last frame and the timeout both finish: the app still starts once.
+        WorldLaunchMotion m = new WorldLaunchMotion();
+        int[] starts = {0};
+        assertTrue(m.begin(World.MARVEL, () -> starts[0]++));
+        m.finish();
+        m.finish();
+        assertEquals(1, starts[0]);
+        assertFalse(m.isPlaying());
+    }
+
+    @Test
+    public void cancelDropsTheStart() {
+        // Home pressed mid-effect (onPause): the app is not started, and the next press plays anew.
+        WorldLaunchMotion m = new WorldLaunchMotion();
+        int[] starts = {0};
+        assertTrue(m.begin(World.STARWARS, () -> starts[0]++));
+        m.cancel();
+        m.finish();
+        assertEquals(0, starts[0]);
+        assertTrue(m.begin(World.STARWARS, () -> starts[0]++));
+        m.finish();
+        assertEquals(1, starts[0]);
+    }
+
+    @Test
+    public void startThrowingStillFreesTheGuard() {
+        WorldLaunchMotion m = new WorldLaunchMotion();
+        assertTrue(m.begin(World.HOGWARTS, () -> { throw new IllegalStateException("no app"); }));
+        try {
+            m.finish();
+        } catch (IllegalStateException expected) {
+            // the caller's problem; the guard must not stay shut
+        }
+        assertFalse(m.isPlaying());
+    }
+
+    @Test
+    public void blendFollowsTheSpecTimeline() {
+        // Hogwarts: black only from 60 % of 1.2 s, full at the start.
+        assertEquals(0f, WorldLaunchMotion.blendAlpha(World.HOGWARTS, 700), 1e-6);
+        assertEquals(1f, WorldLaunchMotion.blendAlpha(World.HOGWARTS, 1200), 1e-6);
+        // Marvel: white from 1.0 s over 300 ms; Star Wars over 250 ms.
+        assertEquals(0f, WorldLaunchMotion.blendAlpha(World.MARVEL, 999), 1e-6);
+        assertEquals(1f, WorldLaunchMotion.blendAlpha(World.MARVEL, 1300), 1e-6);
+        assertEquals(0f, WorldLaunchMotion.blendAlpha(World.STARWARS, 999), 1e-6);
+        assertEquals(1f, WorldLaunchMotion.blendAlpha(World.STARWARS, 1250), 1e-6);
+        assertEquals(0xFF000000, WorldLaunchMotion.blendColor(World.HOGWARTS));
+        assertEquals(0xFFFFFFFF, WorldLaunchMotion.blendColor(World.MARVEL));
+        // Every effect is full at its own end: the app never comes up over a half-faded Home.
+        for (World w : World.values()) {
+            if (!w.isClean()) assertEquals(1f, WorldLaunchMotion.blendAlpha(w, WorldLaunchMotion.durationMs(w)), 1e-6);
+        }
+    }
+
+    @Test
+    public void tileGrowsAsTheSpecSays() {
+        assertEquals(1.07f, WorldLaunchMotion.tileScaleX(World.HOGWARTS, 0, 1.07f), 1e-6);
+        assertEquals(1.25f, WorldLaunchMotion.tileScaleX(World.HOGWARTS, 440, 1.07f), 1e-4);
+        assertEquals(1.35f, WorldLaunchMotion.tileScaleX(World.MARVEL, 900, 1.07f), 1e-4);
+        assertEquals(1.07f, WorldLaunchMotion.tileScaleX(World.STARWARS, 99, 1.07f), 1e-6);
+        assertEquals(6f, WorldLaunchMotion.tileScaleX(World.STARWARS, 1100, 1.07f), 1e-4);
+        assertEquals(1.6f, WorldLaunchMotion.tileScaleY(World.STARWARS, 1100, 1.07f), 1e-4);
+        assertEquals(0f, WorldLaunchMotion.tileAlpha(World.STARWARS, 1100), 1e-4);
+        assertEquals(1f, WorldLaunchMotion.tileAlpha(World.MARVEL, 1100), 1e-6);
+        assertEquals(1.4f, WorldLaunchMotion.sceneZoom(World.STARWARS, 1100), 1e-4);
+        assertEquals(1f, WorldLaunchMotion.sceneZoom(World.HOGWARTS, 1100), 1e-6);
+    }
+
+    @Test
+    public void bezierMatchesCssEndpointsAndIsMonotonic() {
+        float last = 0f;
+        for (int i = 0; i <= 20; i++) {
+            float v = WorldLaunchMotion.bezier(0.2f, 0.8f, 0.2f, 1f, i / 20f);
+            assertTrue(v >= last - 1e-4f);
+            last = v;
+        }
+        assertEquals(0f, WorldLaunchMotion.ease(0f), 1e-6);
+        assertEquals(1f, WorldLaunchMotion.ease(1f), 1e-6);
+        // CSS ease at half time is about 0.80.
+        assertEquals(0.8024f, WorldLaunchMotion.ease(0.5f), 2e-3);
+    }
+
+    @Test
+    public void onlyVolumePassesWhilePlaying() {
+        assertTrue(WorldLaunchMotion.passesThrough(android.view.KeyEvent.KEYCODE_VOLUME_UP));
+        assertTrue(WorldLaunchMotion.passesThrough(android.view.KeyEvent.KEYCODE_VOLUME_MUTE));
+        assertFalse(WorldLaunchMotion.passesThrough(android.view.KeyEvent.KEYCODE_DPAD_CENTER));
+        assertFalse(WorldLaunchMotion.passesThrough(android.view.KeyEvent.KEYCODE_BACK));
+    }
+
+    @Test
+    public void timeoutComesAfterTheEffect() {
+        for (World w : World.values()) {
+            if (w.isClean()) continue;
+            assertEquals(WorldLaunchMotion.durationMs(w) + 200, WorldLaunchMotion.timeoutMs(w));
+        }
+    }
+}

@@ -128,6 +128,15 @@ final class WorldScene {
         listener = onMoodChanged;
     }
 
+    /** Zooms the picture round the screen's middle, 1 for none (Star Wars' app start, spec § 4.7). */
+    void setZoom(float scale) {
+        if (bottom == null) return;
+        bottom.setScaleX(scale);
+        bottom.setScaleY(scale);
+        top.setScaleX(scale);
+        top.setScaleY(scale);
+    }
+
     /** auto, day or night (anything else is auto), until the next Home start; the scene follows at once. */
     void forceMood(String mood) {
         forced = MOOD_DAY.equals(mood) || MOOD_NIGHT.equals(mood) ? mood : MOOD_AUTO;

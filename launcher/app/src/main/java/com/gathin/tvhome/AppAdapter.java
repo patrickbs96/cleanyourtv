@@ -61,6 +61,11 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         /** Hold OK on a tile: the activity shows the tile menu (move, remove from Home, app info). */
         void onTileLongPress(int position, View card);
         void onLibraryUp();
+        /**
+         * OK on a tile (dock and grid): the activity runs {@code start}, which opens the tile, at once or after the
+         * world's app-start effect (WorldLaunchMotion).
+         */
+        void onTileLaunch(int position, View card, Runnable start);
     }
 
     static final class Entry {
@@ -480,7 +485,10 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             h.label.setText(e.label);
             h.label.setVisibility(uniformTiles ? View.GONE : View.VISIBLE);
         }
-        h.card.setOnClickListener(v -> launch(e));
+        h.card.setOnClickListener(v -> {
+            if (listener == null) launch(e);
+            else listener.onTileLaunch(h.getBindingAdapterPosition(), h.card, () -> launch(e));
+        });
         h.card.setOnLongClickListener(v -> {
             if (tileMenu) {
                 int pos = h.getBindingAdapterPosition();
