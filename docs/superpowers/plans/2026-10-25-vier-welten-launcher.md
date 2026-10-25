@@ -546,18 +546,35 @@ public class WeatherTest {
 
 ---
 
-### Task 16: Tastenbelegung mit Doppelklick, Button Mapper ablösen (nach Task 15, vor Task 12)
+### Task 16: Tastenbelegung – Doppelklick-Motor und Einstellungs-Seite mit Lernmodus (nach Task 15, vor Task 17)
 
 **Files:**
-- Modify: `launcher/app/src/main/java/com/gathin/tvhome/RemoteKeys.java` (Parser: Präfix `double:`; Maps `doubleKeycodes`, `doubleScancodes` analog zu den `hold:`-Maps), `HomeKeyService.java` und `InputKeyService.java` (Doppelklick-Erkennung dort, wo `hold:` ausgewertet wird), `config.xml` (`app_keys` mit den gemessenen Einträgen), `themes/README.md` (Zeile zu `double:`)
-- Test: `launcher/app/src/test/java/com/gathin/tvhome/RemoteKeysDoubleTest.java` (es gibt bereits Tests zu `RemoteKeys`; daneben legen)
+- Modify: `launcher/app/src/main/java/com/gathin/tvhome/RemoteKeys.java` (Parser: Präfix `double:`; Maps `doubleKeycodes`, `doubleScancodes` analog zu den `hold:`-Maps; neu: Belegungen aus `SharedPreferences` **überlagern** die aus `config.xml`/Theme), `HomeKeyService.java` und `InputKeyService.java` (Doppelklick-Erkennung dort, wo `hold:` ausgewertet wird; Lernmodus-Broadcast), `LauncherSettingsActivity.java` (Zeile „Tastenbelegung“), `themes/README.md` (Zeile zu `double:`)
+- Create: `launcher/app/src/main/java/com/gathin/tvhome/KeyBindings.java` (Speicherformat), `KeyBindingsActivity.java` + `res/layout/activity_key_bindings.xml` (die Seite), `AppPickerDialog.java` (App-Auswahl: alle installierten Apps mit Leanback- oder Phone-Start, dazu „Nichts“, „Quellen-Menü“, „Alle Apps schließen“ aus Task 17), Strings de/en
+- Test: `launcher/app/src/test/java/com/gathin/tvhome/RemoteKeysDoubleTest.java`, `KeyBindingsTest.java`
 
 **Interfaces:**
-- Produces in `RemoteKeys`: `static final long DOUBLE_MS = 400`; `static Map<Integer,String> parseDoubleKeys(List<String> entries)` und `parseDoubleScancodes(...)` – lesen nur Einträge mit Präfix `double:` (Rest wie `parseAppKeys`/`parseAppScancodes`), `static List<String> withoutDouble(List<String> entries)`; Zustandsklasse `DoubleTap` mit `DoubleTap(long windowMs)`, `int onTap(int key, long nowMs)` → `FIRST` (zurückhalten), `SECOND` (Doppelklick, Zurückhaltung verwerfen), `NONE` (Taste ohne `double:`-Eintrag: sofort ausführen); `Runnable pendingAfter(window)` als Timer-Hook im Dienst (`Handler.postDelayed`), bei Dienst-Unbind verworfen.
-- Dienst: eine Taste mit `double:`-Eintrag wird beim ersten Tap **verschluckt** und nach 400 ms als Tap ausgeführt (Latenz ist der Preis, nur auf diesen Tasten); kommt der zweite Tap vorher, läuft das `double:`-Ziel. `hold:` bleibt davon unberührt (Halten wird vor dem Loslassen erkannt).
+- Produces in `RemoteKeys`: `static final long DOUBLE_MS = 400`; `static Map<Integer,String> parseDoubleKeys(List<String> entries)` und `parseDoubleScancodes(...)` – lesen nur Einträge mit Präfix `double:` (Rest wie `parseAppKeys`/`parseAppScancodes`), `static List<String> withoutDouble(List<String> entries)`; Zustandsklasse `DoubleTap` mit `DoubleTap(long windowMs)`, `int onTap(int key, long nowMs)` → `FIRST` (zurückhalten), `SECOND` (Doppelklick, Zurückhaltung verwerfen), `NONE` (Taste ohne `double:`-Eintrag: sofort ausführen); `Runnable pendingAfter(window)` als Timer-Hook im Dienst (`Handler.postDelayed`), bei Dienst-Unbind verworfen. **Ausnahme Home-Taste:** `KEYCODE_HOME` wird nie zurückgehalten – der erste Druck geht sofort ans System, ein zweiter innerhalb 400 ms löst das `double:`-Ziel aus (Task 17).
+- `final class KeyBindings`: Speicher in `SharedPreferences("key_bindings")`; je gelernter Taste ein Eintrag `key.<n>` = `name|keycode|scancode`, Belegungen `tap.<n>`, `double.<n>`, `hold.<n>` = Ziel-String (Paketname, `inputs`, `close_apps` oder leer). `static List<String> toAppKeys(SharedPreferences)` liefert die Einträge im `app_keys`-Format (`scan:<code>:<ziel>` bzw. `KEYCODE_…:<ziel>`, mit `hold:`/`double:`-Präfix), die `RemoteKeys` nach den Config-Einträgen einliest (spätere gewinnen). `static int add(SharedPreferences, String name, int keycode, int scancode)`, `static void set(SharedPreferences, int n, String slot, String target)`, `static void remove(SharedPreferences, int n)`. Änderung bumpt `Config.SETTINGS_REVISION_KEY`, und die Dienste lesen ihre Maps bei Revision-Änderung neu (heute lesen sie `Config` beim Binden; ein `SharedPreferences.OnSharedPreferenceChangeListener` auf `key_bindings` genügt).
+- Lernmodus: `KeyBindingsActivity` setzt `KeyBindings.LEARNING = true` (statisches Flag + Zeitstempel, 15 s) und zeigt „Drücke jetzt die Taste…“; der Dienst meldet im Lernmodus den nächsten Tastendruck (Keycode + Scancode) per lokalem Broadcast `com.gathin.tvhome.KEY_LEARNED` an die Activity, statt ihn auszuwerten; Pfeile, OK, Zurück, Lautstärke, Home werden nicht gelernt (Hinweis). Danach Namensfeld (Vorschlag „Taste <Scancode>“), Patrick tippt z. B. „Rakuten“.
+- Seite: Liste gelernter Tasten (+ feste Zeile „Home-Taste“ nur mit Doppelklick), je Taste drei Zeilen Einzelklick / Doppelklick / Halten → `AppPickerDialog`; langes OK auf der Taste → Umbenennen / Entfernen (mit Rückfrage). Zeile „Taste lernen“ oben.
 
-- [ ] **Step 1: Keycodes messen** – im Dienst ein `Log.i("Keys", "key=… scan=…")` für jeden Tastendruck (nur im Debug-Zweig, danach entfernen); bauen; `logcat -c`; Patrick drückt Netflix, Rakuten, YouTube, Prime Video; `tools/tv.py 'logcat -d -s Keys'`. Expected: vier Zeilen; Scancodes 695/779/… den Tasten zuordnen. In die Spec § 4.10d eintragen.
-- [ ] **Step 2: Test schreiben**
+- [ ] **Step 1: Keycodes messen** – im Dienst ein `Log.i("Keys", "key=… scan=…")` für jeden Tastendruck (nur im Debug-Zweig, danach entfernen); bauen; `logcat -c`; Patrick drückt Netflix, Philips, Rakuten; `tools/tv.py 'logcat -d -s Keys'`. Expected: drei Zeilen; Scancodes (Aufzeichnung 25.10.: `KEY_ONSCREEN_KEYBOARD`, 695, 779 in dieser Druckreihenfolge) den Tasten zuordnen. In die Spec § 4.10d eintragen.
+- [ ] **Step 2: Tests schreiben**
+
+```java
+public class KeyBindingsTest {
+    @Test public void toAppKeysEmitsTapDoubleAndHold() {
+        FakePrefs p = new FakePrefs();
+        int n = KeyBindings.add(p, "Netflix", 0, 695);
+        KeyBindings.set(p, n, "tap", "com.netflix.ninja"); KeyBindings.set(p, n, "double", "com.google.android.youtube.tv");
+        assertEquals(List.of("scan:695:com.netflix.ninja", "double:scan:695:com.google.android.youtube.tv"), KeyBindings.toAppKeys(p));
+    }
+    @Test public void keycodeWinsOverScancodeWhenKnown() { FakePrefs p = new FakePrefs(); int n = KeyBindings.add(p, "Gelb", 185, 400); KeyBindings.set(p, n, "tap", "inputs"); assertEquals(List.of("185:inputs"), KeyBindings.toAppKeys(p)); }
+    @Test public void emptySlotsEmitNothing() { FakePrefs p = new FakePrefs(); KeyBindings.add(p, "Leer", 0, 700); assertTrue(KeyBindings.toAppKeys(p).isEmpty()); }
+    @Test public void removeDropsAllSlots() { FakePrefs p = new FakePrefs(); int n = KeyBindings.add(p, "X", 0, 701); KeyBindings.set(p, n, "hold", "inputs"); KeyBindings.remove(p, n); assertTrue(KeyBindings.toAppKeys(p).isEmpty()); }
+}
+```
 
 ```java
 public class RemoteKeysDoubleTest {
@@ -569,9 +586,41 @@ public class RemoteKeysDoubleTest {
 }
 ```
 
-- [ ] **Step 3–5: Fehlschlag, implementieren, grün** (`--tests 'com.gathin.tvhome.RemoteKeysDoubleTest'`), plus die vorhandenen `RemoteKeys`-Tests weiterhin grün.
-- [ ] **Step 6: `config.xml` `app_keys`**: `scan:<rakuten>:com.disney.disneyplus`, `scan:<netflix>:com.netflix.ninja`, `double:scan:<netflix>:com.google.android.youtube.tv` (echte Scancodes aus Schritt 1; falls Android echte Keycodes liefert, `KEYCODE_…`-Form). Bauen, installieren.
-- [ ] **Step 7: Button Mapper aus** – `tools/tv.py 'settings put secure enabled_accessibility_services com.gathin.tvhome/.HomeKeyService'`; Patrick: Rakuten → Disney+, Netflix einmal → Netflix (mit ~0,4 s Verzögerung), Netflix doppelt → YouTube, Lautstärke halten → läuft durch. Expected: alles vier. Erst dann `tools/tv.py 'pm uninstall --user 0 flar2.homebutton'` – **nur nach Patricks Ja**.
-- [ ] **Step 8: Commit** – `git add launcher/app/src/main/java/com/gathin/tvhome/RemoteKeys.java launcher/app/src/main/java/com/gathin/tvhome/HomeKeyService.java launcher/app/src/main/java/com/gathin/tvhome/InputKeyService.java launcher/app/src/main/res/values/config.xml themes/README.md launcher/app/src/test/java/com/gathin/tvhome/RemoteKeysDoubleTest.java docs/superpowers/specs/2026-10-25-vier-welten-launcher-design.md && git commit -m "Tastenbelegung: double:-Einträge für Doppelklick, Rakuten→Disney+, Doppel-Netflix→YouTube; Button Mapper abgelöst"`
+- [ ] **Step 3–5: Fehlschlag, implementieren, grün** (`--tests 'com.gathin.tvhome.RemoteKeysDoubleTest'` und `KeyBindingsTest`), plus die vorhandenen `RemoteKeys`-Tests weiterhin grün.
+- [ ] **Step 6: Bauen, installieren; Seite öffnen** (Launcher-Einstellungen → Tastenbelegung): `tools/tv.py --screenshot shots/t16-page.png`. Expected: Zeilen „Taste lernen“ und „Home-Taste“.
+- [ ] **Step 7: Lernmodus mit Patrick** – „Taste lernen“ → Patrick drückt die Netflix-Taste → Name „Netflix“ → Einzelklick Netflix, Doppelklick YouTube; ebenso Philips-Taste und Rakuten-Taste (Einzel Disney+) mit Patricks Wunsch-Belegung. `tools/tv.py --screenshot shots/t16-bindings.png`. Expected: drei Tasten mit Belegungen sichtbar; `tools/tv.py 'run-as com.gathin.tvhome cat shared_prefs/key_bindings.xml'` zeigt die Einträge.
+- [ ] **Step 8: Button Mapper aus** – `tools/tv.py 'settings put secure enabled_accessibility_services com.gathin.tvhome/.HomeKeyService'`; Patrick: Rakuten → Disney+, Netflix einmal → Netflix (mit ~0,4 s Verzögerung), Netflix doppelt → YouTube, Philips-Taste beide Wege, Lautstärke halten → läuft durch. Expected: alles. Erst dann `tools/tv.py 'pm uninstall --user 0 flar2.homebutton'` – **nur nach Patricks Ja**.
+- [ ] **Step 9: Commit** – `git add launcher/app/src/main/java/com/gathin/tvhome/RemoteKeys.java launcher/app/src/main/java/com/gathin/tvhome/KeyBindings.java launcher/app/src/main/java/com/gathin/tvhome/KeyBindingsActivity.java launcher/app/src/main/java/com/gathin/tvhome/AppPickerDialog.java launcher/app/src/main/java/com/gathin/tvhome/HomeKeyService.java launcher/app/src/main/java/com/gathin/tvhome/InputKeyService.java launcher/app/src/main/java/com/gathin/tvhome/LauncherSettingsActivity.java launcher/app/src/main/res/layout/activity_key_bindings.xml launcher/app/src/main/res/layout/activity_launcher_settings.xml launcher/app/src/main/res/values/strings.xml launcher/app/src/main/res/values-de/strings.xml launcher/app/src/main/AndroidManifest.xml themes/README.md launcher/app/src/test/java/com/gathin/tvhome/RemoteKeysDoubleTest.java launcher/app/src/test/java/com/gathin/tvhome/KeyBindingsTest.java docs/superpowers/specs/2026-10-25-vier-welten-launcher-design.md && git commit -m "Tastenbelegung: Seite mit Lernmodus, Einzel-/Doppelklick/Halten je Taste; Button Mapper abgelöst"`
 
-**Reihenfolge der Ausführung (endgültig):** 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 13 → 14 → 15 → 16 → 12.
+---
+
+### Task 17: „Alle Apps schließen“ und Doppelklick auf Home (nach Task 16, vor Task 12)
+
+**Files:**
+- Create: `launcher/app/src/main/java/com/gathin/tvhome/CloseApps.java`
+- Modify: `AndroidManifest.xml` (`<uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />`, normale Berechtigung), `RemoteKeys.java` (Aktionswort `close_apps` neben `back`, `home`, `mute` …), `HomeKeyService.java` (Home-Doppelklick ohne Zurückhalten, s. Task 16), `MainActivity.java` (Zeile „Alle Apps schließen“ im Settings-Pill-Langdruck-Menü, Zeile ~2287 `showSettingsMenu`), `config.xml` (`app_keys` Startwert `double:KEYCODE_HOME:close_apps`), Strings `close_apps`, `close_apps_done` („%1$d Apps geschlossen“), `close_apps_kept` („%1$s läuft weiter (Vordergrund-Dienst)“)
+- Test: `launcher/app/src/test/java/com/gathin/tvhome/CloseAppsTest.java`
+
+**Interfaces:**
+- `final class CloseApps`: `static List<String> candidates(List<String> leanbackPackages, List<String> libraryPackages, String self, Set<String> keep)` – alle App-Pakete außer dem Launcher selbst, dem Live-TV-Paket, `com.android.*`, `com.google.android.gms`/`gsf`/`vending`/`tts`/`katniss`/`apps.mediashell` (Assistant und Chromecast laufen weiter) und `org.droidtv.*`-Systemdiensten; `static int run(Context, List<String> candidates)` – ruft `ActivityManager.killBackgroundProcesses(pkg)` für jeden Kandidaten und zählt, wie viele davon vorher einen Prozess hatten (`ActivityManager.getRunningAppProcesses()` sieht ab Android 5.1 nur den eigenen – stattdessen Zählung über `UsageStatsManager`? Nein, keine neue Berechtigung: gezählt wird schlicht die Kandidatenzahl, und der Toast sagt „Hintergrund-Apps geschlossen“ ohne Zahl, wenn keine Zählung möglich ist – der Umsetzer prüft, ob `killBackgroundProcesses` einen Rückgabewert liefert; es liefert `void`, also Toast ohne Zahl).
+- Grenzen (ehrlich im Toast und in `backup/README.md`): ohne Root kann kein App-Prozess im Vordergrund und keine App mit Vordergrund-Dienst (Spotify beim Abspielen, Plex-Server) beendet werden. Eine **hängende** App wird durch den Home-Druck in den Hintergrund gestellt und dann beendet – genau der Fall, den Patrick braucht. Nach dem Schließen zeigt Home einen Toast, das Raster bleibt.
+- Doppelklick auf Home: erster Druck geht sofort ans System (Home erscheint), zweiter innerhalb 400 ms → `close_apps`. Auch als Zeile im Settings-Pill-Menü und in der Tastenbelegung als Ziel wählbar.
+
+- [ ] **Step 1: Test schreiben**
+
+```java
+public class CloseAppsTest {
+    @Test public void candidatesSkipSelfSystemAndKeptPackages() {
+        List<String> c = CloseApps.candidates(List.of("com.netflix.ninja", "com.gathin.tvhome", "com.android.vending", "com.google.android.katniss", "org.droidtv.playtv", "com.spotify.tv.android"), List.of("flar2.homebutton"), "com.gathin.tvhome", Set.of("org.droidtv.playtv"));
+        assertEquals(List.of("com.netflix.ninja", "com.spotify.tv.android", "flar2.homebutton"), c);
+    }
+    @Test public void homeDoubleTapIsNeverHeldBack() { RemoteKeys.DoubleTap d = new RemoteKeys.DoubleTap(400); assertEquals(RemoteKeys.DoubleTap.PASS, d.onTap(KeyEvent.KEYCODE_HOME, 1000)); assertEquals(RemoteKeys.DoubleTap.SECOND, d.onTap(KeyEvent.KEYCODE_HOME, 1300)); }
+}
+```
+(`PASS` ist ein vierter Rückgabewert von `DoubleTap.onTap` für Tasten, die nie zurückgehalten werden – in Task 16 vorsehen.)
+
+- [ ] **Step 2–4: Fehlschlag, implementieren, grün** (`--tests 'com.gathin.tvhome.CloseAppsTest'`).
+- [ ] **Step 5: Bauen; Netflix starten (`DPAD_CENTER`), Home drücken, `tools/tv.py 'dumpsys activity processes | grep -c "com.netflix.ninja"'` (≥ 1); Patrick drückt Home doppelt; danach dieselbe Abfrage.** Expected: 0 Netflix-Prozesse, Toast auf Home. Dann Spotify abspielen lassen, Home doppelt: Spotify spielt weiter (Vordergrund-Dienst), Toast nennt es als „läuft weiter“ nur, wenn das ohne Zusatzberechtigung feststellbar ist – sonst allgemeiner Hinweis in der Doku.
+- [ ] **Step 6: Commit** – `git add launcher/app/src/main/java/com/gathin/tvhome/CloseApps.java launcher/app/src/main/java/com/gathin/tvhome/RemoteKeys.java launcher/app/src/main/java/com/gathin/tvhome/HomeKeyService.java launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java launcher/app/src/main/AndroidManifest.xml launcher/app/src/main/res/values/config.xml launcher/app/src/main/res/values/strings.xml launcher/app/src/main/res/values-de/strings.xml launcher/app/src/test/java/com/gathin/tvhome/CloseAppsTest.java && git commit -m "Alle Apps schließen: Hintergrund-Prozesse beenden per Home-Doppelklick, Menü und Tastenbelegung"`
+
+**Reihenfolge der Ausführung (endgültig):** 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 13 → 14 → 15 → 16 → 17 → 12.

@@ -254,6 +254,21 @@ Druck vorher, läuft der `double:`-Eintrag. Die Tasten melden sich am Kernel ohn
 im Dienst gemessen (Keycode + Scancode), gematcht wird per Scancode, wenn Android `KEYCODE_UNKNOWN` liefert.
 Bis der Fork steht, bleibt Button Mapper an (Patricks Wahl, 25.10.).
 
+**Nachtrag (25.10., spät):** Patrick belegt drei Tasten (Netflix, Philips, Rakuten) jeweils mit Einzel- und
+Doppelklick. Die Belegung wird deshalb **auf dem TV** gepflegt: Seite „Tastenbelegung“ in den
+Launcher-Einstellungen mit Lernmodus (Taste drücken → Code gemerkt → Name vergeben), je Taste Einzelklick /
+Doppelklick / Halten mit App-Auswahl; gespeichert in `SharedPreferences`, überlagert `config.xml`/Theme, sofort
+wirksam. Dazu „Alle Apps schließen“ (§ 4.10f).
+
+### 4.10f „Alle Apps schließen“ (Nachtrag 25.10., Ersatz für ein Premium-Feature des Button Mappers)
+
+Doppelklick auf die Home-Taste (erster Druck geht sofort ans System, kein Zurückhalten), eine Zeile im
+Settings-Pill-Menü und ein wählbares Ziel in der Tastenbelegung (`close_apps`) beenden die Hintergrund-Prozesse
+aller Apps (`ActivityManager.killBackgroundProcesses`, Berechtigung `KILL_BACKGROUND_PROCESSES`, normal). Ausgenommen:
+Launcher, Live TV, Play Services/Store, Assistant, Chromecast, Philips-Systemdienste. Grenze ohne Root: Apps mit
+Vordergrund-Dienst (Spotify beim Abspielen) laufen weiter; eine hängende App wird durch den Home-Druck in den
+Hintergrund gestellt und dann beendet – der Fall, um den es Patrick geht.
+
 ### 4.10e Schalter, die sofort an gehen (Task 0)
 
 `tile_menu`, `app_library` + `library_button`, `vpn_app=de.mobileconcepts.cyberghost`, `wifi_status_color` +
