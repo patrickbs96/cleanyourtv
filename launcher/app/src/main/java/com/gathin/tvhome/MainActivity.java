@@ -1,5 +1,7 @@
 package com.gathin.tvhome;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.animation.ArgbEvaluator;
 import android.animation.ValueAnimator;
 import android.app.Activity;
@@ -63,6 +65,7 @@ import android.view.ViewTreeObserver;
 import android.view.Window;
 import android.view.animation.AnimationUtils;
 import android.view.animation.LayoutAnimationController;
+import android.view.animation.LinearInterpolator;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -304,6 +307,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private final Runnable holoRestore = () -> setHoloAlpha(1f);
     /** The app label behind the hero line in a world (whose text adds capitals or a prefix); unused in Clean. */
     private String heroLabel;
+    /** A world's dock move (spec § 4.6): sparks, brackets and scan, the hero's flash and typing; null in Clean. */
+    private WorldFocusMotion focusMotion;
+    /** Star Wars: the frame's three hard steps, then its blip; both reused, null elsewhere. */
+    private ValueAnimator glassSteps, glassBlip;
+    private float stepFromX, stepFromY, stepToX, stepToY;
+    /** Marvel: the frame's move waiting for the brackets to open (WorldFocusMotion.frameDelayMs), in content space. */
+    private float delayedGlassX, delayedGlassY;
+    private final Runnable delayedGlassMove = () -> {
+        springX.animateToFinalPosition(delayedGlassX);
+        springY.animateToFinalPosition(delayedGlassY);
+    };
+    /** The dock tile the frame stood on, for where Hogwarts' sparks start; -1 when it was not on a dock tile. */
+    private int lastDockPos = -1;
+    private final Rect lastDockRect = new Rect();
+    private final Rect zoomedRect = new Rect();
     private boolean appLibrarySelection;
     private boolean libraryOkOpens;
     private boolean libraryFocusPending;
@@ -481,6 +499,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (worldOverlay instanceof StarWarsOverlay) {
                 ((StarWarsOverlay) worldOverlay).setHoloFlickerListener(this::holoFlicker);
             }
+        }
+        // The world's dock move: its sparks and scan go over the dock and the frame, added once and reused.
+        if (!world.isClean()) {
+            SparkTrailView sparks = null;
+            ScanSweepView scan = null;
+            if (world == World.HOGWARTS) {
+                sparks = new SparkTrailView(this);
+                root.addView(sparks, root.indexOfChild(glass) + 1, new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            } else if (world == World.MARVEL) {
+                scan = new ScanSweepView(this);
+                root.addView(scan, root.indexOfChild(glass) + 1, new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            }
+            focusMotion = new WorldFocusMotion(glass, worldOverlay, sparks, scan);
         }
         cinematic = cfg.cinematicHome;
         glowStyle = cfg.glowStyle;
@@ -726,9 +759,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 v.setTranslationY(value + glassScrollShift);
             }
         });
+        // A world's own spring (spec § 4.6): Hogwarts glides with a slight overshoot, Marvel jumps straight on.
+        // Star Wars keeps Clean's spring for reduced motion and animations off, and steps otherwise (onTileFocused).
+        SpringForce worldSpring = WorldFocusMotion.springFor(world, advancedEffects);
         for (SpringAnimation s : new SpringAnimation[]{springX, springY}) {
             if (reducedMotion) {
                 Motion.reduce(s);
+            } else if (worldSpring != null) {
+                s.setSpring(new SpringForce().setStiffness(worldSpring.getStiffness())
+                        .setDampingRatio(worldSpring.getDampingRatio()));
             } else if (!focusOvershoot) {
                 // Critically damped: glides straight onto the tile without swinging past it.
                 s.setSpring(new SpringForce().setStiffness(advancedEffects ? 520f : 440f).setDampingRatio(1f));
@@ -737,6 +776,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         .setDampingRatio(advancedEffects ? 0.76f : 0.58f));
             }
         }
+        if (world == World.STARWARS && animations && !reducedMotion) setUpGlassSteps();
 
         btnInputs = findViewById(R.id.btnInputs);
         View btnSettings = findViewById(R.id.btnSettings);
@@ -1204,6 +1244,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         hero.animate().cancel();
         ambient.animate().cancel();
         heroArt.animate().cancel();
+        // Nothing of a world's dock move plays on behind another app; the frame lands on its tile.
+        if (focusMotion != null) focusMotion.cancel();
+        settleGlassSteps();
         handler.removeCallbacks(minuteTick);
         stopStats();
         if (diya != null) diya.stop();
@@ -1688,6 +1731,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     @Override
     public void onTileFocused(int position, View card) {
+        int previous = lastFocused;
         lastFocused = position;
         lastFocusedKey = adapter.keyAt(position);
         // Focus restored before the first layout (cold start): the tile has no size yet, and the glass
@@ -1735,9 +1779,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             worldDock.setFocusedSlot(position < COLUMNS ? position : -1);
             grid.invalidate();
         }
+        boolean dockPos = dockRow && (singleRow || position < COLUMNS);
+        // A world's dock move (spec § 4.6): from one dock tile to another, with animations on and reduced motion off.
+        // Below the dock only the frame's own move plays, so the D-pad stays calm there.
+        boolean moved = previous != position;
+        boolean worldMotion = focusMotion != null && animations && !reducedMotion;
+        boolean dockMove = worldMotion && glassShown && moved && dockPos && lastDockPos >= 0 && lastDockPos != position;
+        // Whatever the last move still plays waits for nothing: the next one starts from where the frame is.
+        glass.removeCallbacks(delayedGlassMove);
+        if (worldMotion && moved) focusMotion.cancelMove();
         if (!glassShown) {
             springX.cancel();
             springY.cancel();
+            cancelGlassSteps();
             glass.setTranslationX(x);
             glass.setTranslationY(y);
             if (animations && !reducedMotion) glass.animate().alpha(1f).setDuration(180).start();
@@ -1748,12 +1802,35 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             springY.cancel();
             glass.setTranslationX(x);
             glass.setTranslationY(y);
+        } else if (glassSteps != null) {
+            // Star Wars: three hard steps instead of the spring, then the blip.
+            stepGlassTo(x - glassScrollShiftX, y - glassScrollShift, moved);
         } else {
-            springX.animateToFinalPosition(x - glassScrollShiftX);
-            springY.animateToFinalPosition(y - glassScrollShift);
+            long delay = dockMove ? WorldFocusMotion.frameDelayMs(world, true) : 0L;
+            if (delay > 0) {
+                // Marvel: the brackets open first, then the frame jumps.
+                delayedGlassX = x - glassScrollShiftX;
+                delayedGlassY = y - glassScrollShift;
+                glass.postDelayed(delayedGlassMove, delay);
+            } else {
+                springX.animateToFinalPosition(x - glassScrollShiftX);
+                springY.animateToFinalPosition(y - glassScrollShift);
+            }
+        }
+        if (dockMove) {
+            // Where the frame lands: its slab, the zoomed tile.
+            zoomedRect.set(Math.round(x + pad), Math.round(y + pad), Math.round(x + w - pad), Math.round(y + h - pad));
+            focusMotion.setTileRadius(AppAdapter.cornerRadius(card.getWidth(), density) * scale);
+            focusMotion.onDockMove(world, lastDockPos, position, lastDockRect, zoomedRect);
+        }
+        if (dockPos) {
+            lastDockPos = position;
+            lastDockRect.set(r);
+        } else {
+            lastDockPos = -1;
         }
         View item = (View) card.getParent();
-        if (dockRow && (singleRow || position < COLUMNS)) {
+        if (dockPos) {
             // Dock: park it at the bottom of the screen and show the top shelf for this app. In a single row
             // every tile is in the dock's row, which never scrolls vertically.
             int decoratedTop = item.getTop() - (int) (6 * density);
@@ -1789,6 +1866,100 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         int h = (int) (card.getHeight() * scale + 2 * pad);
         if (!glassShown || card.getWidth() != glassCardW || glass.getWidth() != w || glass.getHeight() != h) {
             onTileFocused(pos, card);
+        }
+    }
+
+    /**
+     * Star Wars' frame move (spec § 4.6): three hard steps of 60 ms (steps(3)), then the hologram blip, its height
+     * 0.2 to 1.05 to 1 and its opacity 0.2 to 1 in 300 ms. Positions are in grid content space, like the springs', so
+     * a scroll meanwhile moves the frame with its tile. Both animators are made once and restarted.
+     */
+    private void setUpGlassSteps() {
+        glassSteps = ValueAnimator.ofFloat(0f, 1f);
+        glassSteps.setDuration(WorldFocusMotion.STEPS_MS);
+        glassSteps.setInterpolator(t -> WorldFocusMotion.stepsInterpolate(t, WorldFocusMotion.STEPS));
+        glassSteps.addUpdateListener(a -> {
+            float f = (float) a.getAnimatedValue();
+            glass.setTranslationX(stepFromX + (stepToX - stepFromX) * f + glassScrollShiftX);
+            glass.setTranslationY(stepFromY + (stepToY - stepFromY) * f + glassScrollShift);
+        });
+        glassSteps.addListener(new AnimatorListenerAdapter() {
+            private boolean cancelled;
+
+            @Override
+            public void onAnimationStart(Animator animation) {
+                cancelled = false;
+            }
+
+            @Override
+            public void onAnimationCancel(Animator animation) {
+                cancelled = true;
+            }
+
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                if (cancelled || !glassShown) return;
+                glass.animate().cancel();   // a first show's fade in would fight the blip's opacity
+                glassBlip.start();
+            }
+        });
+        glassBlip = ValueAnimator.ofFloat(0f, 1f);
+        glassBlip.setDuration(WorldFocusMotion.BLIP_MS);
+        glassBlip.setInterpolator(new LinearInterpolator());
+        glassBlip.addUpdateListener(a -> {
+            float f = a.getAnimatedFraction();
+            glass.setScaleY(WorldFocusMotion.blipScaleY(f));
+            glass.setAlpha(WorldFocusMotion.blipAlpha(f));
+        });
+        glassBlip.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationCancel(Animator animation) {
+                glass.setScaleY(1f);
+                glass.setAlpha(1f);
+            }
+
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                glass.setScaleY(1f);
+                glass.setAlpha(1f);
+            }
+        });
+    }
+
+    /** Steps the frame to this content-space position; a refit of the same tile just follows it without a new blip. */
+    private void stepGlassTo(float toX, float toY, boolean moved) {
+        if (!moved) {
+            stepToX = toX;
+            stepToY = toY;
+            if (!glassSteps.isRunning()) {
+                glass.setTranslationX(toX + glassScrollShiftX);
+                glass.setTranslationY(toY + glassScrollShift);
+            }
+            return;
+        }
+        cancelGlassSteps();
+        stepFromX = glass.getTranslationX() - glassScrollShiftX;
+        stepFromY = glass.getTranslationY() - glassScrollShift;
+        stepToX = toX;
+        stepToY = toY;
+        glassSteps.start();
+    }
+
+    /** Stops the steps where they are and the blip at rest (full height and opacity); nothing outside Star Wars. */
+    private void cancelGlassSteps() {
+        if (glassSteps == null) return;
+        glassSteps.cancel();
+        glassBlip.cancel();
+    }
+
+    /** As cancelGlassSteps, but a frame caught between steps lands on its tile. */
+    private void settleGlassSteps() {
+        if (glassSteps == null) return;
+        boolean stepping = glassSteps.isRunning();
+        cancelGlassSteps();
+        if (stepping) {
+            glass.setTranslationX(stepToX + glassScrollShiftX);
+            glass.setTranslationY(stepToY + glassScrollShift);
         }
     }
 
@@ -1833,13 +2004,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             heroShown = true;
         } else if (changed) {
-            if (advancedEffects) hero.animate().cancel();
-            hero.animate().alpha(0f).translationX(-12 * density).setDuration(120).withEndAction(() -> {
-                fillHero(position, label);
-                hero.setY(y);
-                hero.setTranslationX(12 * density);
-                hero.animate().alpha(1f).translationX(0f).setDuration(200).start();
-            }).start();
+            if (focusMotion != null) {
+                changeWorldHero(position, label, y);
+            } else {
+                if (advancedEffects) hero.animate().cancel();
+                hero.animate().alpha(0f).translationX(-12 * density).setDuration(120).withEndAction(() -> {
+                    fillHero(position, label);
+                    hero.setY(y);
+                    hero.setTranslationX(12 * density);
+                    hero.animate().alpha(1f).translationX(0f).setDuration(200).start();
+                }).start();
+            }
             if (ambientGlow && advancedEffects) {
                 transitionAmbient(color);
             } else if (ambientGlow && color != ambientColor) {
@@ -1851,6 +2026,32 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         } else {
             hero.setY(y);
         }
+    }
+
+    /**
+     * A world's hero changing apps (spec § 4.6): Hogwarts fades out and in, 220 ms each; Marvel the same, lighter for a
+     * moment as it comes back ("flash"); Star Wars stays and types the new name, 45 ms a char. Only with animations on
+     * and reduced motion off; showHero snaps it otherwise.
+     */
+    private void changeWorldHero(int position, String label, float y) {
+        hero.animate().cancel();
+        focusMotion.finishTyping();
+        if (world == World.STARWARS) {
+            fillHero(position, label);
+            hero.setY(y);
+            hero.setTranslationX(0f);
+            hero.setAlpha(1f);
+            focusMotion.type(heroName);
+            return;
+        }
+        boolean flash = world == World.MARVEL;
+        long ms = WorldFocusMotion.HERO_FADE_MS;
+        hero.animate().alpha(0f).translationX(0f).setDuration(ms).withEndAction(() -> {
+            fillHero(position, label);
+            hero.setY(y);
+            if (flash) focusMotion.flash(hero);
+            hero.animate().alpha(1f).setDuration(ms).start();
+        }).start();
     }
 
     /** The shelf's text for this dock app: its name and, on the cinematic shelf, "Last opened" and the dots. */
@@ -2105,6 +2306,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void hideHero() {
+        // Star Wars' typing ends on the whole name, so it never comes back half typed.
+        if (focusMotion != null) focusMotion.finishTyping();
         if (!heroShown) return;
         stopAmbientAnimation();
         hero.animate().cancel();
@@ -2130,6 +2333,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         if (!glassShown) return;
         glassShown = false;
+        // A world's dock move stops with the frame: brackets locked, no scan or sparks, steps and blip at rest.
+        glass.removeCallbacks(delayedGlassMove);
+        if (focusMotion != null) focusMotion.cancel();
+        settleGlassSteps();
         glass.animate().cancel();
         if (animations && !reducedMotion) glass.animate().alpha(0f).setDuration(160).start();
         else glass.setAlpha(0f);

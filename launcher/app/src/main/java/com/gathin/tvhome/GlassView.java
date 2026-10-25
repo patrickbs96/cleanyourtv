@@ -110,9 +110,16 @@ public class GlassView extends View {
         invalidate();
     }
 
-    /** Locked brackets sit 2 dp off the slab, open ones 8 dp. Task 8 animates between the two. */
+    /** Locked brackets sit 2 dp off the slab, open ones 8 dp. */
     void setBracketsLocked(boolean locked) {
-        bracketOut = (locked ? 2f : 8f) * density;
+        setBracketsOpen(locked ? 0f : 1f);
+    }
+
+    /** Between the two, for the dock move's open and lock (WorldFocusMotion): 0 locked (2 dp), 1 open (8 dp). */
+    void setBracketsOpen(float open) {
+        float out = (2f + 6f * Math.max(0f, Math.min(1f, open))) * density;
+        if (out == bracketOut) return;
+        bracketOut = out;
         invalidate();
     }
 
