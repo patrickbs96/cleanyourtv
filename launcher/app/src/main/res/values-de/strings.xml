@@ -74,5 +74,9 @@
     <string name="world_marvel">Marvel</string>
     <string name="world_starwars">Star Wars</string>
     <string name="world_hint">Farbtasten der Fernbedienung wechseln direkt</string>
+    <string name="world_scene">Szene</string>
+    <string name="world_scene_auto">Auto (nach der Sonne)</string>
+    <string name="world_scene_day">Tag</string>
+    <string name="world_scene_night">Nacht</string>
     <string name="world_hog_hero_prefix">Zauberspiegel zeigt</string>
 </resources>

@@ -1,6 +1,7 @@
 package com.gathin.tvhome;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.util.Log;
@@ -22,6 +23,13 @@ import java.time.ZoneId;
 final class WorldScene {
     /** forceMood's choices: the sun decides, or always day, or always night (the hidden test switch, Task 11). */
     static final String MOOD_AUTO = "auto", MOOD_DAY = "day", MOOD_NIGHT = "night";
+    /**
+     * The test switch's choice in Config.SETTINGS_NAME (one of the moods). It holds while this process lives, so
+     * Home's recreate (a world or setting change) keeps it, and a new process (force-stop, reboot) is back on auto.
+     */
+    static final String FORCE_KEY = "world_scene_force";
+    /** Whether this process has already dropped an old process's FORCE_KEY: once per process, not in the prefs. */
+    private static boolean processChecked;
     /** Day lasts this long after sunset, while the sky still glows: wallpaper_moods' evening. */
     private static final int DUSK_MINUTES = 30;
     private static final long FADE_MS = 300;
@@ -46,6 +54,7 @@ final class WorldScene {
         this.world = w;
         latitude = context.getString(R.string.latitude);
         longitude = context.getString(R.string.longitude);
+        forced = forcedMood(context.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE));
         if (w.isClean()) {
             bottom = null;
             top = null;
@@ -68,6 +77,33 @@ final class WorldScene {
             // The picture covers the whole screen: the world's plain colour under it is overdraw.
             root.setBackground(null);
         }
+    }
+
+    /**
+     * The test switch's mood for this process: the first scene of a new process drops what an earlier one left
+     * (the switch holds only until the launcher restarts, spec § 4.5); after that the saved choice.
+     */
+    static String forcedMood(SharedPreferences prefs) {
+        if (!processChecked) {
+            processChecked = true;
+            if (prefs.contains(FORCE_KEY)) prefs.edit().remove(FORCE_KEY).apply();
+            return MOOD_AUTO;
+        }
+        String mood = prefs.getString(FORCE_KEY, MOOD_AUTO);
+        return MOOD_DAY.equals(mood) || MOOD_NIGHT.equals(mood) ? mood : MOOD_AUTO;
+    }
+
+    /** The test switch: saves the mood for this process's next Home; the caller makes Home rebuild. */
+    static void saveForcedMood(SharedPreferences prefs, String mood) {
+        // Chosen in this process, so its next scene must keep it rather than take it for an old process's.
+        processChecked = true;
+        if (MOOD_DAY.equals(mood) || MOOD_NIGHT.equals(mood)) prefs.edit().putString(FORCE_KEY, mood).commit();
+        else prefs.edit().remove(FORCE_KEY).commit();
+    }
+
+    /** For tests: as in a new process. */
+    static void resetProcessForTest() {
+        processChecked = false;
     }
 
     private static ImageView makeView(Context context) {
@@ -137,7 +173,7 @@ final class WorldScene {
         top.setScaleY(scale);
     }
 
-    /** auto, day or night (anything else is auto), until the next Home start; the scene follows at once. */
+    /** auto, day or night (anything else is auto), for this Home only; the scene follows at once. */
     void forceMood(String mood) {
         forced = MOOD_DAY.equals(mood) || MOOD_NIGHT.equals(mood) ? mood : MOOD_AUTO;
         update();

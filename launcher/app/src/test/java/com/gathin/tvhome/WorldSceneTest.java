@@ -40,4 +40,44 @@ public class WorldSceneTest {
         assertTrue(WorldScene.isDay(WorldScene.MOOD_AUTO, 12 * 60, 7 * 60, 18 * 60 + 30));
         assertFalse(WorldScene.isDay("unknown", 2 * 60, 7 * 60, 18 * 60 + 30));
     }
+
+    @Test
+    public void testSwitchHoldsThroughRecreatesOfThisProcess() {
+        WorldScene.resetProcessForTest();
+        FakePrefs prefs = new FakePrefs();
+        assertEquals(WorldScene.MOOD_AUTO, WorldScene.forcedMood(prefs));   // Home's first start
+        WorldScene.saveForcedMood(prefs, WorldScene.MOOD_DAY);              // Settings: Scene = Day
+        assertEquals(WorldScene.MOOD_DAY, WorldScene.forcedMood(prefs));    // Home rebuilds
+        assertEquals(WorldScene.MOOD_DAY, WorldScene.forcedMood(prefs));    // colour key: recreate again
+        WorldScene.saveForcedMood(prefs, WorldScene.MOOD_AUTO);
+        assertEquals(WorldScene.MOOD_AUTO, WorldScene.forcedMood(prefs));
+        assertFalse(prefs.contains(WorldScene.FORCE_KEY));
+    }
+
+    @Test
+    public void aNewProcessIsBackOnAuto() {
+        FakePrefs prefs = new FakePrefs().put(WorldScene.FORCE_KEY, WorldScene.MOOD_NIGHT);
+        WorldScene.resetProcessForTest();   // force-stop or reboot
+        assertEquals(WorldScene.MOOD_AUTO, WorldScene.forcedMood(prefs));
+        assertFalse(prefs.contains(WorldScene.FORCE_KEY));
+        assertEquals(WorldScene.MOOD_AUTO, WorldScene.forcedMood(prefs));
+    }
+
+    @Test
+    public void aChoiceMadeBeforeTheFirstSceneOfAProcessHolds() {
+        // Settings restored first after the process died: its choice is this process's, not an old one.
+        WorldScene.resetProcessForTest();
+        FakePrefs prefs = new FakePrefs();
+        WorldScene.saveForcedMood(prefs, WorldScene.MOOD_NIGHT);
+        assertEquals(WorldScene.MOOD_NIGHT, WorldScene.forcedMood(prefs));
+    }
+
+    @Test
+    public void unknownSavedMoodIsAuto() {
+        WorldScene.resetProcessForTest();
+        FakePrefs prefs = new FakePrefs();
+        WorldScene.forcedMood(prefs);
+        prefs.put(WorldScene.FORCE_KEY, "noon");
+        assertEquals(WorldScene.MOOD_AUTO, WorldScene.forcedMood(prefs));
+    }
 }

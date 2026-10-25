@@ -1,3 +1,11 @@
+> **Dieser Fork: Vier Welten (Branch `vier-welten`).** Der Launcher bekommt neben Clean drei wählbare Welten
+> (Hogwarts, Marvel, Star Wars) mit eigener Szene für Tag und Nacht, Schrift, Dock und Bewegung. Die Farbtasten der
+> Fernbedienung wechseln direkt (Grün Clean, Gelb Hogwarts, Rot Marvel, Blau Star Wars), in den
+> Launcher-Einstellungen gibt es die Zeile „Welt“. Clean bleibt der unveränderte Launcher. Entwurf:
+> [`docs/superpowers/specs/2026-10-25-vier-welten-launcher-design.md`](docs/superpowers/specs/2026-10-25-vier-welten-launcher-design.md),
+> Szenen und Bedienung: [`launcher/worlds/README.md`](launcher/worlds/README.md). Darunter folgt das README des
+> Originalprojekts, ergänzt nur um die Schriftlizenzen der Welten.
+
 <p align="center">
   <a href="https://cleanyour.tv"><img src="https://raw.githubusercontent.com/Gathin23/cleanyourtv/main/docs/banner.png" alt="CleanYourTV. Your TV, minus the ads. Strip the bloatware from any Android TV or Google TV over Wi-Fi and replace the ad-filled home screen with a clean launcher that looks like an Apple TV. No root, no cable, nothing uninstalled, and a one-line restore." width="800"></a>
 </p>

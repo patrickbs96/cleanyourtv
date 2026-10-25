@@ -134,6 +134,11 @@ public final class LauncherSettingsActivity extends Activity {
         }
         worldChoice = findViewById(R.id.worldChoice);
         worldChoice.setOnClickListener(v -> showWorldPicker());
+        // Hidden test switch (spec § 4.5): long OK forces the scene's day or night picture.
+        worldChoice.setOnLongClickListener(v -> {
+            showScenePicker();
+            return true;
+        });
         followThemeChoice = findViewById(R.id.followThemeChoice);
         followThemeChoice.setOnClickListener(v -> {
             if (!hasOnTvChoices()) return;
@@ -261,6 +266,31 @@ public final class LauncherSettingsActivity extends Activity {
                     choices.edit().putString(WorldTransition.PENDING_KEY, worlds[which].id).commit();
                     changed();
                     refresh();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    /**
+     * Auto, Day or Night for the world's scene, to test both pictures and Hogwarts' Lumos/Nox at any hour. It holds
+     * until the launcher's process restarts (force-stop, reboot); recreating Home keeps it.
+     */
+    private void showScenePicker() {
+        String[] moods = {WorldScene.MOOD_AUTO, WorldScene.MOOD_DAY, WorldScene.MOOD_NIGHT};
+        String[] labels = {getString(R.string.world_scene_auto), getString(R.string.world_scene_day),
+                getString(R.string.world_scene_night)};
+        // As Home's scene reads it, so an earlier process's choice shows (and is) Auto.
+        String current = WorldScene.forcedMood(choices);
+        int checked = 0;
+        for (int i = 0; i < moods.length; i++) if (moods[i].equals(current)) checked = i;
+        final int was = checked;
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.world_scene)
+                .setSingleChoiceItems(labels, checked, (dialog, which) -> {
+                    dialog.dismiss();
+                    if (which == was) return;
+                    WorldScene.saveForcedMood(choices, moods[which]);
+                    changed();
                 })
                 .setNegativeButton(android.R.string.cancel, null)
                 .show();

@@ -157,6 +157,11 @@
     <string name="world_marvel">Marvel</string>
     <string name="world_starwars">Star Wars</string>
     <string name="world_hint">The remote\'s colour keys switch directly</string>
+    <!-- Hidden test switch (long OK on the World row): the scene's day or night picture, until the launcher restarts. -->
+    <string name="world_scene">Scene</string>
+    <string name="world_scene_auto">Auto (by the sun)</string>
+    <string name="world_scene_day">Day</string>
+    <string name="world_scene_night">Night</string>
     <!-- Hogwarts: the line in front of the hero's app name. -->
     <string name="world_hog_hero_prefix">The magic mirror shows</string>
 </resources>
