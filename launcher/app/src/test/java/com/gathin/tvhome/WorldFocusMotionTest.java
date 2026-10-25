@@ -7,6 +7,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 /** The worlds' dock move (spec § 4.6): Star Wars' hard steps, its typing hero and the springs of the others. */
 public class WorldFocusMotionTest {
@@ -45,7 +46,7 @@ public class WorldFocusMotionTest {
     public void stepsNeverOvershootAndEndOnTarget() {
         for (float t = 0f; t < 1f; t += 0.01f) {
             float v = WorldFocusMotion.stepsInterpolate(t, 3);
-            assertEquals(true, v >= 0f && v < 1f);
+            assertTrue(v >= 0f && v < 1f);
         }
         assertEquals(1f, WorldFocusMotion.stepsInterpolate(1.2f, 3), 1e-6);
         assertEquals(0f, WorldFocusMotion.stepsInterpolate(-0.1f, 3), 1e-6);
@@ -65,9 +66,20 @@ public class WorldFocusMotionTest {
     @Test
     public void typingShowsWholeLabelWithinEffectLimit() {
         // A long label still ends inside the spec's 1.2 s: its step shrinks, the last char always arrives.
-        assertEquals(true, WorldFocusMotion.typingStepMs(40) * 40 <= 1200L);
-        assertEquals(true, WorldFocusMotion.typingStepMs(1000) >= 1L);
+        assertTrue(WorldFocusMotion.typingStepMs(40) * 40 <= 1200L);
+        assertTrue(WorldFocusMotion.typingStepMs(1000) >= 1L);
         assertEquals(45L, WorldFocusMotion.typingStepMs(12));
+        assertTrue(WorldFocusMotion.typingCharDelayMs(39, 40) <= 1200L);
+    }
+
+    @Test
+    public void typingPathUsesTypingDelay() {
+        // The path type() takes: the first char at once, then typingDelayMs for every label that fits the limit.
+        assertEquals(0L, WorldFocusMotion.typingCharDelayMs(0, 11));
+        for (int i = 0; i < 11; i++) {
+            assertEquals(WorldFocusMotion.typingDelayMs(i), WorldFocusMotion.typingCharDelayMs(i, 11));
+        }
+        assertEquals(0L, WorldFocusMotion.typingCharDelayMs(0, 40));
     }
 
     @Test

@@ -75,6 +75,15 @@ final class WorldFocusMotion {
         return Math.max(1L, Math.min(TYPING_MS, EFFECT_MAX_MS / length));
     }
 
+    /**
+     * When char {@code charIndex} of a {@code length}-char label appears: {@link #typingDelayMs} (char 0 at once),
+     * unless that would run past the effect limit, then at the shorter {@link #typingStepMs} pace.
+     */
+    static long typingCharDelayMs(int charIndex, int length) {
+        long step = typingStepMs(length);
+        return step == TYPING_MS ? typingDelayMs(charIndex) : step * charIndex;
+    }
+
     /** How long the frame waits before it moves: Marvel's brackets open first, on the dock only. */
     static long frameDelayMs(World w, boolean dockMove) {
         return w == World.MARVEL && dockMove ? BRACKET_OPEN_MS : 0L;
@@ -105,6 +114,8 @@ final class WorldFocusMotion {
     private final Rect scanRect = new Rect();
     private float tileRadius;
     private final Runnable lockOn = this::lockOn;
+    /** Marvel's brackets are open (or opening) and waiting to lock on: a move now keeps them open. */
+    private boolean lockPending;
 
     // Marvel's hero flash: one filter per step, built once, so the fade allocates nothing per frame.
     private final LightingColorFilter[] flashFilters = new LightingColorFilter[FLASH_STEPS];
@@ -117,7 +128,6 @@ final class WorldFocusMotion {
     @Nullable private TextView typed;
     @Nullable private Spannable typedText;
     private int typedChars;
-    private long typingStep = TYPING_MS;
     private final Runnable typeNext = this::typeNext;
 
     WorldFocusMotion(GlassView glass, @Nullable WorldOverlay overlay, @Nullable SparkTrailView sparks,
@@ -159,14 +169,17 @@ final class WorldFocusMotion {
      * zoomed tile the frame lands on). Plays the world's extra on top of the frame's own move.
      */
     void onDockMove(World w, int from, int to, Rect fromRect, Rect toRect) {
-        cancelMove();
         switch (w) {
             case HOGWARTS:
                 if (sparks != null) sparks.burst(fromRect, SPARKS, SPARK_MS);
                 break;
             case MARVEL:
+                if (scan != null) scan.stop();
                 scanRect.set(toRect);
-                openBrackets();
+                // A held key or a fast D-pad: the brackets stay open and lock on once the moves stop.
+                if (!lockPending) openBrackets();
+                glass.removeCallbacks(lockOn);
+                lockPending = true;
                 glass.postDelayed(lockOn, BRACKET_OPEN_MS + FRAME_JUMP_MS);
                 break;
             default:
@@ -182,7 +195,13 @@ final class WorldFocusMotion {
         brackets.start();
     }
 
+    /** Marvel's brackets are still open from the last move, so the frame need not wait for them (frameDelayMs). */
+    boolean bracketsHeldOpen() {
+        return lockPending;
+    }
+
     private void lockOn() {
+        lockPending = false;
         brackets.cancel();
         brackets.setFloatValues(1f, 0f);
         brackets.setDuration(BRACKET_LOCK_MS);
@@ -198,10 +217,11 @@ final class WorldFocusMotion {
 
     /**
      * Stops the move's extras where they are: the brackets lock on at once, the scan ends. Sparks already in the air
-     * fly on (a new burst joins them). Called before every move, from the grid too.
+     * fly on (a new burst joins them). Called before every move that is no dock move (onDockMove restarts its own).
      */
     void cancelMove() {
         glass.removeCallbacks(lockOn);
+        lockPending = false;
         brackets.cancel();
         glass.setBracketsLocked(true);
         if (scan != null) scan.stop();
@@ -239,18 +259,26 @@ final class WorldFocusMotion {
         v.setLayerType(View.LAYER_TYPE_NONE, null);
     }
 
-    /** Star Wars: {@code view} types its current text anew, one char each 45 ms; the whole line takes its room at once. */
+    /**
+     * Star Wars: {@code view} types its current text anew, char i at {@link #typingCharDelayMs} (the first at once, then
+     * one each 45 ms); the whole line takes its room at once.
+     */
     void type(TextView view) {
         finishTyping();
         view.setText(view.getText(), TextView.BufferType.SPANNABLE);
         CharSequence text = view.getText();
-        if (!(text instanceof Spannable) || text.length() == 0) return;
+        if (!(text instanceof Spannable) || text.length() <= 1) return;
         typed = view;
         typedText = (Spannable) text;
-        typedChars = 0;
-        typingStep = typingStepMs(text.length());
-        typedText.setSpan(hidden, 0, text.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        view.postDelayed(typeNext, typingStep);
+        typedChars = 1;   // char 0 at 0 ms
+        typedText.setSpan(hidden, 1, text.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        view.postDelayed(typeNext, nextCharDelay());
+    }
+
+    /** From the char just shown to the next one. */
+    private long nextCharDelay() {
+        int len = typedText == null ? 0 : typedText.length();
+        return typingCharDelayMs(typedChars, len) - typingCharDelayMs(typedChars - 1, len);
     }
 
     private void typeNext() {
@@ -268,7 +296,7 @@ final class WorldFocusMotion {
             return;
         }
         text.setSpan(hidden, typedChars, text.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        view.postDelayed(typeNext, typingStep);
+        view.postDelayed(typeNext, nextCharDelay());
     }
 
     /** Ends any typing on the whole label. */

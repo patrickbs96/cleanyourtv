@@ -138,7 +138,8 @@ final class MarvelOverlay extends WorldOverlay {
         float pulse = 0.75f + 0.25f * wave(phase(now, CORE_MS, 0));
         float kick = now - kickAt < KICK_MS ? 1f - (now - kickAt) / (float) KICK_MS : 0f;
         coreGlow.setAlpha((int) (255 * Math.min(1f, pulse + kick)));
-        float r = 14f * (1f + 0.25f * kick);
+        // A kick flares the core to 1.6 times its size (spec § 4.6), shrinking back over KICK_MS.
+        float r = 14f * (1f + 0.6f * kick);
         c.scale(r, r);
         c.drawCircle(0f, 0f, 1f, coreGlow);
         c.restore();

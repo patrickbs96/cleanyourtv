@@ -314,7 +314,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private float stepFromX, stepFromY, stepToX, stepToY;
     /** Marvel: the frame's move waiting for the brackets to open (WorldFocusMotion.frameDelayMs), in content space. */
     private float delayedGlassX, delayedGlassY;
+    /** delayedGlassMove is posted and has not run: a held key only moves its target, it never waits anew. */
+    private boolean delayedGlassPending;
     private final Runnable delayedGlassMove = () -> {
+        delayedGlassPending = false;
         springX.animateToFinalPosition(delayedGlassX);
         springY.animateToFinalPosition(delayedGlassY);
     };
@@ -1247,6 +1250,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // Nothing of a world's dock move plays on behind another app; the frame lands on its tile.
         if (focusMotion != null) focusMotion.cancel();
         settleGlassSteps();
+        flushDelayedGlassMove();
         handler.removeCallbacks(minuteTick);
         stopStats();
         if (diya != null) diya.stop();
@@ -1785,9 +1789,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         boolean moved = previous != position;
         boolean worldMotion = focusMotion != null && animations && !reducedMotion;
         boolean dockMove = worldMotion && glassShown && moved && dockPos && lastDockPos >= 0 && lastDockPos != position;
-        // Whatever the last move still plays waits for nothing: the next one starts from where the frame is.
-        glass.removeCallbacks(delayedGlassMove);
-        if (worldMotion && moved) focusMotion.cancelMove();
+        // A move that is no dock move stops the last one's extras (onDockMove restarts its own, keeping Marvel's
+        // brackets open while the moves keep coming).
+        if (worldMotion && moved && !dockMove) focusMotion.cancelMove();
+        // Marvel's frame waits for the brackets only when they are not open yet; a held key keeps them open.
+        long delay = dockMove && !focusMotion.bracketsHeldOpen() ? WorldFocusMotion.frameDelayMs(world, true) : 0L;
+        if (delay == 0L || !glassShown || !animations) cancelDelayedGlassMove();
         if (!glassShown) {
             springX.cancel();
             springY.cancel();
@@ -1806,12 +1813,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // Star Wars: three hard steps instead of the spring, then the blip.
             stepGlassTo(x - glassScrollShiftX, y - glassScrollShift, moved);
         } else {
-            long delay = dockMove ? WorldFocusMotion.frameDelayMs(world, true) : 0L;
             if (delay > 0) {
-                // Marvel: the brackets open first, then the frame jumps.
+                // Marvel: the brackets open first, then the frame jumps. Already waiting: just the new target.
                 delayedGlassX = x - glassScrollShiftX;
                 delayedGlassY = y - glassScrollShift;
-                glass.postDelayed(delayedGlassMove, delay);
+                if (!delayedGlassPending) {
+                    delayedGlassPending = true;
+                    glass.postDelayed(delayedGlassMove, delay);
+                }
             } else {
                 springX.animateToFinalPosition(x - glassScrollShiftX);
                 springY.animateToFinalPosition(y - glassScrollShift);
@@ -1937,12 +1946,34 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             return;
         }
+        // A held key repeats faster than a step (50 ms against 60): restarting from where the frame stood would keep
+        // it on its first tile. So a move during the steps lands it on the last target and skips the flat first step.
+        boolean stepping = glassSteps.isRunning();
         cancelGlassSteps();
-        stepFromX = glass.getTranslationX() - glassScrollShiftX;
-        stepFromY = glass.getTranslationY() - glassScrollShift;
+        if (stepping) {
+            stepFromX = stepToX;
+            stepFromY = stepToY;
+        } else {
+            stepFromX = glass.getTranslationX() - glassScrollShiftX;
+            stepFromY = glass.getTranslationY() - glassScrollShift;
+        }
         stepToX = toX;
         stepToY = toY;
         glassSteps.start();
+        if (stepping) glassSteps.setCurrentPlayTime(WorldFocusMotion.STEPS_MS / WorldFocusMotion.STEPS);
+    }
+
+    /** Marvel's frame stops waiting for the brackets; nothing posted, nothing pending. */
+    private void cancelDelayedGlassMove() {
+        glass.removeCallbacks(delayedGlassMove);
+        delayedGlassPending = false;
+    }
+
+    /** As cancelDelayedGlassMove, but a frame that was still waiting heads for its tile now. */
+    private void flushDelayedGlassMove() {
+        if (!delayedGlassPending) return;
+        cancelDelayedGlassMove();
+        delayedGlassMove.run();
     }
 
     /** Stops the steps where they are and the blip at rest (full height and opacity); nothing outside Star Wars. */
@@ -2334,7 +2365,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (!glassShown) return;
         glassShown = false;
         // A world's dock move stops with the frame: brackets locked, no scan or sparks, steps and blip at rest.
-        glass.removeCallbacks(delayedGlassMove);
+        cancelDelayedGlassMove();
         if (focusMotion != null) focusMotion.cancel();
         settleGlassSteps();
         glass.animate().cancel();
