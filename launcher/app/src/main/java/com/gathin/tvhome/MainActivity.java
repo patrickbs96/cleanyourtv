@@ -292,6 +292,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private World world = World.CLEAN;
     /** The world's day or night picture behind Home; adds no views in Clean. */
     private WorldScene worldScene;
+    /** The world's dock (gold frame, metal bar, targeting scale); null in Clean and where the layout keeps Clean's dock. */
+    private WorldDockDecoration worldDock;
     /** The world's continuous motion over its scene (WorldOverlay); null in Clean. */
     private WorldOverlay worldOverlay;
     /** Between onResume and onPause, for WorldOverlay.shouldRun. */
@@ -445,7 +447,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         sky = findViewById(R.id.sky);
         sky.setIntensity(cfg.skyIntensity);
         glass = findViewById(R.id.glass);
-        glass.setStyle(cfg.glassStyle);
+        // A world's focus frame is the crisp rim in its accent; Marvel adds the target brackets, at rest locked on.
+        glass.setStyle(world.isClean() ? cfg.glassStyle : Config.GLASS_RIM);
+        if (world == World.MARVEL) {
+            glass.setBrackets(true);
+            glass.setBracketsLocked(true);
+        }
         // A world's accent wins over a festival's, the way the festival's wins over the app colours.
         if (!world.isClean()) glass.setAccent(world.accent);
         else if (festive) glass.setAccent(festival.accentColor());
@@ -611,7 +618,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             public void onChildViewDetachedFromWindow(@NonNull View v) {
             }
         });
-        if (dockRow) grid.addItemDecoration(new DockDecoration(COLUMNS, density, cinematic, cfg.alwaysShowNames, cfg.dockOpacity, cfg.dockGlass, cfg.dockEvenPadding, cfg.dockBand,
+        // A world draws its own dock, but only on the layout it was made for; elsewhere it keeps Clean's (spec § 4.1).
+        if (dockRow && !world.isClean() && World.dockStyleSupported(cfg)) {
+            worldDock = new WorldDockDecoration(world, COLUMNS, density, cfg.dockOpacity);
+            grid.addItemDecoration(worldDock);
+        } else if (dockRow) grid.addItemDecoration(new DockDecoration(COLUMNS, density, cinematic, cfg.alwaysShowNames, cfg.dockOpacity, cfg.dockGlass, cfg.dockEvenPadding, cfg.dockBand,
                 singleRow, cfg.dockBandAll));
         if (cfg.fadeRows) TopFade.attach(grid, 48 * density);
         // Reduced motion: the tiles are simply there, with no entrance (reloadApps skips it there too).
@@ -1689,7 +1700,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         Rect r = tileRect;
         r.set(0, 0, card.getWidth(), card.getHeight());
         root.offsetDescendantRectToMyCoords(card, r);
-        float pad = 6f * density;        // matches GlassView's glow inset
+        float pad = glass.insetPx();     // GlassView's room round the slab: 6dp, 10dp with Marvel's brackets
         float scale = adapter.focusScale();
         float w = card.getWidth() * scale + 2 * pad;
         float h = card.getHeight() * scale + 2 * pad;
@@ -1716,6 +1727,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if ((cinematic || appGlow) && !fixedAccent && accent != glassAccent) {
             glassAccent = accent;
             glass.setAccent(accent);
+        }
+        // Star Wars lights the scale under the focused dock tile; the grid draws the decoration, so it redraws.
+        if (worldDock != null && world == World.STARWARS) {
+            worldDock.setFocusedSlot(position < COLUMNS ? position : -1);
+            grid.invalidate();
         }
         if (!glassShown) {
             springX.cancel();
@@ -1765,7 +1781,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         RecyclerView.ViewHolder vh = grid.findViewHolderForAdapterPosition(pos);
         View card = vh == null ? null : vh.itemView.findViewById(R.id.card);
         if (card == null || card.getWidth() <= 0 || !card.isFocused()) return;
-        float pad = 6f * density;
+        float pad = glass.insetPx();
         float scale = adapter.focusScale();
         int w = (int) (card.getWidth() * scale + 2 * pad);
         int h = (int) (card.getHeight() * scale + 2 * pad);
