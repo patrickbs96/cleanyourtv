@@ -9,6 +9,9 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.ForegroundColorSpan;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -32,6 +35,7 @@ public final class LauncherSettingsActivity extends Activity {
     private TextView advancedChoice;
     private TextView followThemeChoice;
     private TextView openOnStartChoice;
+    private TextView worldChoice;
     private int columns;
     private int rowsBelowDock;
     private int dockOpacity;
@@ -128,6 +132,8 @@ public final class LauncherSettingsActivity extends Activity {
             openOnStartChoice.setVisibility(View.VISIBLE);
             openOnStartChoice.setOnClickListener(v -> showOpenOnStartPicker());
         }
+        worldChoice = findViewById(R.id.worldChoice);
+        worldChoice.setOnClickListener(v -> showWorldPicker());
         followThemeChoice = findViewById(R.id.followThemeChoice);
         followThemeChoice.setOnClickListener(v -> {
             if (!hasOnTvChoices()) return;
@@ -232,6 +238,32 @@ public final class LauncherSettingsActivity extends Activity {
                 .show();
     }
 
+    /**
+     * The four worlds, each behind a dot in its remote key's colour, the same choice the colour keys make on Home.
+     * Not a theme choice: Follow theme leaves it alone.
+     */
+    private void showWorldPicker() {
+        World[] worlds = World.values();
+        CharSequence[] labels = new CharSequence[worlds.length];
+        for (int i = 0; i < worlds.length; i++) {
+            SpannableString label = new SpannableString("●  " + getString(worlds[i].labelRes));
+            label.setSpan(new ForegroundColorSpan(worlds[i].keyColor), 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            labels[i] = label;
+        }
+        World current = World.current(choices);
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.world)
+                .setSingleChoiceItems(labels, current.ordinal(), (dialog, which) -> {
+                    dialog.dismiss();
+                    if (worlds[which] == current) return;
+                    worlds[which].save(choices);
+                    changed();
+                    refresh();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
     /** The picked app's name, its package when it is gone, or Off. */
     private String openOnStartLabel() {
         String pkg = choices.getString(OpenOnStart.KEY, "");
@@ -291,6 +323,12 @@ public final class LauncherSettingsActivity extends Activity {
                         : wallpaperCurrent != null ? wallpaperCurrent
                         : getString(R.string.wallpaper_theme_default)));
         openOnStartChoice.setText(getString(R.string.open_on_start_state, openOnStartLabel()));
+        World world = World.current(choices);
+        SpannableString worldLabel = new SpannableString(
+                getString(R.string.world) + ": ●  " + getString(world.labelRes));
+        int dot = worldLabel.toString().indexOf('●');
+        worldLabel.setSpan(new ForegroundColorSpan(world.keyColor), dot, dot + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        worldChoice.setText(worldLabel);
         followThemeChoice.setSelected(!hasOnTvChoices());
     }
 

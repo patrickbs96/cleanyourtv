@@ -52,6 +52,7 @@ import android.text.Spanned;
 import android.text.TextPaint;
 import android.text.TextUtils;
 import android.text.style.ForegroundColorSpan;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -282,6 +283,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Tile menu's "Add to dock": the app waiting for a dock place in edit-dock mode, or null. */
     private String dockEditAppKey;
     private AppLibraryDialog appLibrary;
+    /** The world the colour keys picked (World.PREF_KEY), read once per onCreate; Clean is today's Home. */
+    private World world = World.CLEAN;
     private boolean appLibrarySelection;
     private boolean libraryOkOpens;
     private boolean libraryFocusPending;
@@ -377,6 +380,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         density = getResources().getDisplayMetrics().density;
         // config.xml, overlaid by config.json from a pushed theme (see Config and tools/theme.sh).
         Config cfg = Config.load(this);
+        world = World.current(getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE));
         appLibrarySelection = cfg.appLibrarySelection;
         libraryOkOpens = cfg.libraryOkOpens;
         // restore_key_services: after a force stop, put back the remote's accessibility helpers that Android took
@@ -1218,6 +1222,33 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         return false;
     }
 
+    // ---- worlds ----------------------------------------------------------------------------------
+
+    /**
+     * The remote's colour keys switch the world on release. Not while a dropdown (Inputs, the tile menu, the
+     * Settings or top menu, module cards), the app library, the card prompt or reorder/edit-dock mode is open:
+     * the key then does what it did before. Each release of a colour or unknown key is logged once, to read the
+     * key and scan codes a remote really sends.
+     */
+    private boolean switchWorldKey(KeyEvent event) {
+        int code = event.getKeyCode();
+        if (event.getAction() == KeyEvent.ACTION_UP && (code == KeyEvent.KEYCODE_UNKNOWN
+                || (code >= KeyEvent.KEYCODE_PROG_RED && code <= KeyEvent.KEYCODE_PROG_BLUE))) {
+            Log.i("World", "key=" + code + " scan=" + event.getScanCode());
+        }
+        boolean popupOpen = openPopup != null || appLibrary != null || cardPrompt != null || reordering;
+        World target = WorldSwitch.target(event, world, popupOpen);
+        if (target == null) return false;
+        switchWorld(target);
+        return true;
+    }
+
+    /** Saves the world and rebuilds Home in it. */
+    void switchWorld(World target) {
+        target.save(getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE));
+        recreate();
+    }
+
     // ---- reorder ---------------------------------------------------------------------------------
 
     /** Blue the glass turns while reorder mode is on. */
@@ -1233,6 +1264,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         if (handleSettingsKey(event)) return true;
+        if (switchWorldKey(event)) return true;
         if (tileMenuEnabled && !reordering && openPopup == null && cardPrompt == null
                 && event.getKeyCode() == KeyEvent.KEYCODE_MENU) {
             int position = focusedTilePosition();
