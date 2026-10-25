@@ -25,3 +25,8 @@ SOFTWARE.
 The Outfit typeface in launcher/app/src/main/res/font/outfit.ttf is copyright
 The Outfit Project Authors and licensed under the SIL Open Font License 1.1,
 see launcher/FONT-LICENSE-OFL.txt.
+
+The Cormorant Garamond, Oswald and Michroma typefaces in launcher/app/src/main/res/font/
+(cormorant_garamond_*.ttf, oswald_*.ttf, michroma.ttf) are copyright their project authors
+and licensed under the SIL Open Font License 1.1, see launcher/FONT-LICENSE-OFL-cormorant.txt,
+launcher/FONT-LICENSE-OFL-oswald.txt and launcher/FONT-LICENSE-OFL-michroma.txt.

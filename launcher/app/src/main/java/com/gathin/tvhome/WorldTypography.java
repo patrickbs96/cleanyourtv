@@ -8,10 +8,12 @@ import android.graphics.Typeface;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextPaint;
+import android.text.TextUtils;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.MetricAffectingSpan;
 import android.text.style.RelativeSizeSpan;
 import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.TextView;
 
@@ -62,9 +64,14 @@ final class WorldTypography {
                 heroName.setTypeface(UiFont.get(c, R.string.font_world_hog_italic));
                 heroName.setTextColor(HOG_CREAM);
                 heroName.setLetterSpacing(0f);
-                // Two lines: the small prefix over the name (heroText).
+                // Two lines: the small prefix over the name (heroText). Exactly two, reserved before the first
+                // text arrives: showHero places the shelf by its height before fillHero sets the text, so a
+                // height that grew with the text would put the first showing a line too low. Bottom gravity
+                // keeps the name on the dock side of the reserved room.
                 heroName.setSingleLine(false);
-                heroName.setMaxLines(2);
+                heroName.setLines(2);
+                heroName.setEllipsize(TextUtils.TruncateAt.END);
+                heroName.setGravity(Gravity.BOTTOM | Gravity.START);
                 heroMeta.setTypeface(regular);
                 break;
             }

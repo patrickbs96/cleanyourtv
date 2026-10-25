@@ -1008,4 +1008,5 @@ The people whose work is in this repo:
 ## Licence
 
 MIT, see [`LICENSE`](LICENSE). The Outfit typeface is under the SIL Open Font License, see
-`launcher/FONT-LICENSE-OFL.txt`.
+`launcher/FONT-LICENSE-OFL.txt`. The worlds' typefaces Cormorant Garamond, Oswald and Michroma are under the
+same licence, see `launcher/FONT-LICENSE-OFL-cormorant.txt`, `-oswald.txt` and `-michroma.txt`.
