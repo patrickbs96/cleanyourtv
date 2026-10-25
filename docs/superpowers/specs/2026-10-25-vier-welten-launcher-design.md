@@ -56,9 +56,14 @@ bleiben: nerdig in Licht, Farbe, Schrift und Bewegung, nicht in Logos.
   Partikel-Overlays zeichnen auf einen Canvas ohne Allokation pro Frame (Muster: `PetalShowerView`).
 - Schriften (alle SIL OFL): Cormorant Garamond (Hogwarts), Oswald (Marvel), Michroma (Star Wars). Outfit bleibt für Clean.
   Lizenztexte neben `FONT-LICENSE-OFL.txt` ablegen.
-- Fernbedienung: die Philips-Fernbedienung hat vier Farbtasten (`KEYCODE_PROG_RED/GREEN/YELLOW/BLUE`). Sie erreichen
-  `MainActivity.dispatchKeyEvent` direkt, solange Home im Vordergrund ist – kein Accessibility-Dienst nötig, die
-  Lautstärke-Wiederholung bleibt wie sie ist.
+- Fernbedienung: die Philips-Fernbedienung hat vier Farbtasten. Mit `getevent -lt` am 25.10.2026 gemessen: Gerät
+  `/dev/input/event1` (`TPV_MutilRC`) sendet `KEY_RED`, `KEY_GREEN`, `KEY_YELLOW`, `KEY_BLUE` (Linux 398–401) **ohne**
+  `MSC_SCAN`. Die Vendor-Key-Layout-Datei `/vendor/usr/keylayout/TPV_MutilRC.kl` ist für die Shell nicht lesbar; die
+  Android-Keycodes sind damit sehr wahrscheinlich `KEYCODE_PROG_RED/GREEN/YELLOW/BLUE` (183–186), aber nicht bewiesen.
+  **Erster Schritt der Umsetzung:** die vier Tasten in `MainActivity.dispatchKeyEvent` mit `Log.i` (Keycode und
+  `getScanCode()`) protokollieren, Patrick drücken lassen, `logcat` lesen; fällt ein anderer Keycode (etwa
+  `KEYCODE_UNKNOWN` mit Scancode 398–401), wird nach Scancode gematcht. Die Tasten erreichen die Activity direkt,
+  solange Home im Vordergrund ist – kein Accessibility-Dienst nötig, die Lautstärke-Wiederholung bleibt wie sie ist.
 - Vorhandene Bausteine, auf denen gebaut wird: `Festival` (Haut mit eigenen Pill-Icons, Begrüßung, Akzentfarbe),
   `GlassView.setAccent/setStyle` (Fokusrahmen), `DockDecoration` (Dock-Band), `HeroArt`/Hero-Titel, `UiFont` +
   `res/values/fonts.xml` (Schrift-Indirektion), `WallpaperPlayer` + `WallpaperMood` (Tag/Abend/Nacht nach Sonnenstand),
@@ -93,8 +98,16 @@ alle Werte liegen im APK. Felder:
 Clean ist `World.CLEAN` mit lauter „nichts tun“-Werten; jeder Codepfad, der eine Welt liest, muss bei Clean exakt
 das heutige Verhalten ergeben. Das ist die wichtigste Regressionsbedingung (§ 7).
 
-Die gewählte Welt steht in `SharedPreferences Config.SETTINGS_NAME` unter `world` (Default `clean`). Sie wird von
-`MainActivity` beim Start gelesen und bei jedem Wechsel sofort angewendet (ohne Neustart der Activity) und gespeichert.
+Die gewählte Welt steht in `SharedPreferences Config.SETTINGS_NAME` unter `world` (Default `clean`). `MainActivity`
+liest sie **einmal in `onCreate`** und baut die Haut dort auf; ein Wechsel speichert den Key und startet die Activity
+hinter dem Übergang neu (`recreate()`, § 4.2). Kein Live-Umbau: alles Welt-Relevante (DockDecoration, GlassView-Federn,
+Schriften im Layout, Pill-Drawables) entsteht heute in `onCreate`, und ein zur Laufzeit rückstellbarer Umbau wäre das
+größte Risiko für ein verändertes Clean.
+
+Die Welten sind für die **heutige Konfiguration** dieses TVs gebaut: `dock_row=true`, 6 Spalten, `rows_below_dock=0`,
+kein `cinematic_home`, kein `single_row`, kein Wallpaper-Theme. Ist einer dieser Schalter anders gesetzt, fällt der
+Dock-Stil der Welt auf den Clean-Dock zurück (Szene, Schrift, Farben und Pills bleiben); diese Kombinationen werden
+nicht getestet.
 
 Ein Theme-Push (`tools/theme.sh`) oder `--reset` lässt die Welt-Wahl unangetastet; eine Welt liegt *über* dem
 Theme/Config: wo beide etwas sagen (Hintergrund, Dock-Band, Glow-Farbe, Schrift), gewinnt die Welt, außer bei Clean.
@@ -102,10 +115,14 @@ Theme/Config: wo beide etwas sagen (Hintergrund, Dock-Band, Glow-Farbe, Schrift)
 ### 4.2 Wechsel
 
 - Farbtasten: in `MainActivity.dispatchKeyEvent` auf `ACTION_UP` von `KEYCODE_PROG_*`, nur wenn kein Dialog/Reorder
-  aktiv ist. Gleiche Taste erneut = nichts. Ein Wechsel spielt den `enterMotion` der Zielwelt und baut währenddessen die
-  Haut um (Reihenfolge: Szene tauschen → Schrift/Farben/Pills/Dock → Hero neu setzen → Overlay starten).
+  aktiv ist. Gleiche Taste erneut = nichts. Ablauf eines Wechsels: erster Teil des `enterMotion` der Zielwelt
+  (Abdunkeln bzw. Hyperraum-Anlauf, ≤ 400 ms) → `world` speichern → `recreate()` → die neue Instanz erkennt beim Start
+  ein gesetztes „Übergang läuft“-Flag und spielt den zweiten Teil (Einblenden, Kerzen zünden, HUD-Boot) statt der
+  normalen Kachel-Entrance. Der Warmstart liegt unter einer Sekunde und wird vom Übergang verdeckt.
 - Einstellungen: neue Zeile „Welt“ in `LauncherSettingsActivity` mit Auswahl-Dialog (vier Einträge, die Farbtaste als
-  farbiger Punkt vor dem Namen). Dort auch ein Hinweis-Text „Farbtasten der Fernbedienung wechseln direkt“.
+  farbiger Punkt vor dem Namen). Dort auch ein Hinweis-Text „Farbtasten der Fernbedienung wechseln direkt“. Dieser Weg
+  nutzt den vorhandenen Revisions-Mechanismus (Home recreatet in `onResume`); der zweite Teil des Übergangs spielt
+  ebenfalls.
 - Kein Auto-Wechsel (keine Rotation zwischen Welten). Tag/Nacht wechselt nur das Bild *innerhalb* einer Welt (§ 4.3).
 
 ### 4.3 Szene: Hintergrund und Dauerbewegung
@@ -138,7 +155,7 @@ Clean: kein Bild, kein Overlay (wie heute: `background_color`, Ambient-Glow).
 | Uhr | Creme `#F5E9C8` | Gold-Verlauf `#FFF2D0→#E6B85A→#A86D1F`, weicher Gold-Schatten | `#BCD3FF` mit blauem Schein |
 | Datum/Gruß | Gold `#C9A84C`, Trennlinie Gold 40 % | Gold `#E6B85A` versal, Datum `#F0D9B0` | Holo-Blau `#8FB3FF`, versal, Scanlinien-Fläche hinter Uhr+Datum (3-px-Raster, 8 % Alpha) |
 | Zierde unter Uhr | „⟡ ✦ ⟡“ in Gold | HUD-Ecken (dünne Linien in `#78C8FF` 35 %) um Uhr+Datum | – |
-| Pills | runde Gold-Medaillons: Rand `#C9A84C`, Außenring 15 %, Icons Kerze / Eule / Stern | eckig (4 dp Radius), Rand `#78C8FF` 80 %, Innenschein, Icons wie Clean | eckig (3 dp), Rand `#8FB3FF` 70 %, blauer Außenschein, Icons wie Clean |
+| Pills | **Icon-only** (die drei Welten erzwingen `icon_only_buttons` + `icon_only_inputs`; Clean behält die heutigen Text-Pills mit WLAN-Name). Hogwarts: runde Gold-Medaillons, Rand `#C9A84C`, Außenring 15 %, Icons Kerze / Eule / Stern | eckig (4 dp Radius), Rand `#78C8FF` 80 %, Innenschein, Icons wie Clean | eckig (3 dp), Rand `#8FB3FF` 70 %, blauer Außenschein, Icons wie Clean |
 | Hero-Name | kursiv Creme, darüber Kleinzeile „ZAUBERSPIEGEL ZEIGT“ in Gold gesperrt | versal, Verlauf Weiß→Gold→Rot `#B4201F` | versal Crawl-Gelb, Perspektive 18° |
 | Dock | Band `rgba(28,22,44,.85)→rgba(14,11,24,.9)`, Rand Gold 1 px, Außenrahmen 4 px Dunkel + 1 px Gold 45 %, „❖“ oben links/rechts; darunter 3-px-Streifen in den vier Hausfarben `#7A1B1B #C9A84C #1B4D2E #1E3A6B` | Metallleiste `#2A2A2E→#121214`, Rand `#4A4A50`, Oberkante 2 px Gold, zwei Nieten unten außen; über dem Dock links sechs Punkte in `#A855F7 #3B82F6 #EF4444 #F59E0B #22C55E #F97316` (Stein-Farben, nur Schmuck) | kein Band; 1-px-Linie `#8FB3FF` 60 % unter den Kacheln, darunter Zielcomputer-Skala (Striche alle 3,2 %), der Abschnitt unter der fokussierten Kachel leuchtet weiß |
 | Fokusrahmen (`GlassView`) | Stil `rim`, Rand `#E8C87A`, Glow Gold | Stil `rim` + Zielklammern (Ecken 8 dp außerhalb, rasten auf 2 dp ein), Glow Blau | Stil `rim`, Rand `#CFE0FF`, Glow Holo-Blau |
@@ -149,7 +166,10 @@ Icons Kerze/Eule/Stern sind Vektor-Drawables (`res/drawable/ic_world_hog_*.xml`)
 ### 4.5 Tag/Nacht
 
 Nur die Szene (Bild + Overlay-Parameter) wechselt, nicht die UI-Farben. Hogwarts-Gruß wechselt „Lumos“/„Nox“ mit der
-Tageszeit (Lumos von Sonnenaufgang bis Sonnenuntergang + 30 min). Umschaltzeiten aus `WallpaperMood`.
+Tageszeit (Lumos von Sonnenaufgang bis Sonnenuntergang + 30 min). Umschaltzeiten aus `WallpaperMood` mit dem Sonnenstand
+für Wohnort: `config.xml` `latitude=52.52`, `longitude=13.41` (bewusst grob, der Fork ist öffentlich). Für den Test
+(§ 7) bekommt die Welt-Zeile in den Launcher-Einstellungen bei langem OK einen versteckten Schalter „Szene: Auto / Tag /
+Nacht“, der nur bis zum nächsten Home-Start gilt.
 
 ### 4.6 Dock-Wechsel (Fokus bewegt sich zwischen Dock-Kacheln)
 
@@ -214,6 +234,8 @@ als Ortsangabe hinter dem Gruß. Die vorhandene `greeting_name`-Logik bleibt und
 - Schriftstärken-Auswahl, solange Dateigröße und Lesbarkeit auf 3 m Abstand stimmen (Uhr ≥ 64 sp-Äquivalent).
 - Wie die Welt-Haut auf Dialoge (Inputs-Menü, Einstellungen, Bibliothek) durchschlägt: mindestens Schrift und Akzentfarbe,
   nicht zwingend die Szene.
+- Ob die Tag↔Nacht-Überblendung zwei volle 1080p-Bitmaps gleichzeitig hält oder über ein 480×270-Zwischenbild läuft
+  (2 GB RAM; messen, nicht raten).
 
 ## 7. Prüfung
 
@@ -224,7 +246,10 @@ als Ortsangabe hinter dem Gruß. Die vorhandene `greeting_name`-Logik bleibt und
 - **OLED**: keine Fläche heller als 60 % Luminanz, die länger als 10 min steht (Reaktor, Sonnen, Mond sind klein; Dauerbewegung läuft).
 - **Abschaltbarkeit**: `reduced_motion` stoppt Overlays und Effekte; Welt Clean per Einstellung erreichbar, auch wenn eine Farbtaste fehlt.
 
-## 8. Offene Punkte (vom Reviewer zu prüfen, siehe Builder-Check)
+## 8. Builder-Check (25.10.2026)
 
-- Ob die Philips-Fernbedienung die Farbtasten als `KEYCODE_PROG_*` liefert oder als Scancode (dann `getevent -lt` und Mapping über `settings_key_scancodes`-Mechanik).
-- Ob die 2 GB des TPM191E zwei dekodierte Hintergründe (Überblendung Tag↔Nacht) gleichzeitig verkraften oder die Überblendung über ein 480×270-Zwischenbild laufen soll.
+Ein unabhängiger Reviewer hat das Dokument gegen den Launcher-Code gelesen. Seine vier Fragen sind in § 4.1 (Neustart
+statt Live-Umbau; nur heutige Konfiguration), § 4.4 (Icon-only-Pills in den Welten) und § 4.5 (Koordinaten Wohnort)
+beantwortet. Geprüft und unkritisch: `theme.sh --reset` und `syncThemeChoices` lassen `world` stehen; mit
+`key_filter=false` filtert `HomeKeyService` nichts, `app_keys` und `settings_key_keycodes` enthalten keine Farbtaste,
+die Farbtasten erreichen `dispatchKeyEvent`; der Clock-Screensaver ist aus.
