@@ -879,7 +879,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             else makeIconOnly(btnWifi);
             makeIconOnly((TextView) btnSettings);
         }
-        if (cfg.iconOnlyInputs || world.forcesIconOnlyPills()) makeIconOnly((TextView) btnInputs);
+        if (cfg.iconOnlyInputs) makeIconOnly((TextView) btnInputs);
+        // A world with icon pills makes Inputs round too, through the same helper; Clean never forces it.
+        else if (world.forcesIconOnlyPills()) makeIconOnly((TextView) btnInputs);
         btnSettings.setOnLongClickListener(v -> {
             showSettingsMenu();
             return true;

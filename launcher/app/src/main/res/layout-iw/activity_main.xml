@@ -178,6 +178,22 @@
             android:clipChildren="false"
             android:clipToPadding="false">
 
+            <!-- Star Wars' scanline field behind the greeting, clock and date, mirrored: anchored to leftBlock's
+                 right edge, where the Hebrew header sits. Before leftBlock, so it draws under it; gone elsewhere. -->
+            <View
+                android:id="@+id/worldScanlines"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_alignTop="@+id/leftBlock"
+                android:layout_alignBottom="@+id/leftBlock"
+                android:layout_alignEnd="@+id/leftBlock"
+                android:layout_marginEnd="-12dp"
+                android:layout_marginTop="-6dp"
+                android:layout_marginBottom="-6dp"
+                android:focusable="false"
+                android:importantForAccessibility="no"
+                android:visibility="gone" />
+
             <LinearLayout
                 android:id="@+id/leftBlock"
                 android:layout_width="match_parent"
@@ -312,6 +328,40 @@
 
                 </LinearLayout>
             </LinearLayout>
+
+            <!-- Marvel's HUD corners around the greeting, clock and date, mirrored to leftBlock's right edge. -->
+            <View
+                android:id="@+id/worldHud"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_alignTop="@id/leftBlock"
+                android:layout_alignBottom="@id/leftBlock"
+                android:layout_alignEnd="@id/leftBlock"
+                android:layout_marginEnd="-12dp"
+                android:layout_marginTop="-6dp"
+                android:layout_marginBottom="-6dp"
+                android:focusable="false"
+                android:importantForAccessibility="no"
+                android:visibility="gone" />
+
+            <!-- Hogwarts' ornament under the date, mirrored to the right. The negative bottom margin cancels its
+                 height, so the header (and the grid under it) keeps today's height; it draws into the gap below. -->
+            <TextView
+                android:id="@+id/worldOrnament"
+                android:layout_width="wrap_content"
+                android:layout_height="22dp"
+                android:layout_alignBottom="@id/leftBlock"
+                android:layout_alignEnd="@id/leftBlock"
+                android:layout_marginEnd="4dp"
+                android:layout_marginBottom="-24dp"
+                android:gravity="center_vertical"
+                android:singleLine="true"
+                android:includeFontPadding="false"
+                android:textSize="14sp"
+                android:letterSpacing="0.4"
+                android:focusable="false"
+                android:importantForAccessibility="no"
+                android:visibility="gone" />
 
             <!-- Shown only when show_stats is on. Outside leftBlock, so the top buttons stay level with the clock
                  row; gone, it takes no space. -->

@@ -145,4 +145,15 @@
     <string name="race_countdown_hours">%1$d שע׳ %2$d דק׳</string>
     <string name="race_countdown_days">%1$d ימ׳ %2$d שע׳</string>
     <string name="last_opened">פתיחה אחרונה: %1$s</string>
+    <string name="world">עולם</string>
+    <string name="world_clean">Clean</string>
+    <string name="world_hogwarts">Hogwarts</string>
+    <string name="world_marvel">Marvel</string>
+    <string name="world_starwars">Star Wars</string>
+    <string name="world_hint">מקשי הצבע בשלט מחליפים ישירות</string>
+    <string name="world_scene">סצנה</string>
+    <string name="world_scene_auto">אוטומטי (לפי השמש)</string>
+    <string name="world_scene_day">יום</string>
+    <string name="world_scene_night">לילה</string>
+    <string name="world_hog_hero_prefix">המראה הקסומה מציגה</string>
 </resources>
