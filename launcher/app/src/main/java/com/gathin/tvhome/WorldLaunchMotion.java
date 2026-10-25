@@ -7,6 +7,7 @@ import android.os.SystemClock;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.widget.FrameLayout;
 
 import androidx.annotation.Nullable;
@@ -291,6 +292,11 @@ final class WorldLaunchMotion {
         cardRect.set(0, 0, card.getWidth(), card.getHeight());
         root.offsetDescendantRectToMyCoords(card, cardRect);
         cardRect.offset(Math.round(card.getTranslationX()), Math.round(card.getTranslationY()));
+        // And the OLED shift, which moves the layer holding the grid (MainActivity.oledLayer): the effect is drawn in
+        // root, over the tile where it stands now.
+        for (ViewParent p = card.getParent(); p instanceof View && p != root; p = p.getParent()) {
+            cardRect.offset(Math.round(((View) p).getTranslationX()), Math.round(((View) p).getTranslationY()));
+        }
         if (fx == null) fx = new LaunchFxView(root.getContext());
         float density = root.getResources().getDisplayMetrics().density;
         fx.prepare(w, cardRect, AppAdapter.cornerRadius(card.getWidth(), density), cardScaleX0, cardScaleY0);

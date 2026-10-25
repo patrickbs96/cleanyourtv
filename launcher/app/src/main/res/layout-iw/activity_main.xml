@@ -103,6 +103,15 @@
         android:visibility="gone"
         android:importantForAccessibility="no" />
 
+    <!-- OLED shift (config.xml oled_shift, OledShift): the shelf, the header with the pills, the grid with its dock
+         band and the focus frame move together once a minute by a few pixels. One layer the size of root, so its
+         children keep root's coordinates (onTileFocused places the frame from layout positions) and nothing else
+         translates it. The backgrounds above stay put: moving a full-screen picture would bare its edge. -->
+    <FrameLayout
+        android:id="@+id/oledLayer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
     <!-- Top shelf: the focused dock app's name, positioned above the dock in code. -->
     <LinearLayout
         android:id="@+id/hero"
@@ -408,4 +417,5 @@
         android:layout_height="10dp"
         android:alpha="0"
         android:importantForAccessibility="no" />
+    </FrameLayout>
 </FrameLayout>

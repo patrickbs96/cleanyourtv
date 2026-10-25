@@ -93,6 +93,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 /**
@@ -144,6 +145,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private FrameLayout root;
     private WallpaperPlayer wallpaperPlayer;
     private GlassView glass;
+    /** The shelf, header, grid and glass in one layer the OLED shift moves (activity_main.xml, oledLayer). */
+    private View oledLayer;
+    /** config.xml oled_shift: the minute's few-pixel move of oledLayer and the race panel (spec § 4.10a). */
+    private OledShift oledShift;
     private View ambient;
     private TextView heroName;
     /** The top shelf: heroName, plus the cinematic shelf's "Last opened" line and dock position dots. */
@@ -416,6 +421,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             sky.update();
             wallpaperPlayer.update();
             worldScene.update();
+            // The OLED shift skips a minute while an app start or a world switch plays: their effects are drawn from
+            // where the tile stood when they began, and the next minute moves Home anyway.
+            if (!(launchMotion != null && launchMotion.isBusy()) && !worldTransition.isBusy()) oledShift.next();
             handler.postDelayed(this, MINUTE_MS);
         }
     };
@@ -478,6 +486,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         sky = findViewById(R.id.sky);
         sky.setIntensity(cfg.skyIntensity);
         glass = findViewById(R.id.glass);
+        oledLayer = findViewById(R.id.oledLayer);
         // A world's focus frame is the rim with its glow (halo) in its exact accent; Marvel adds the target brackets,
         // at rest locked on.
         glass.setStyle(world.isClean() ? cfg.glassStyle : Config.GLASS_HALO);
@@ -513,17 +522,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 ((StarWarsOverlay) worldOverlay).setHoloFlickerListener(this::holoFlicker);
             }
         }
-        // The world's dock move: its sparks and scan go over the dock and the frame, added once and reused.
+        // The world's dock move: its sparks and scan go over the dock and the frame, added once and reused. The frame
+        // is in oledLayer, so they go right above that layer.
         if (!world.isClean()) {
             SparkTrailView sparks = null;
             ScanSweepView scan = null;
             if (world == World.HOGWARTS) {
                 sparks = new SparkTrailView(this);
-                root.addView(sparks, root.indexOfChild(glass) + 1, new FrameLayout.LayoutParams(
+                root.addView(sparks, root.indexOfChild(oledLayer) + 1, new FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             } else if (world == World.MARVEL) {
                 scan = new ScanSweepView(this);
-                root.addView(scan, root.indexOfChild(glass) + 1, new FrameLayout.LayoutParams(
+                root.addView(scan, root.indexOfChild(oledLayer) + 1, new FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             }
             focusMotion = new WorldFocusMotion(glass, worldOverlay, sparks, scan);
@@ -576,6 +586,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         raceKicker = findViewById(R.id.raceKicker);
         raceHeadline = findViewById(R.id.raceHeadline);
         raceSessions = findViewById(R.id.raceSessions);
+        // OLED shift (spec § 4.10a): oledLayer carries the clock block, pills, stats, the world's HUD, ornament and
+        // scanlines, the shelf, the grid with its dock band and the frame; the race panel sits under the shelf's scrim,
+        // outside the layer, and moves on its own. A new line in the header (a weather line under the date) moves with
+        // the layer; anything placed outside it belongs in this list. The scene, sky, wallpaper, glow and
+        // artwork are full-screen backgrounds and stay put. Reduced motion or animations off: the move is a jump.
+        oledShift = new OledShift(Arrays.asList(oledLayer, racePanel), new Random(), cfg.oledShift,
+                animations && !reducedMotion);
         showStats = cfg.showStats;
         shamsi = cfg.shamsiDate;
         lunarDate = findViewById(R.id.lunarDate);
@@ -1284,6 +1301,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         settleGlassSteps();
         flushDelayedGlassMove();
         handler.removeCallbacks(minuteTick);
+        // Back where it was laid out, without a move; the next shift comes a minute after the return.
+        oledShift.reset();
         stopStats();
         if (diya != null) diya.stop();
         cancelPendingFocusScroll();
@@ -1889,12 +1908,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (dockMove) {
             // Where the frame lands: its slab, the zoomed tile.
             zoomedRect.set(Math.round(x + pad), Math.round(y + pad), Math.round(x + w - pad), Math.round(y + h - pad));
+            // The sparks and scan draw in root, above oledLayer: where the OLED shift has the tiles right now.
+            zoomedRect.offset(Math.round(oledLayer.getTranslationX()), Math.round(oledLayer.getTranslationY()));
             focusMotion.setTileRadius(AppAdapter.cornerRadius(card.getWidth(), density) * scale);
             focusMotion.onDockMove(world, lastDockPos, position, lastDockRect, zoomedRect);
         }
         if (dockPos) {
             lastDockPos = position;
             lastDockRect.set(r);
+            lastDockRect.offset(Math.round(oledLayer.getTranslationX()), Math.round(oledLayer.getTranslationY()));
         } else {
             lastDockPos = -1;
         }

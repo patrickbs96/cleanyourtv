@@ -36,6 +36,8 @@ SCREENSHOT_WANTED = {
     "tile_menu", "top_menu", "vpn_app", "wallpaper", "wallpaper_captions", "wallpaper_dim",
     "wallpaper_moods", "wallpaper_order", "wallpaper_true_color", "wifi_label_width",
     "wifi_status_color",
+    # Vier Welten, Task 13: its screenshot waits until the TV is free again (the shift itself is 0 to 3 dp).
+    "oled_shift",
 }
 
 

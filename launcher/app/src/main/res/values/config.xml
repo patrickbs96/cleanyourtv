@@ -424,7 +424,7 @@
          Unlike the system screensaver this never starts over live TV or an app, which matters on TVs whose
          Live TV window does not keep the screen on (CVTE): there the system screensaver would start in the
          middle of a programme. Can also be set with "home_idle_clock_minutes": 10 in a theme's config.json. -->
-    <integer name="home_idle_clock_minutes">0</integer>
+    <integer name="home_idle_clock_minutes">10</integer>
     <!-- The clock screensaver (Home idle clock and the system screensaver) over Home's wallpaper instead of black with
          a coloured glow. The clock still moves every minute. Can also be set with "clock_wallpaper" in a theme. -->
     <bool name="clock_wallpaper">false</bool>
@@ -433,7 +433,13 @@
     <!-- The clock screensaver's slow coloured glow behind the clock. false leaves the clock and date alone on plain black
          (OLED panels); they still move every minute. Ignored while clock_wallpaper shows a picture. Can also be set
          with "clock_glow" in a theme. -->
-    <bool name="clock_glow">true</bool>
+    <bool name="clock_glow">false</bool>
+    <!-- OLED burn-in guard: once a minute the header, the pills, the top shelf, the grid with its dock band and the focus
+         highlight move together by a random 0 to 3 dp in each direction (never to the same place twice in a row), a
+         400 ms glide, a jump with reduced_motion. Home starts unmoved and the first move comes with the first minute;
+         leaving Home puts it back. The backgrounds (wallpaper, sky, glow) stay put. false keeps Home still. Can also
+         be set with "oled_shift" in a theme's config.json. -->
+    <bool name="oled_shift">true</bool>
     <!-- Shape of the glow behind the focused app, in its colour: radial (a soft glow, the default) or horizon (the
          colour washes down from the top edge and fades to black, brightest along the top). The cinematic shelf
          keeps its own glow. Can also be set with "glow_style": "horizon" in a theme's config.json. -->
