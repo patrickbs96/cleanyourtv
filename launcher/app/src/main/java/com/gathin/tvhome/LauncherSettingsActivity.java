@@ -257,6 +257,8 @@ public final class LauncherSettingsActivity extends Activity {
                     dialog.dismiss();
                     if (worlds[which] == current) return;
                     worlds[which].save(choices);
+                    // Home plays the second half of the transition when it rebuilds in the new world (spec § 4.2).
+                    choices.edit().putString(WorldTransition.PENDING_KEY, worlds[which].id).commit();
                     changed();
                     refresh();
                 })

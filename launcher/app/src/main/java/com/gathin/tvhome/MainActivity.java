@@ -311,6 +311,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private WorldFocusMotion focusMotion;
     /** A world's app start (spec § 4.7): the effect before the app opens; null in Clean. */
     private WorldLaunchMotion launchMotion;
+    /** The transition into a world (spec § 4.8): its leave half here, its enter half after recreate(). */
+    private WorldTransition worldTransition;
+    /** The first build after a world switch skips the tiles' entrance: the transition is it (reloadApps). */
+    private boolean entranceReplaced;
     /** Star Wars: the frame's three hard steps, then its blip; both reused, null elsewhere. */
     private ValueAnimator glassSteps, glassBlip;
     private float stepFromX, stepFromY, stepToX, stepToY;
@@ -437,6 +441,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         animations = cfg.animations;
         advancedEffects = cfg.animations && cfg.advancedEffects;
         reducedMotion = cfg.reducedMotion;
+        // A colour key (or Launcher settings) switched into this world: its transition's second half plays instead of
+        // the tiles' entrance. Consumed either way, so with reduced motion or animations off it is a hard cut.
+        boolean entering = WorldTransition.consumePending(getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE), world)
+                && WorldTransition.shouldPlay(animations, reducedMotion);
         dockRow = cfg.dockRow;
         singleRow = cfg.singleRow;
         focusOvershoot = cfg.focusOvershoot;
@@ -668,9 +676,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 singleRow, cfg.dockBandAll));
         if (cfg.fadeRows) TopFade.attach(grid, 48 * density);
         // Reduced motion: the tiles are simply there, with no entrance (reloadApps skips it there too).
-        if (animations && !reducedMotion) {
-            grid.setLayoutAnimation(new LayoutAnimationController(
-                    AnimationUtils.loadAnimation(this, R.anim.tile_enter), 0.06f));
+        if (entering) {
+            // The world's transition stands in for the entrance this once; later rebuilds get it back (reloadApps).
+            entranceReplaced = true;
+        } else if (animations && !reducedMotion) {
+            grid.setLayoutAnimation(tileEnterAnimation());
         }
         adapter = new AppAdapter(this, this, COLUMNS, cfg);
         dockApps = cfg.dockApps;
@@ -927,6 +937,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     .removeCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
                     .build(), vpnCallback);
         }
+        // Over everything Home has built: the transition's cover stands from the first frame.
+        worldTransition = new WorldTransition(root, worldScene, worldOverlay);
+        if (entering) worldTransition.enter(world);
         // Not after recreate(): the launch intent survives it and would open the settings again.
         if (savedInstanceState == null && !openLauncherSettingsIfAsked(getIntent())) openInputsIfAsked(getIntent());
     }
@@ -1149,9 +1162,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         if (rebuild) reloadTiles();
         if (animate && entrance && animations && !reducedMotion) {
-            grid.scheduleLayoutAnimation();
-            // A rebuild redraws the grid anyway; without one the entrance needs a draw to start.
-            if (!rebuild) grid.invalidate();
+            if (entranceReplaced) {
+                // The first build after a world switch: the transition is the entrance (onCreate).
+                entranceReplaced = false;
+            } else {
+                if (grid.getLayoutAnimation() == null) grid.setLayoutAnimation(tileEnterAnimation());
+                grid.scheduleLayoutAnimation();
+                // A rebuild redraws the grid anyway; without one the entrance needs a draw to start.
+                if (!rebuild) grid.invalidate();
+            }
         }
 
         if (restoreFocus) {
@@ -1259,6 +1278,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // An app start still playing when Home is left (Home pressed mid-effect) is dropped: no app opens and the
         // overlay goes. One whose app already started keeps its blend the 400 ms until the app is in front.
         if (launchMotion != null) launchMotion.onPause();
+        // Home left mid-switch: the leave half switches at once (recreate() runs once this pause is through), the
+        // enter half ends with the new skin in place.
+        worldTransition.onPause();
         settleGlassSteps();
         flushDelayedGlassMove();
         handler.removeCallbacks(minuteTick);
@@ -1317,6 +1339,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onDestroy() {
         super.onDestroy();
         if (launchMotion != null) launchMotion.cancel();
+        worldTransition.cancel();
         unregisterReceiver(packageReceiver);
         wallpaperPlayer.close();
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
@@ -1363,14 +1386,27 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         boolean popupOpen = openPopup != null || appLibrary != null || cardPrompt != null || reordering;
         World target = WorldSwitch.target(event, world, popupOpen);
         if (target == null) return false;
-        switchWorld(target);
+        // A second colour key while the transition plays is swallowed: one switch at a time.
+        if (!worldTransition.isBusy()) switchWorld(target);
         return true;
     }
 
-    /** Saves the world and rebuilds Home in it. */
+    /**
+     * Plays the first half of the transition into {@code target} (spec § 4.8), then saves the world, marks the
+     * transition pending for the new Home and rebuilds Home in it. Reduced motion or animations off: at once.
+     */
     void switchWorld(World target) {
-        target.save(getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE));
-        recreate();
+        SharedPreferences prefs = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE);
+        worldTransition.leave(target, animations, reducedMotion, () -> {
+            target.save(prefs);
+            prefs.edit().putString(WorldTransition.PENDING_KEY, target.id).commit();
+            recreate();
+        });
+    }
+
+    /** The tiles' entrance: they come in one after another. */
+    private LayoutAnimationController tileEnterAnimation() {
+        return new LayoutAnimationController(AnimationUtils.loadAnimation(this, R.anim.tile_enter), 0.06f);
     }
 
     // ---- reorder ---------------------------------------------------------------------------------
@@ -1398,6 +1434,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             return true;
         }
+        // While the old Home leaves for another world, keys but the volume wait: it is rebuilt in a moment.
+        if (worldTransition.isLeaving() && !WorldLaunchMotion.passesThrough(event.getKeyCode())) return true;
         if (handleSettingsKey(event)) return true;
         if (switchWorldKey(event)) return true;
         if (tileMenuEnabled && !reordering && openPopup == null && cardPrompt == null

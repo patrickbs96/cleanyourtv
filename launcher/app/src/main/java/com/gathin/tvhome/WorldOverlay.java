@@ -83,6 +83,14 @@ abstract class WorldOverlay extends View {
     void pulse(int what) {
     }
 
+    /** The world's lights (Hogwarts' candles) stay dark until {@link #ignite}: the transition into it (Task 10). */
+    void holdLights() {
+    }
+
+    /** The lights come on one by one from this uptime on (WorldTransition); 0 or less: all on at once. */
+    void ignite(long at) {
+    }
+
     private void frame() {
         if (!running) return;
         onFrame(SystemClock.uptimeMillis());

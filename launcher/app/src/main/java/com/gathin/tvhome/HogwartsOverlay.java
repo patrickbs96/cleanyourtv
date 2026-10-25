@@ -28,6 +28,19 @@ final class HogwartsOverlay extends WorldOverlay {
     private static final float DAY_SCALE = 0.6f;
     private static final long DRIFT_MS = 9000;
     private static final int WAX = 0xFFF3E4B0;
+    /** A candle comes up this fast once it lights in the transition into Hogwarts. */
+    private static final long LIGHT_UP_MS = 60;
+    /** Each candle's place in the lighting order, from the middle of the cluster out (WorldTransition). */
+    private static final int[] IGNITE_RANK;
+
+    static {
+        float[] xs = new float[CANDLES.length], ys = new float[CANDLES.length];
+        for (int i = 0; i < CANDLES.length; i++) {
+            xs[i] = CANDLES[i][0];
+            ys[i] = CANDLES[i][1];
+        }
+        IGNITE_RANK = WorldTransition.igniteRanks(xs, ys);
+    }
 
     private final long[] flickerMs = new long[CANDLES.length], flickerOffset = new long[CANDLES.length];
     private final long[] twinkleMs = new long[STARS.length], twinkleOffset = new long[STARS.length];
@@ -37,6 +50,9 @@ final class HogwartsOverlay extends WorldOverlay {
     private final Paint star = new Paint(Paint.ANTI_ALIAS_FLAG);
     /** 2 px at 1080 lines, in view pixels. */
     private float drift;
+    /** No candle shows (holdLights), or they light one by one from igniteAt on; 0 when all simply burn. */
+    private boolean unlit;
+    private long igniteAt;
 
     HogwartsOverlay(Context context, boolean day) {
         super(context, day);
@@ -55,6 +71,35 @@ final class HogwartsOverlay extends WorldOverlay {
         core.setColor(0xFFFFF6DC);
         wax.setColor(WAX);
         star.setColor(Color.WHITE);
+    }
+
+    @Override
+    void holdLights() {
+        unlit = true;
+        invalidate();
+    }
+
+    @Override
+    void ignite(long at) {
+        unlit = false;
+        igniteAt = Math.max(0L, at);
+        invalidate();
+    }
+
+    int candleCount() {
+        return CANDLES.length;
+    }
+
+    int igniteRank(int i) {
+        return IGNITE_RANK[i];
+    }
+
+    /** Candle {@code i}'s flame in view pixels, without its drift: x, y and the glow's radius into {@code out}. */
+    void candle(int i, float[] out) {
+        float[] cd = CANDLES[i];
+        out[0] = ux(cd[0]);
+        out[1] = uy(cd[1]);
+        out[2] = cd[2] * (day ? DAY_SCALE : 1f) * unit;
     }
 
     @Override
@@ -105,10 +150,19 @@ final class HogwartsOverlay extends WorldOverlay {
                 c.drawCircle(x, y, r, star);
             }
         }
+        if (unlit) return;
+        // Every candle lit by now: they simply burn from here on.
+        if (igniteAt > 0 && now - igniteAt >= WorldTransition.igniteAtMs(CANDLES.length - 1) + LIGHT_UP_MS) igniteAt = 0;
         float s = day ? DAY_SCALE : 1f;
         for (int i = 0; i < CANDLES.length; i++) {
             float[] cd = CANDLES[i];
-            float a = flicker(phase(now, flickerMs[i], flickerOffset[i]));
+            float lit = 1f;
+            if (igniteAt > 0) {
+                long since = now - igniteAt - WorldTransition.igniteAtMs(IGNITE_RANK[i]);
+                if (since < 0) continue;
+                lit = Math.min(1f, since / (float) LIGHT_UP_MS);
+            }
+            float a = lit * flicker(phase(now, flickerMs[i], flickerOffset[i]));
             // Each candle drifts on the same 9 s cycle, a tenth of it later than the one before.
             float dy = drift * (float) Math.sin(TAU * phase(now, DRIFT_MS, i * DRIFT_MS / CANDLES.length));
             float x = ux(cd[0]), y = uy(cd[1]) + dy;
