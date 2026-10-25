@@ -81,6 +81,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -285,6 +286,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private AppLibraryDialog appLibrary;
     /** The world the colour keys picked (World.PREF_KEY), read once per onCreate; Clean is today's Home. */
     private World world = World.CLEAN;
+    /** The app label behind the hero line in a world (whose text adds capitals or a prefix); unused in Clean. */
+    private String heroLabel;
     private boolean appLibrarySelection;
     private boolean libraryOkOpens;
     private boolean libraryFocusPending;
@@ -415,7 +418,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         coocaaSources = cfg.coocaaSources;
 
         root = findViewById(R.id.root);
-        root.setBackgroundColor(cfg.backgroundColor);
+        // A world brings its own (opaque) background; Clean keeps Config's background_color.
+        root.setBackgroundColor(world.isClean() ? cfg.backgroundColor : world.backgroundColor);
         // root fills the window with an opaque colour (Config keeps background_color opaque), so the window's own
         // black under it is a second full-screen fill on every frame for nothing. The starting window still uses
         // the theme's background, so launch looks the same.
@@ -425,7 +429,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         sky.setIntensity(cfg.skyIntensity);
         glass = findViewById(R.id.glass);
         glass.setStyle(cfg.glassStyle);
-        if (festive) glass.setAccent(festival.accentColor());
+        // A world's accent wins over a festival's, the way the festival's wins over the app colours.
+        if (!world.isClean()) glass.setAccent(world.accent);
+        else if (festive) glass.setAccent(festival.accentColor());
         ambient = findViewById(R.id.ambient);
         // The glow is one bitmap, so its alpha can be applied while drawing it. Otherwise every frame of
         // a fade renders it into a full-screen offscreen buffer first.
@@ -475,6 +481,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             clock.addOnLayoutChangeListener(centerGreeting);
             clockRow.addOnLayoutChangeListener(centerGreeting);
         }
+        // The world's type, colours and hero style over the header and the shelf; Clean returns untouched.
+        WorldTypography.apply(world, greeting, findViewById(R.id.clock), findViewById(R.id.date),
+                findViewById(R.id.clockDivider), heroName, heroMeta);
         btnWifi = findViewById(R.id.btnWifi);
         shamsiDate = findViewById(R.id.shamsiDate);
         stats = findViewById(R.id.stats);
@@ -1495,7 +1504,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         drop();
         reordering = false;
         adapter.setReordering(false);
-        glass.setAccent(festive ? festival.accentColor() : 0);
+        glass.setAccent(!world.isClean() ? world.accent : festive ? festival.accentColor() : 0);
         btnReorder.setActivated(false);
         List<String> keys = adapter.movableKeys();
         List<String> before = orderAtStart;
@@ -1655,9 +1664,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         glassTargetY = y;
         // Cinematic shelf: the highlight glows in the dock app's colour, plain white in the grid (and on the dock with
         // cinematic_white_focus). app_glow: every tile. In a single row every tile is the dock's kind.
-        boolean coloured = (appGlow || cinematic && !cinematicWhiteFocus && (singleRow || position < COLUMNS)) && !festive;
+        // A world keeps its own accent (set in onCreate) the way a festival does.
+        boolean fixedAccent = festive || !world.isClean();
+        boolean coloured = (appGlow || cinematic && !cinematicWhiteFocus && (singleRow || position < COLUMNS)) && !fixedAccent;
         int accent = coloured ? adapter.ambientColorAt(position) : 0;
-        if ((cinematic || appGlow) && !festive && accent != glassAccent) {
+        if ((cinematic || appGlow) && !fixedAccent && accent != glassAccent) {
             glassAccent = accent;
             glass.setAccent(accent);
         }
@@ -1722,9 +1733,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void showHero(int position, float dockTopInRoot) {
         String label = adapter.labelAt(position);
-        int color = adapter.ambientColorAt(position);
+        int color = glowColorAt(position);
         float y = dockTopInRoot - 14 * density - 26 * density - hero.getHeight();
-        boolean changed = !label.contentEquals(heroName.getText());
+        // A world's hero line is not the bare label (capitals, the Hogwarts prefix), so compare the label it shows.
+        boolean changed = world.isClean() ? !label.contentEquals(heroName.getText()) : !label.equals(heroLabel);
         if (cinematic && heroArtAlpha > 0f) showHeroArt(position);
 
         if (!animations || reducedMotion) {
@@ -1780,7 +1792,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     /** The shelf's text for this dock app: its name and, on the cinematic shelf, "Last opened" and the dots. */
     private void fillHero(int position, String label) {
-        heroName.setText(label);
+        if (world.isClean()) {
+            heroName.setText(label);
+        } else {
+            heroLabel = label;
+            heroName.setText(WorldTypography.heroText(world, label, getResources()));
+        }
         if (!cinematic) return;
         updateHeroMeta(position);
         updateHeroDots(position);
@@ -1958,10 +1975,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             canvas.drawRect(0, 0, w, h, paint);
             glow = new BitmapDrawable(getResources(), bmp);
             glow.setGravity(Gravity.FILL);
+            // A world's glow strength: the mask is drawn for Clean's 35 % (the mockup's opacity), so a world's
+            // ambientAlphaPercent scales it relative to that. On the paint, not the view, whose alpha fades.
+            if (!world.isClean()) glow.setAlpha(Math.min(255, Math.round(255f * world.ambientAlphaPercent / 35f)));
             ambient.setBackground(glow);
         }
         // The default tint mode, SRC_IN, keeps the mask's alpha and takes the colour from the tint.
         glow.setTint(0xFF000000 | color);
+    }
+
+    /** The glow's colour for this tile: the app's in Clean, the world's own in a world. */
+    private int glowColorAt(int position) {
+        return world.isClean() ? adapter.ambientColorAt(position) : world.ambientColor;
     }
 
     private void transitionAmbient(int color) {
@@ -1991,7 +2016,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * name above the dock does not show (every grid tile has its name underneath).
      */
     private void showGlowOnly(int position) {
-        int color = adapter.ambientColorAt(position);
+        int color = glowColorAt(position);
         stopAmbientAnimation();
         hero.animate().cancel();
         ambient.animate().cancel();
@@ -2467,6 +2492,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
+    /** Day or night for the world's greeting words (Lumos/Nox). Task 4 swaps in the scene's sun times. */
+    private boolean worldDay() {
+        return WorldTypography.isDayHour(LocalTime.now().getHour());
+    }
+
     private void updateGreeting() {
         int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
         int res;
@@ -2503,14 +2533,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             else if (hour < 22) res = R.string.good_evening;
             else res = R.string.good_night;
         }
-        String festiveGreeting = festive ? festival.greetingText(getResources()) : "";
+        // A world's greeting words win over a festival's, as its skin does.
+        String festiveGreeting = festive && world.isClean() ? festival.greetingText(getResources()) : "";
         if (!festiveGreeting.isEmpty()) {
             greeting.setText(festiveGreeting);
             greeting.setTextColor(liftTowardsWhite(festival.accentColor(), 0.25f));
         } else {
-            greeting.setText(greetingName.isEmpty() ? getString(res)
-                    : getString(R.string.greeting_with_name, getString(res), greetingName));
-            greeting.setTextColor(greetingColor);
+            String base = greetingName.isEmpty() ? getString(res)
+                    : getString(R.string.greeting_with_name, getString(res), greetingName);
+            greeting.setText(world.isClean() ? base : WorldTypography.greetingText(world, base, worldDay()));
+            greeting.setTextColor(WorldTypography.greetingColor(world, greetingColor));
         }
         if (shamsi) shamsiDate.setText(Shamsi.today(getResources()));
         if (lunar) lunarDate.setText(Lunar.today(getResources(), lunarOffset));

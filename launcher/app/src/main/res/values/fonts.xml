@@ -7,4 +7,13 @@
     <string name="font_light" translatable="false">@font/outfit_light</string>
     <string name="font_extralight" translatable="false">@font/outfit_extralight</string>
     <string name="font_medium" translatable="false">@font/outfit_medium</string>
+    <!-- The worlds' fonts (WorldTypography), static Latin instances cut from the variable upstream files:
+         Cormorant Garamond for Hogwarts, Oswald for Marvel, Michroma for Star Wars. -->
+    <string name="font_world_hog_light" translatable="false">@font/cormorant_garamond_light</string>
+    <string name="font_world_hog_regular" translatable="false">@font/cormorant_garamond_regular</string>
+    <string name="font_world_hog_italic" translatable="false">@font/cormorant_garamond_italic</string>
+    <string name="font_world_marvel_light" translatable="false">@font/oswald_light</string>
+    <string name="font_world_marvel_medium" translatable="false">@font/oswald_medium</string>
+    <string name="font_world_marvel_bold" translatable="false">@font/oswald_bold</string>
+    <string name="font_world_starwars" translatable="false">@font/michroma</string>
 </resources>
