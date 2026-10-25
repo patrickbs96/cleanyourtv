@@ -532,3 +532,47 @@ public class WeatherTest {
 - [ ] **Step 8: Commit** – `git add launcher/app/src/main/java/com/gathin/tvhome/Weather.java launcher/app/src/main/java/com/gathin/tvhome/WeatherWords.java launcher/app/src/main/AndroidManifest.xml launcher/app/src/main/res/layout/activity_main.xml launcher/app/src/main/res/values/config.xml launcher/app/src/main/res/values/strings.xml launcher/app/src/main/res/values-de/strings.xml launcher/app/src/main/java/com/gathin/tvhome/Config.java launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java README.md themes/README.md launcher/app/src/test/java/com/gathin/tvhome/WeatherTest.java && git commit -m "Wetterzeile: Temperatur und Wetterwort von Open-Meteo unter dem Datum, alle 30 Minuten"`
 
 **Reihenfolge der Ausführung:** 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 13 → 14 → 15 → 12.
+
+---
+
+### Task 0: Schalter in `config.xml` (vor Task 1)
+
+**Files:**
+- Modify: `launcher/app/src/main/res/values/config.xml`: `tile_menu` → true, `app_library` → true, `library_button` → true, `vpn_app` → `de.mobileconcepts.cyberghost`, `wifi_status_color` → true, `wifi_status_warnings` → true, `launcher_settings_button` → true, `key_filter` → true.
+
+- [ ] **Step 1: Werte setzen, bauen, installieren.**
+- [ ] **Step 2: `tools/tv.py --screenshot shots/t0-home.png`; `shots/t0-library.png` nach `DPAD_UP DPAD_UP DPAD_RIGHT DPAD_RIGHT DPAD_CENTER`** (Bibliotheks-Button in der Top-Leiste). Expected: Netz-Pill grün, Bibliothek öffnet, Einstellungs-Pill zeigt das Launcher-Icon.
+- [ ] **Step 3: Patrick: Lautstärke halten (Button Mapper noch an → Einzelschritt erwartet, das ist bekannt), Kachel lange OK → Tile-Menü.**
+- [ ] **Step 4: Commit** – `git add launcher/app/src/main/res/values/config.xml && git commit -m "config.xml: Tile-Menü, App-Bibliothek, VPN-Pill, Netzstatus-Farben, Launcher-Einstellungen, Tastenfilter an"`
+
+---
+
+### Task 16: Tastenbelegung mit Doppelklick, Button Mapper ablösen (nach Task 15, vor Task 12)
+
+**Files:**
+- Modify: `launcher/app/src/main/java/com/gathin/tvhome/RemoteKeys.java` (Parser: Präfix `double:`; Maps `doubleKeycodes`, `doubleScancodes` analog zu den `hold:`-Maps), `HomeKeyService.java` und `InputKeyService.java` (Doppelklick-Erkennung dort, wo `hold:` ausgewertet wird), `config.xml` (`app_keys` mit den gemessenen Einträgen), `themes/README.md` (Zeile zu `double:`)
+- Test: `launcher/app/src/test/java/com/gathin/tvhome/RemoteKeysDoubleTest.java` (es gibt bereits Tests zu `RemoteKeys`; daneben legen)
+
+**Interfaces:**
+- Produces in `RemoteKeys`: `static final long DOUBLE_MS = 400`; `static Map<Integer,String> parseDoubleKeys(List<String> entries)` und `parseDoubleScancodes(...)` – lesen nur Einträge mit Präfix `double:` (Rest wie `parseAppKeys`/`parseAppScancodes`), `static List<String> withoutDouble(List<String> entries)`; Zustandsklasse `DoubleTap` mit `DoubleTap(long windowMs)`, `int onTap(int key, long nowMs)` → `FIRST` (zurückhalten), `SECOND` (Doppelklick, Zurückhaltung verwerfen), `NONE` (Taste ohne `double:`-Eintrag: sofort ausführen); `Runnable pendingAfter(window)` als Timer-Hook im Dienst (`Handler.postDelayed`), bei Dienst-Unbind verworfen.
+- Dienst: eine Taste mit `double:`-Eintrag wird beim ersten Tap **verschluckt** und nach 400 ms als Tap ausgeführt (Latenz ist der Preis, nur auf diesen Tasten); kommt der zweite Tap vorher, läuft das `double:`-Ziel. `hold:` bleibt davon unberührt (Halten wird vor dem Loslassen erkannt).
+
+- [ ] **Step 1: Keycodes messen** – im Dienst ein `Log.i("Keys", "key=… scan=…")` für jeden Tastendruck (nur im Debug-Zweig, danach entfernen); bauen; `logcat -c`; Patrick drückt Netflix, Rakuten, YouTube, Prime Video; `tools/tv.py 'logcat -d -s Keys'`. Expected: vier Zeilen; Scancodes 695/779/… den Tasten zuordnen. In die Spec § 4.10d eintragen.
+- [ ] **Step 2: Test schreiben**
+
+```java
+public class RemoteKeysDoubleTest {
+    @Test public void doublePrefixParsesLikeAppKeys() { Map<Integer,String> m = RemoteKeys.parseDoubleScancodes(List.of("double:scan:695:com.google.android.youtube.tv", "scan:695:com.netflix.ninja")); assertEquals("com.google.android.youtube.tv", m.get(695)); assertEquals(1, m.size()); }
+    @Test public void withoutDoubleDropsOnlyDoubleEntries() { assertEquals(List.of("scan:695:com.netflix.ninja"), RemoteKeys.withoutDouble(List.of("double:scan:695:x", "scan:695:com.netflix.ninja"))); }
+    @Test public void secondTapInsideWindowIsDouble() { RemoteKeys.DoubleTap d = new RemoteKeys.DoubleTap(400); assertEquals(RemoteKeys.DoubleTap.FIRST, d.onTap(695, 1000)); assertEquals(RemoteKeys.DoubleTap.SECOND, d.onTap(695, 1300)); }
+    @Test public void secondTapAfterWindowStartsOver() { RemoteKeys.DoubleTap d = new RemoteKeys.DoubleTap(400); d.onTap(695, 1000); assertEquals(RemoteKeys.DoubleTap.FIRST, d.onTap(695, 1500)); }
+    @Test public void otherKeyInBetweenResets() { RemoteKeys.DoubleTap d = new RemoteKeys.DoubleTap(400); d.onTap(695, 1000); assertEquals(RemoteKeys.DoubleTap.FIRST, d.onTap(779, 1100)); }
+}
+```
+
+- [ ] **Step 3–5: Fehlschlag, implementieren, grün** (`--tests 'com.gathin.tvhome.RemoteKeysDoubleTest'`), plus die vorhandenen `RemoteKeys`-Tests weiterhin grün.
+- [ ] **Step 6: `config.xml` `app_keys`**: `scan:<rakuten>:com.disney.disneyplus`, `scan:<netflix>:com.netflix.ninja`, `double:scan:<netflix>:com.google.android.youtube.tv` (echte Scancodes aus Schritt 1; falls Android echte Keycodes liefert, `KEYCODE_…`-Form). Bauen, installieren.
+- [ ] **Step 7: Button Mapper aus** – `tools/tv.py 'settings put secure enabled_accessibility_services com.gathin.tvhome/.HomeKeyService'`; Patrick: Rakuten → Disney+, Netflix einmal → Netflix (mit ~0,4 s Verzögerung), Netflix doppelt → YouTube, Lautstärke halten → läuft durch. Expected: alles vier. Erst dann `tools/tv.py 'pm uninstall --user 0 flar2.homebutton'` – **nur nach Patricks Ja**.
+- [ ] **Step 8: Commit** – `git add launcher/app/src/main/java/com/gathin/tvhome/RemoteKeys.java launcher/app/src/main/java/com/gathin/tvhome/HomeKeyService.java launcher/app/src/main/java/com/gathin/tvhome/InputKeyService.java launcher/app/src/main/res/values/config.xml themes/README.md launcher/app/src/test/java/com/gathin/tvhome/RemoteKeysDoubleTest.java docs/superpowers/specs/2026-10-25-vier-welten-launcher-design.md && git commit -m "Tastenbelegung: double:-Einträge für Doppelklick, Rakuten→Disney+, Doppel-Netflix→YouTube; Button Mapper abgelöst"`
+
+**Reihenfolge der Ausführung (endgültig):** 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 13 → 14 → 15 → 16 → 12.

@@ -1,8 +1,8 @@
 # Vier Welten – Design für den Clean-Your-TV-Launcher (Fork)
 
 Stand 25.10.2026. Gerät: Philips 65OLED934 (TPM191E, `PH9M_EA_5599`, Android TV 11 / API 30, MediaTek, 2 GB RAM,
-1920×1080, OLED). Launcher `com.gathin.tvhome` ist dort Home, 6er-Dock, `HOME_KEY_SERVICE=1` mit `key_filter=false`
-und `power_on_home=true` (siehe `backup/README.md`).
+1920×1080, OLED). Launcher `com.gathin.tvhome` ist dort Home, 6er-Dock, `HOME_KEY_SERVICE=1` und `power_on_home=true`
+(siehe `backup/README.md`); `key_filter` wird mit Task 0 `true` (§ 4.10d).
 
 Mockups, an denen dieses Design gemessen wird: `.superpowers/brainstorm/651-1792953360/content/vier-welten-v3.html`
 (Szenen und UI) und `vier-welten-v4-motion.html` (Dock-Wechsel und App-Start, mit Knöpfen zum Abspielen).
@@ -237,6 +237,29 @@ einem Fehler, nie im Hintergrund; letzter Wert mit Zeitstempel in `SharedPrefere
 wenn jünger als 2 h. Anzeige: eine Zeile unter dem Datum, „12° · Bewölkt“, WMO-Code → deutsche Wörter aus eigenen
 Strings, Typografie der Welt. `weather` (bool) schaltet sie ab; ohne Koordinaten ist sie aus und es gibt keinen
 Netzzugriff. Keine weiteren Verbindungen, keine Telemetrie. Das Add-on `addons/weather` bleibt davon unberührt.
+
+### 4.10d Tastenbelegung im Launcher, Button Mapper abgelöst (Nachtrag 25.10., abends)
+
+Messung am 25.10.: Mit abgeschaltetem Button Mapper (`flar2.homebutton`, ein Accessibility-Dienst, der Tasten
+filtert) läuft die Lautstärke beim Halten wieder durch – **mit unserem `HomeKeyService`, auch mit
+`key_filter=true`**. Der Verlust der Wiederholung kam allein vom Button Mapper, nicht vom Launcher-Dienst; die
+Abwägung „Einschalten auf Home gegen Lautstärke“ vom Nachmittag war ein Irrtum, es gibt sie nicht.
+
+Folgen: `key_filter` wird `true`, die Tastenbelegung zieht in den Launcher (`app_keys`), Button Mapper wird danach
+deinstalliert. Patricks heutige Belegung: Rakuten-Taste → Disney+, Doppelklick Netflix-Taste → YouTube (Einzelklick
+bleibt Netflix). `app_keys` kennt Tap und `hold:`; **Doppelklick ist neu** (Fork): Präfix `double:`, Fenster 400 ms;
+ein Tap auf eine Taste mit `double:`-Eintrag wird 400 ms zurückgehalten und dann als Tap ausgeführt, kommt der zweite
+Druck vorher, läuft der `double:`-Eintrag. Die Tasten melden sich am Kernel ohne Label (Linux-Codes `0x02b7`=695,
+`0x030b`=779 und eine als `KEY_ONSCREEN_KEYBOARD`), die Android-Keycodes werden wie bei den Farbtasten per `Log.i`
+im Dienst gemessen (Keycode + Scancode), gematcht wird per Scancode, wenn Android `KEYCODE_UNKNOWN` liefert.
+Bis der Fork steht, bleibt Button Mapper an (Patricks Wahl, 25.10.).
+
+### 4.10e Schalter, die sofort an gehen (Task 0)
+
+`tile_menu`, `app_library` + `library_button`, `vpn_app=de.mobileconcepts.cyberghost`, `wifi_status_color` +
+`wifi_status_warnings`, `launcher_settings_button`, `key_filter=true`. Die in `hidden_apps` versteckten Philips-Kacheln
+bleiben versteckt; Nicht-TV-Apps (CyberGhost, Button Mapper, Boosteroid) räumt Patrick danach selbst über die
+Bibliothek von Home.
 
 ### 4.10 Einstellungen und Persistenz
 
