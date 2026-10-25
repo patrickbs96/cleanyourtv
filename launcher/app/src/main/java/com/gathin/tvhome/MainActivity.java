@@ -117,7 +117,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private long settingsRevision;
     /** Idle time on Home before ClockActivity; 0 is off (config.xml, home_idle_clock_minutes). */
     private long idleClockMs;
-    private final Runnable showIdleClock = () -> startActivity(new Intent(this, ClockActivity.class));
+    private final Runnable showIdleClock = () -> {
+        // The screensaver covers Home: the world's overlay stands still from here, not only from onPause on.
+        screensaver = true;
+        updateWorldOverlay();
+        startActivity(new Intent(this, ClockActivity.class));
+    };
     private String liveTvAction;
     private String liveTvInputId;
     /** The app library is on (config.xml, app_library): only then can the tile menu take an app off Home. */
@@ -287,6 +292,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private World world = World.CLEAN;
     /** The world's day or night picture behind Home; adds no views in Clean. */
     private WorldScene worldScene;
+    /** The world's continuous motion over its scene (WorldOverlay); null in Clean. */
+    private WorldOverlay worldOverlay;
+    /** Between onResume and onPause, for WorldOverlay.shouldRun. */
+    private boolean resumed;
+    /** The idle clock (ClockActivity) was started from Home and has not been left yet. */
+    private boolean screensaver;
+    /** Star Wars' hologram flicker: the header back to full opacity 60 ms after the dip. */
+    private final Runnable holoRestore = () -> setHoloAlpha(1f);
     /** The app label behind the hero line in a world (whose text adds capitals or a prefix); unused in Clean. */
     private String heroLabel;
     private boolean appLibrarySelection;
@@ -451,6 +464,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         heroMeta = findViewById(R.id.heroMeta);
         heroDots = findViewById(R.id.heroDots);
         heroArt = findViewById(R.id.heroArt);
+        // The world's motion: right above the scene's two pictures, under the sky backdrop and heroArt.
+        worldOverlay = WorldOverlay.create(this, world, worldScene.isDay());
+        if (worldOverlay != null) {
+            root.addView(worldOverlay, root.indexOfChild(sky), new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            worldScene.setListener(() -> worldOverlay.setDay(worldScene.isDay()));
+            if (worldOverlay instanceof StarWarsOverlay) {
+                ((StarWarsOverlay) worldOverlay).setHoloFlickerListener(this::holoFlicker);
+            }
+        }
         cinematic = cfg.cinematicHome;
         glowStyle = cfg.glowStyle;
         heroDotsShown = cfg.cinematicDots;
@@ -979,6 +1002,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         sky.update();
         wallpaperPlayer.start();
         worldScene.start();
+        resumed = true;
+        screensaver = false;
+        updateWorldOverlay();
         handler.postDelayed(minuteTick, MINUTE_MS);
         if (festive && diya != null) {
             diya.start();
@@ -1149,6 +1175,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         endReorder();   // Home or another app while reordering keeps the order so far
         wallpaperPlayer.stop();
         worldScene.stop();
+        resumed = false;
+        updateWorldOverlay();
+        if (worldOverlay != null) {
+            handler.removeCallbacks(holoRestore);
+            setHoloAlpha(1f);
+        }
         stopAmbientAnimation();
         hero.animate().cancel();
         ambient.animate().cancel();
@@ -2787,6 +2819,26 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (previous != null) previous.onFocusChange(v, focused);
             if (focused) action.run();
         });
+    }
+
+    /** Starts or stops the world's motion as WorldOverlay.shouldRun has it; nothing in Clean. */
+    private void updateWorldOverlay() {
+        if (worldOverlay == null) return;
+        if (WorldOverlay.shouldRun(world, animations, reducedMotion, resumed, screensaver)) worldOverlay.start();
+        else worldOverlay.stop();
+    }
+
+    /** Star Wars' hologram flicker: the greeting, clock and pills dip to 60 % for 60 ms, as a hologram would. */
+    private void holoFlicker() {
+        handler.removeCallbacks(holoRestore);
+        setHoloAlpha(0.6f);
+        handler.postDelayed(holoRestore, 60);
+    }
+
+    private void setHoloAlpha(float alpha) {
+        // leftBlock holds the greeting, clock and date; topButtons the pills.
+        clockBlock.setAlpha(alpha);
+        findViewById(R.id.topButtons).setAlpha(alpha);
     }
 
     private void playPetalShower() {
