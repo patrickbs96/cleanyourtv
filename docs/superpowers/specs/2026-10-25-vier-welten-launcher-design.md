@@ -136,9 +136,10 @@ werden (Pillow + NumPy, Seed fest, reproduzierbar): `launcher/worlds/<id>/make_s
 Moodwechsel weich überblendet (300 ms), nie hart.
 
 Darüber liegt eine **Overlay-View** je Welt (eine Klasse, Muster `PetalShowerView`: kein Fokus, keine Allokation pro
-Frame, Hardware-Layer nur während sie zeichnet), die die Dauerbewegung zeichnet. Sie läuft mit höchstens 30 fps,
-pausiert in `onPause`, bei `reduced_motion` und solange der Bildschirmschoner läuft, und zeichnet nur in ihre
-Teilflächen (`invalidate(rect)`), nicht full-screen.
+Frame, kein Hardware-Layer – sie läuft dauerhaft, ein Vollbild-Layer kostete ~8 MB und würde je Tick ganz neu
+gezeichnet), die die Dauerbewegung zeichnet. Sie läuft mit höchstens 30 fps, pausiert in `onPause`, bei
+`reduced_motion` und solange der Bildschirmschoner läuft, und meldet nur ihre Teilflächen (`invalidate(rect)`; ab
+API 21 ignoriert die Hardware-Pipeline das Rechteck, der Aufwand je Tick ist das Neuaufzeichnen der Display-List).
 
 | Welt | Tagbild | Nachtbild | Overlay (Dauerbewegung) |
 |---|---|---|---|

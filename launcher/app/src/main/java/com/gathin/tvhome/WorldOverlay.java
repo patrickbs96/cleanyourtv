@@ -8,8 +8,13 @@ import android.view.View;
 /**
  * A world's continuous motion over its scene (WorldScene): Hogwarts' candles and stars, Marvel's reactor, streak and
  * beacon, Star Wars' hyperspace streaks and stars. One transparent full-screen view per world, built like
- * PetalShowerView: no focus, clicks or accessibility, nothing allocated per frame, a hardware layer only while it
- * moves. It ticks every 33 ms (30 fps at most) and invalidates only the regions that move. Clean has none.
+ * PetalShowerView: no focus, clicks or accessibility, nothing allocated per frame. It ticks every 33 ms (30 fps at
+ * most) and invalidates the regions that move. Clean has none.
+ *
+ * <p>No hardware layer: the overlay runs the whole time Home shows a world, and a full-screen layer would hold ~8 MB
+ * and be redrawn in full on every tick anyway (from API 21 on a hardware-accelerated view ignores the dirty rect of
+ * invalidate(Rect), so the regions only say what moves). Without a layer the tick re-records this view's display
+ * list, which is a handful of draw calls.
  *
  * <p>Shapes come in the mockup's 192 x 108 units (vier-welten-v3.html, as launcher/worlds/&lt;id&gt;/make_scene.py
  * draws the pictures) and are mapped the way the scene's CENTER_CROP maps the picture, so they sit on it.
@@ -63,7 +68,6 @@ abstract class WorldOverlay extends View {
     void start() {
         if (running) return;
         running = true;
-        setLayerType(LAYER_TYPE_HARDWARE, null);
         onStart(SystemClock.uptimeMillis());
         frame();
     }
@@ -72,7 +76,6 @@ abstract class WorldOverlay extends View {
         if (!running) return;
         running = false;
         removeCallbacks(frame);
-        setLayerType(LAYER_TYPE_NONE, null);
     }
 
     boolean isRunning() {
