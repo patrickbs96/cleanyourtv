@@ -47,12 +47,29 @@ abstract class WorldOverlay extends View {
      * (SeasonsOverlay) and needs it: without one it has none either.
      */
     static WorldOverlay create(Context context, World w, boolean day, SeasonsToday today) {
+        if (!hasOverlay(w, today != null)) return null;
         switch (w) {
             case HOGWARTS: return new HogwartsOverlay(context, day);
             case MARVEL: return new MarvelOverlay(context, day);
             case STARWARS: return new StarWarsOverlay(context, day);
-            case SEASONS: return today != null ? new SeasonsOverlay(context, day, today) : null;
+            case SUPERNATURAL: return new SupernaturalOverlay(context, day);
+            case SEASONS: return new SeasonsOverlay(context, day, today);
             default: return null;
+        }
+    }
+
+    /** Whether {@link #create} makes one: every world but Clean, Seasons only with its day's look. */
+    static boolean hasOverlay(World w, boolean seasonsToday) {
+        switch (w) {
+            case HOGWARTS:
+            case MARVEL:
+            case STARWARS:
+            case SUPERNATURAL:
+                return true;
+            case SEASONS:
+                return seasonsToday;
+            default:
+                return false;
         }
     }
 

@@ -56,7 +56,9 @@ Rules for a changed or new picture:
   mean luminance at most 40 each. `common.py` checks it; a script that exits with 1 has a picture to fix.
 - **No logos, no characters or figures, no film imagery, no trademarked lettering**: silhouettes, gradients and
   light only. The worlds are moods, not fan art.
-- Moving things belong in the overlay (`HogwartsOverlay`, `MarvelOverlay`, `StarWarsOverlay`; Jahreskreis'
+- Moving things belong in the overlay (`HogwartsOverlay`, `MarvelOverlay`, `StarWarsOverlay`,
+  `SupernaturalOverlay` for the dust, heat, rays, rain, neon flicker, embers and the lightning with its wing shadow,
+  placed by `SupernaturalScene`'s constants; Jahreskreis'
   `SeasonsOverlay` with one `LookMotion` per look, `SeasonMotions` for the seasons' snow, blossoms, fireflies and
   leaves, `OccasionMotionsA` for the fireworks, streamers and confetti, candle and petals, butterflies, motes and
   clouds of New Year to Father's Day, `OccasionMotionsB` for the pumpkins' flicker and the bats, the swinging
@@ -86,4 +88,5 @@ Rules for a changed or new picture:
 - **`reduced_motion`** (config.xml or theme): the scene's day/night pictures still change, but the overlays do not
   run, a world switch is a hard cut without its transition, an app starts at once without the world's launch
   effect, and the focus frame moves like Clean's with reduced motion, without sparks, scan, blip or typing. The same holds with
-  `animations` off.
+  `animations` off. Supernatural's own logo picture, if one is on the TV, still takes the lettering's place: it is
+  still, so its overlay draws it once and nothing else.

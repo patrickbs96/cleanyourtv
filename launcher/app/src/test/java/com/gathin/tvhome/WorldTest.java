@@ -57,14 +57,15 @@ public class WorldTest {
         assertEquals("", World.CLEAN.greetingSuffix(true));
     }
     /**
-     * Until the rest of its own skin arrives (Tasks 4 to 8) Supernatural takes the neutral paths everywhere a world
-     * branches: its own pictures (Task 3), but Clean's pills, Clean's spring, no launch effect, a plain fade in; never
-     * another world's skin.
+     * Until the rest of its own skin arrives (Tasks 5 to 8) Supernatural takes the neutral paths everywhere a world
+     * branches: its own pictures (Task 3) and its own overlay (Task 4), but Clean's pills, Clean's spring, no launch
+     * effect, a plain fade in; never another world's skin.
      */
     @Test public void supernaturalFallsBackToNeutralPaths() {
         World w = World.SUPERNATURAL;
         assertEquals(R.drawable.world_supernatural_day, WorldScene.resFor(w, true));
         assertEquals(R.drawable.world_supernatural_night, WorldScene.resFor(w, false));
+        assertTrue(WorldOverlay.hasOverlay(w, false));
         assertEquals(R.drawable.pill_bg, WorldChrome.pillBackground(w));
         assertFalse(WorldChrome.ownsNetworkIcon(w));
         assertNull(WorldFocusMotion.springFor(w, false));
