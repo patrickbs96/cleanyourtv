@@ -26,6 +26,10 @@ import common as c  # noqa: E402
 XS = ((np.arange(c.w, dtype=np.float32) + 0.5) / c.U)
 YS = ((np.arange(c.h, dtype=np.float32) + 0.5) / c.U)
 DOCK = 76.6                              # the dock's top edge in units (y 766 of 1080)
+# The night moons (x, y, radius in units): right of the middle but never under the pills on the top right
+# (personal.py: PILLS), below them or left of them.
+MOONS = {"winter": (150.0, 30.0, 4.2), "spring": (121.5, 22.0, 4.4), "summer": (126.7, 30.0, 4.0),
+         "autumn": (166.0, 30.0, 3.6)}
 
 
 def sky_stars(rng, n, y_max, r_range=(0.18, 0.4)):
@@ -124,8 +128,9 @@ def winter(day, rng):
         img = c.vgradient([(0, "#03060F"), (.45, "#08112A"), (.62, "#132447")])
         c.stars(img, sky_stars(rng, 40, 52, (0.18, 0.42)), "#DCE6FF",
                 glow=0.15)
-        c.radial(img, 150, 24, 16, [(0, "#C9D8EE", .14), (1, "#C9D8EE", 0)], mode="add")
-        c.radial(img, 150, 24, 4.2, [(0, "#EEF3FF", .95), (.8, "#D5E0F5", .92), (1, "#D5E0F5", 0)])
+        mx, my, mr = MOONS["winter"]
+        c.radial(img, mx, my, 16, [(0, "#C9D8EE", .14), (1, "#C9D8EE", 0)], mode="add")
+        c.radial(img, mx, my, mr, [(0, "#EEF3FF", .95), (.8, "#D5E0F5", .92), (1, "#D5E0F5", 0)])
     # the far hill, snow under the sky's light, with its lit crest
     hill = under(back)
     if day:
@@ -191,8 +196,9 @@ def spring(day, rng):
         img = c.vgradient([(0, "#060B16"), (.45, "#13243A"), (.64, "#24394A")])
         c.stars(img, sky_stars(rng, 26, 44, (0.18, 0.38)), "#E8EEFF",
                 glow=0.12)
-        c.radial(img, 124, 22, 18, [(0, "#DDE6F0", .16), (1, "#DDE6F0", 0)], mode="add")
-        c.radial(img, 124, 22, 4.4, [(0, "#F4F6FA", .95), (.8, "#DCE3EE", .92), (1, "#DCE3EE", 0)])
+        mx, my, mr = MOONS["spring"]
+        c.radial(img, mx, my, 18, [(0, "#DDE6F0", .16), (1, "#DDE6F0", 0)], mode="add")
+        c.radial(img, mx, my, mr, [(0, "#F4F6FA", .95), (.8, "#DCE3EE", .92), (1, "#DCE3EE", 0)])
     # the cherry tree first, so the far hill's crest covers its foot
     base = float(back[int(160 * c.U)]) + 3
     c.blend(img, c.shape(lambda p: cherry_trunk(p, base), blur=0.05), "#3A2A26" if day else "#141012")
@@ -245,8 +251,9 @@ def summer(day, rng):
         c.blend(img, disc, "#FFD38A")
         path_colour, path_alpha = "#FFC882", 0.22
     else:
-        c.radial(img, SUN_X, 30, 16, [(0, "#DCE4F5", .14), (1, "#DCE4F5", 0)], mode="add")
-        c.radial(img, SUN_X, 30, 4.0, [(0, "#F2F5FB", .95), (.8, "#D8DFEC", .92), (1, "#D8DFEC", 0)])
+        mx, my, mr = MOONS["summer"]
+        c.radial(img, mx, my, 16, [(0, "#DCE4F5", .14), (1, "#DCE4F5", 0)], mode="add")
+        c.radial(img, mx, my, mr, [(0, "#F2F5FB", .95), (.8, "#D8DFEC", .92), (1, "#D8DFEC", 0)])
         path_colour, path_alpha = "#B9C8E6", 0.10
     # the still path of light on the water; the moving glitter over it is the overlay's
     rows = np.clip((YS - HORIZON) / (108 - HORIZON), 0, 1)
@@ -305,8 +312,10 @@ def autumn(day, rng):
         img = c.vgradient([(0, "#040304"), (.40, "#0C0806"), (.58, "#26140B"), (1, "#0E0805")])
         c.stars(img, sky_stars(rng, 18, 19, (0.18, 0.38)), "#F2E6D8",
                 glow=0.1)
-        c.radial(img, 150, 18, 14, [(0, "#E8D6B8", .12), (1, "#E8D6B8", 0)], mode="add")
-        c.radial(img, 150, 18, 3.6, [(0, "#F3E8D2", .92), (.8, "#E0CFAE", .9), (1, "#E0CFAE", 0)])
+        # the moon between the spires' tips, below the pills
+        mx, my, mr = MOONS["autumn"]
+        c.radial(img, mx, my, 14, [(0, "#E8D6B8", .12), (1, "#E8D6B8", 0)], mode="add")
+        c.radial(img, mx, my, mr, [(0, "#F3E8D2", .92), (.8, "#E0CFAE", .9), (1, "#E0CFAE", 0)])
         far_colour, near_colour = "#160B06", "#050302"
     # a row of spires further back in the haze, then the mockup's forest in front
     c.blend(img, c.shape(lambda p: [p.poly([(x - b, 108), (x, t), (x + b, 108)]) for x, b, t in far], blur=0.1),

@@ -124,7 +124,9 @@ final class OccasionMotionsA {
      * {@link #R_MAX} of the width across), so a burst never lights up the screen; right of the header, above the dock.
      */
     static final class Fireworks implements LookMotion {
-        static final float[] X = {0.48f, 0.66f, 0.84f}, Y = {0.22f, 0.30f, 0.26f};
+        /** The three sites (fractions of the width and height): the two right of the middle burst below the pills on
+         * the top right (PersonalMotions.PILLS), sparks included. */
+        static final float[] X = {0.48f, 0.66f, 0.84f}, Y = {0.22f, 0.34f, 0.32f};
         /**
          * One burst every SPACING seconds (the mockup's 3.2 s), the places in turn: each place's cycle is three times as
          * long, shifted by one SPACING per place ((t + offset) % PERIOD), so place 0 bursts at 0 s, 1 at 3.2 s, 2 at 6.4 s.
@@ -284,15 +286,31 @@ final class OccasionMotionsA {
     }
 
     /**
-     * Carnival: seven streamers hanging from the top on the right, right of the header, swaying as the mockup's do
-     * (sin(y * 9 + t + i), fixed at their top), and the mockup's sixty pieces of confetti (seed 13) falling, turning and
-     * flipping over, between the top and just above the dock.
+     * Carnival: seven streamers hanging from the painted pennant garland, right of the header and below the pills on
+     * the top right, swaying as the mockup's do (sin(y * 9 + t + i), fixed at their top), and the mockup's sixty pieces
+     * of confetti (seed 13) falling, turning and flipping over, between the top and just above the dock.
      */
     static final class Carnival implements LookMotion {
         static final float[] STREAMER_X = {0.46f, 0.54f, 0.62f, 0.70f, 0.78f, 0.86f, 0.94f};
-        /** Each streamer's length as a fraction of the height; they hang from just above the top. */
-        static final float[] STREAMER_LENGTH = {0.40f, 0.28f, 0.48f, 0.34f, 0.44f, 0.26f, 0.38f};
-        static final float STREAMER_TOP = -0.02f, SWAY = 0.03f;
+        /** Each streamer's length as a fraction of the height; they hang from the garland ({@link #streamerTop}). */
+        static final float[] STREAMER_LENGTH = {0.31f, 0.22f, 0.26f, 0.24f, 0.26f, 0.18f, 0.27f};
+        static final float SWAY = 0.03f;
+        /**
+         * The pennant garland (occasions_a.py: GARLAND), units: its string from x0 to x1, its ends at y0 and y1, sagging
+         * sag. It starts high right of the header and runs below the pills.
+         */
+        static final float[] GARLAND = {80f, 188f, 3f, 30f, 10f};
+
+        /** The garland's string at x (units). */
+        static float garlandY(float x) {
+            float u = (x - GARLAND[0]) / (GARLAND[1] - GARLAND[0]);
+            return GARLAND[2] + (GARLAND[3] - GARLAND[2]) * u + 4 * GARLAND[4] * u * (1 - u);
+        }
+
+        /** Where streamer i hangs from the garland, as a fraction of the height. */
+        static float streamerTop(int i) {
+            return garlandY(STREAMER_X[i] * 192) / 108f;
+        }
         static final int SEGMENTS = 24, CONFETTI = 60;
         private static final int[] STREAMER_COLOURS = {0xFFFF3B5C, 0xFFFFD23F, 0xFF3EC6FF, 0xFF7CFF6B};
         private static final int[] CONFETTI_COLOURS = {0xFFFF3B5C, 0xFFFFD23F, 0xFF3EC6FF, 0xFF7CFF6B, 0xFFFFFFFF};
@@ -310,7 +328,7 @@ final class OccasionMotionsA {
         /** The lowest a streamer reaches, as a fraction of the height. */
         static float streamerReach() {
             float low = 0f;
-            for (float l : STREAMER_LENGTH) low = Math.max(low, STREAMER_TOP + l);
+            for (int i = 0; i < STREAMER_X.length; i++) low = Math.max(low, streamerTop(i) + STREAMER_LENGTH[i]);
             return low;
         }
 
@@ -342,10 +360,10 @@ final class OccasionMotionsA {
             double t = now / 1000.0;
             for (int i = 0; i < STREAMER_X.length; i++) {
                 float[] seg = lines[i];
-                float len = STREAMER_LENGTH[i];
+                float len = STREAMER_LENGTH[i], top = streamerTop(i);
                 float px = 0, py = 0;
                 for (int k = 0; k <= SEGMENTS; k++) {
-                    float along = k / (float) SEGMENTS, fy = STREAMER_TOP + along * len;
+                    float along = k / (float) SEGMENTS, fy = top + along * len;
                     float fx = STREAMER_X[i] + swayAt(along) * (float) Math.sin(fy * 9 + t * 0.9 + i)
                             + 0.004f * (float) Math.sin(fy * 40 + i * 2);
                     float x = o.ux(fx * 192), y = o.uy(fy * 108);

@@ -62,9 +62,9 @@ final class OccasionMotionsB {
         static final float GLOW = 1.6f;
 
         static final int BATS = 4;
-        /** Where bats fly (fractions of the width, past the right edge), their rows and a bat's half span (s, the
-         * mockup's w * .012: a wing is 2 s long). */
-        static final float BAT_LEFT = 0.45f, BAT_RIGHT = 1.08f, BAT_TOP = 0.15f, BAT_ROWS = 0.25f, BAT_BOB = 0.02f;
+        /** Where bats fly (fractions of the width, past the right edge), their rows (below the pills on the top right,
+         * PersonalMotions.PILLS, past the moon) and a bat's half span (s, the mockup's w * .012: a wing is 2 s long). */
+        static final float BAT_LEFT = 0.45f, BAT_RIGHT = 1.08f, BAT_TOP = 0.25f, BAT_ROWS = 0.2f, BAT_BOB = 0.02f;
         static final float BAT_S = 0.012f, BAT_SPEED = 0.03f, BAT_FADE = 0.06f;
 
         private final float[][] q = SeasonMotions.particles(BATS, 17);
@@ -375,7 +375,7 @@ final class OccasionMotionsB {
         static final int LIGHTS = 15, WINDOW_FLAKES = 40;
         /** The window (occasions_b.py: ADV_WIN_*), units; its frame reaches FRAME inside the opening (the painted bars
          * are 3 wide on its edges) and the cross is CROSS wide, both as advent() paints them. */
-        static final float WIN_X = 107.5f, WIN_Y = 10.8f, WIN_W = 57.6f, WIN_H = 43.2f, FRAME = 1.5f, CROSS = 1.5f;
+        static final float WIN_X = 107.5f, WIN_Y = 25f, WIN_W = 57.6f, WIN_H = 33f, FRAME = 1.5f, CROSS = 1.5f;
         /** The paper star hanging in the room before the upper right pane (occasions_b.py: PAPER_STAR, its points
          * 3.84 out), units; the snow keeps STAR_R round it clear. */
         static final float STAR_X = WIN_X + WIN_W * 0.72f, STAR_Y = WIN_Y + WIN_H * 0.3f, STAR_R = 4.2f;
@@ -497,8 +497,9 @@ final class OccasionMotionsB {
      */
     static final class Christmas implements LookMotion {
         static final int FLAKES = 50, LIGHTS = 30;
-        /** The tree (occasions_b.py: TREE_*), units: its middle, top, base and half width at the base. */
-        static final float TREE_X = 138f, TREE_TOP = 15.1f, TREE_BASE = 70.2f, TREE_SPREAD = 192 * 0.13f;
+        /** The tree (occasions_b.py: TREE_*), units: its middle, top, base and half width at the base; at .75 of the
+         * mockup's size, so its star stays below the pills on the top right. */
+        static final float TREE_X = 138f, TREE_TOP = 28.875f, TREE_BASE = 70.2f, TREE_SPREAD = 18.72f;
         static final float STAR_Y = TREE_TOP - 1.08f, LIGHT_GLOW = 0.01f * 192, STAR_GLOW = 0.05f * 192;
         private static final int[] COLOURS = {0xFFFFC882, 0xFFFFDA82, 0xFFFFEC96};
 

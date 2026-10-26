@@ -19,7 +19,9 @@ candles stand unlit. Where OccasionMotionsB.java draws over a painted thing (the
 wicks, the tree's lights) it uses the same numbers as here; they are named in capitals.
 
 Picture rule (spec § 3): what matters stands right of the middle, directly above the dock (its top edge at y 76.6
-units), never behind it and never in the header on the top left (x below 76, y below 34).
+units), never behind it and never in the header on the top left (x below 76, y below 34), and nothing that matters
+under the pills on the top right (personal.py: PILLS; tests/test_seasons_pills.py checks the moon, the tree's star, the
+Advent window, its paper star and lights, and the bats).
 """
 import sys
 from pathlib import Path
@@ -102,7 +104,7 @@ def strokes(img, segs, width, colour, alpha=1.0, blur=0.03):
 
 
 # ---- halloween ----------------------------------------------------------------------------------------------------
-MOON_X, MOON_Y, MOON_R = 146.0, 26.0, 11.0
+MOON_X, MOON_Y, MOON_R = 146.0, 36.0, 11.0      # below the pills on the top right (personal.py: PILLS)
 PUMPKIN_GROUND = 75.8                   # where the pumpkins stand, just above the dock's top edge
 # The mockup's three pumpkins (x .56 .7 .82 of the width, radius .03 .042 .026 of it), whole above the dock.
 PUMPKINS = [(108.0, 6.4), (133.0, 8.8), (157.5, 5.6)]
@@ -171,7 +173,7 @@ def bare_tree(p):
 def halloween(rng):
     img = c.vgradient([(0, "#0C0618"), (.35, "#180C2A"), (.62, "#2A1436"), (.72, "#2E1638")])
     c.stars(img, sky_stars(rng, 24, 46, (0.15, 0.32)), "#E8DCF0", glow=0.08)
-    # the orange moon with its craters and glow, high on the right but clear of the corner
+    # the orange moon with its craters and glow, on the right below the pills and clear of the corner
     c.radial(img, MOON_X, MOON_Y, 42, [(0, "#FF9628", .30), (.35, "#FF9628", .10), (1, "#FF9628", 0)], mode="add")
     c.blend(img, c.shape(lambda p: p.circle(MOON_X, MOON_Y, MOON_R), blur=0.1), "#F2BC66")
     moon = c.shape(lambda p: p.circle(MOON_X, MOON_Y, MOON_R))
@@ -209,6 +211,7 @@ LANTERN_TIP_DX, LANTERN_TIP_UP = 4.6, 2.6   # the tip: x + 4.6, ground - height 
 LANTERN_STRING, LANTERN_R = 1.0, 2.3
 LANTERN_COLOURS = ("#FFCF5A", "#FF8A5C", "#9FD8FF")   # the mockup's three
 LANTERN_LIGHT = ("#FFF0C0", "#FFD0B0", "#E0F4FF")
+MARTIN_MOON = (118.0, 18.0, 2.6)        # a thin crescent, right of the middle and left of the pills
 
 
 def lantern_tip(x, ht):
@@ -249,9 +252,10 @@ def st_martin(rng):
     c.radial(img, 150, 70, 80, [(0, "#B06A6A", .22), (.5, "#7A4A6A", .08), (1, "#7A4A6A", 0)], ry=16, mode="add")
     c.stars(img, sky_stars(rng, 22, 40, (0.15, 0.32)), "#E8ECFF", glow=0.08)
     # a thin crescent moon, right of the middle
-    moon = c.shape(lambda p: p.circle(118, 18, 2.6), blur=0.08) * (1 - c.shape(lambda p: p.circle(119.3, 17.2, 2.4),
-                                                                                blur=0.08))
-    c.radial(img, 118, 18, 9, [(0, "#C9D4F0", .10), (1, "#C9D4F0", 0)], mode="add")
+    mx, my, mr = MARTIN_MOON
+    moon = c.shape(lambda p: p.circle(mx, my, mr), blur=0.08) * (1 - c.shape(lambda p: p.circle(mx + 1.3, my - 0.8, 2.4),
+                                                                              blur=0.08))
+    c.radial(img, mx, my, 9, [(0, "#C9D4F0", .10), (1, "#C9D4F0", 0)], mode="add")
     c.blend(img, moon, "#E6EAF6")
     # the town far off, with a few lit windows
     c.blend(img, c.shape(town, blur=0.08), "#141630")
@@ -494,7 +498,9 @@ def nikolaus(rng):
 
 
 # ---- advent -------------------------------------------------------------------------------------------------------
-ADV_WIN_X, ADV_WIN_Y, ADV_WIN_W, ADV_WIN_H = 107.5, 10.8, 57.6, 43.2   # the mockup's .56 / .1, .3 x .4
+# The window (the mockup's .56 of the width, .3 wide), its frame below the pills on the top right (personal.py:
+# PILLS) and its sill above the table.
+ADV_WIN_X, ADV_WIN_Y, ADV_WIN_W, ADV_WIN_H = 107.5, 25.0, 57.6, 33.0
 PAPER_STAR = (ADV_WIN_X + ADV_WIN_W * 0.72, ADV_WIN_Y + ADV_WIN_H * 0.3)
 ADV_TABLE = 64.0
 WREATH = (130.0, 68.6, 23.0, 5.8)                                    # centre, half axes (the mockup's .68 / .67)
@@ -503,8 +509,8 @@ WREATH = (130.0, 68.6, 23.0, 5.8)                                    # centre, h
 # (OccasionMotionsB.Advent) burn FLAME_UP above their tops; they are lit in this order, one more each Sunday.
 CANDLES = [(116.2, 67.4), (125.4, 66.4), (134.6, 66.4), (143.8, 67.4)]
 CANDLE_H, CANDLE_W, FLAME_UP = 16.0, 3.4, 2.6
-# The string of lights along the top, right of the header: its line and the bulbs on it (OccasionMotionsB twinkles
-# them), at x LIGHTS_FROM + k * LIGHTS_STEP.
+# The string of lights along the top, right of the header and above the pills: its line and the bulbs on it
+# (OccasionMotionsB twinkles them), at x LIGHTS_FROM + k * LIGHTS_STEP.
 LIGHTS_FROM, LIGHTS_STEP, LIGHTS_N = 82.0, 7.6, 15
 LIGHT_COLOURS = ("#FFB46E", "#FFCD6E", "#FFE68C")
 
@@ -680,9 +686,12 @@ def advent(rng):
 
 
 # ---- christmas ----------------------------------------------------------------------------------------------------
-TREE_X, TREE_TOP, TREE_BASE = 138.0, 15.1, 70.2     # the mockup's .72 of the width, .14 and .65 of the height
+# The tree at TREE_K of the mockup's size (its .72 of the width, its foot at .65 of the height, 55.1 units high), so
+# the star on top stays below the pills on the top right (personal.py: PILLS).
+TREE_K = 0.75
+TREE_X, TREE_TOP, TREE_BASE = 138.0, 28.875, 70.2   # TREE_TOP = TREE_BASE - 55.1 * TREE_K
 TREE_H = TREE_BASE - TREE_TOP
-TREE_SPREAD = 192 * 0.13                            # half the tree's width at its base
+TREE_SPREAD = 18.72                                 # half the tree's width at its base: the mockup's .13 times TREE_K
 STAR_Y = TREE_TOP - 1.08
 TREE_LIGHTS, LIGHTS_SEED = 30, 31                   # the mockup's lights, rng(31): OccasionMotionsB twinkles them
 GIFT_GROUND = 75.6
@@ -706,9 +715,9 @@ def tree_tiers():
     """The mockup's four tiers: each a triangle from its tip down to a curved lower edge."""
     out = []
     for i in range(4):
-        y0, hw = TREE_TOP + i * TREE_H * 0.2, 192 * (0.045 + i * 0.03)
+        y0, hw = TREE_TOP + i * TREE_H * 0.2, 192 * (0.045 + i * 0.03) * TREE_K
         y1 = y0 + TREE_H * 0.4
-        out.append([(TREE_X, y0), (TREE_X - hw, y1)] + bezier((TREE_X - hw, y1), (TREE_X, y1 + 108 * 0.03),
+        out.append([(TREE_X, y0), (TREE_X - hw, y1)] + bezier((TREE_X - hw, y1), (TREE_X, y1 + 108 * 0.03 * TREE_K),
                                                               (TREE_X + hw, y1), n=24)[1:])
     return out
 
@@ -736,7 +745,8 @@ def christmas(rng):
     fill(img, under(near), "#56658A", "#161E30", 70, 90)
     c.add(img, crest(near, 1.2) * 0.2, "#DCE6F6")
     # the tree's glow, the trunk and the tiers with their needles
-    c.radial(img, TREE_X, 46, 44, [(0, "#FFC070", .10), (.6, "#FFC070", .03), (1, "#FFC070", 0)], ry=40, mode="add")
+    c.radial(img, TREE_X, TREE_TOP + TREE_H * 0.56, 44, [(0, "#FFC070", .10), (.6, "#FFC070", .03), (1, "#FFC070", 0)],
+             ry=40 * TREE_K, mode="add")
     c.blend(img, c.shape(lambda p: p.ellipse(TREE_X + 2, TREE_BASE + 3.4, 26, 2.2), blur=1.0) * 0.5, "#0A1020")
     c.blend(img, c.shape(lambda p: p.rect(TREE_X - 1.54, TREE_BASE - 1.1, 3.08, 4.6), blur=0.04), "#3A2416")
     tree = c.shape(lambda p: [p.poly(t) for t in tree_tiers()], blur=0.04)
@@ -760,7 +770,8 @@ def christmas(rng):
     for k, f in enumerate((.3, .52, .74)):
         y = TREE_TOP + TREE_H * f
         hw = half_at(y) * 0.95
-        pts = bezier((TREE_X - hw, y - 2.16), (TREE_X, y + 4.86), (TREE_X + hw, y + 1.08), n=60)
+        pts = bezier((TREE_X - hw, y - 2.16 * TREE_K), (TREE_X, y + 4.86 * TREE_K), (TREE_X + hw, y + 1.08 * TREE_K),
+                     n=60)
         c.blend(img, c.shape(lambda p: line(p, pts, 0.42), blur=0.04) * tree * 0.85, "#D8B050")
         c.add(img, c.shape(lambda p: [p.circle(x, yy, 0.22) for i, (x, yy) in enumerate(pts) if i % 3 == 0],
                            blur=0.05) * tree * 0.5, "#FFF0C0")

@@ -18,7 +18,9 @@ and confetti, the candle and petals, butterflies, motes of light, clouds and see
 
 Picture rule (spec § 3): what matters stands right of the middle, directly above the dock (its top edge at y 76.6
 units), never behind it and never in the header on the top left; the skyline stands on the dock's edge, the eggs and
-the cart are whole above it, and hills are drawn per pixel column (seasons.ridge).
+the cart are whole above it, and hills are drawn per pixel column (seasons.ridge). Nothing that matters lies under the
+pills on the top right (personal.py: PILLS): the carnival garland and its streamers hang below them, Valentine's moon
+too (tests/test_seasons_pills.py, with the fireworks' sites).
 """
 import sys
 from pathlib import Path
@@ -135,12 +137,23 @@ def new_year(rng):
 # ---- carnival -----------------------------------------------------------------------------------------------------
 STAGE = 66.5                            # where the curtain meets the boards
 CONFETTI = ("#FF3B5C", "#FFD23F", "#3EC6FF", "#7CFF6B", "#FFFFFF")
+# The pennant garland: its string from x0 to x1, its ends at y0 and y1, sagging sag (units). It starts high right of
+# the header and hangs below the pills on the top right (personal.py: PILLS); the streamers hang from it
+# (OccasionMotionsA.Carnival.GARLAND).
+GARLAND = (80.0, 188.0, 3.0, 30.0, 10.0)
+PENNANT_HALF, PENNANT_DROP = 2.4, 4.6     # a pennant's half width and how far it hangs below the string
 
 
 def garland(x):
-    """The pennant garland's string across the top right: from (80, 3) to (188, 5), sagging 9 units."""
-    u = (x - 80) / 108
-    return 3 + 2 * u + 9 * 4 * u * (1 - u)
+    """The pennant garland's string at x (units): from (80, 3) down to (188, 30), sagging 10 units."""
+    x0, x1, y0, y1, sag = GARLAND
+    u = (x - x0) / (x1 - x0)
+    return y0 + (y1 - y0) * u + sag * 4 * u * (1 - u)
+
+
+def garland_pennants():
+    """The garland's sixteen pennants as (x, colour index), right of the header."""
+    return [(GARLAND[0] + 4 + k * 6.6, k) for k in range(16)]
 
 
 def spiral(cx, cy, r0, r1, turns, squash=0.45, n=90):
@@ -176,13 +189,14 @@ def carnival(rng):
         c.radial(img, x, 30, 13, [(0, colour, .16), (.7, colour, .06), (1, colour, 0)], ry=42, mode="add")
         c.radial(img, x, STAGE + 4, 14, [(0, colour, .20), (1, colour, 0)], ry=4.5, mode="add")
     c.radial(img, 132, 62, 80, [(0, "#FF6AA0", .10), (1, "#FF6AA0", 0)], ry=22, mode="add")
-    # the pennant garland across the top right, right of the header
-    xs = np.linspace(80, 188, 60)
+    # the pennant garland from high right of the header down under the pills
+    xs = np.linspace(GARLAND[0], GARLAND[1], 60)
     c.blend(img, c.shape(lambda p: line(p, [(x, garland(x)) for x in xs], 0.25), blur=0.04), "#6A5030")
-    pennants = [(80 + 4 + k * 6.6, k) for k in range(16)]
+    pennants = garland_pennants()
+    hw, drop = PENNANT_HALF, PENNANT_DROP
     for k, colour in enumerate(CONFETTI[:4]):
-        mask = c.shape(lambda p: [p.poly([(x - 2.4, garland(x - 2.4)), (x + 2.4, garland(x + 2.4)),
-                                          (x, garland(x) + 4.6)]) for x, i in pennants if i % 4 == k], blur=0.05)
+        mask = c.shape(lambda p: [p.poly([(x - hw, garland(x - hw)), (x + hw, garland(x + hw)),
+                                          (x, garland(x) + drop)]) for x, i in pennants if i % 4 == k], blur=0.05)
         c.blend(img, mask, c.rgb(colour) * 0.55)
     # on the boards right of the middle: curled streamers, two party hats and confetti, all above the dock
     for (cx, cy, r1, turns), colour in (((121, 73.2, 3.2, 2.6), "#FF3B5C"), ((139, 74.6, 2.6, 2.2), "#3EC6FF"),
@@ -229,6 +243,9 @@ TABLE = 71.3                                            # the table's edge, .66 
 VASE_X, VASE_Y = 138.2, 74.5                           # .72 / .69: the vase stands on the table above the dock
 CANDLE_X, CANDLE_TOP, FLAME_Y = 115.2, 64.8, 63.2       # .6 of the width, the candle from .6 to .69, its flame .585
 ROSES = [(-0.03, -0.28), (0, -0.32), (0.03, -0.27), (-0.015, -0.23), (0.018, -0.22)]
+# The crescent moon in the window's lower right pane, under the pills on the top right (personal.py: PILLS) and over
+# the roofs.
+VALENTINE_MOON = (156.0, 36.0, 3.0)
 
 
 def window_stars():
@@ -254,9 +271,10 @@ def valentine(rng):
     pane = c.shape(lambda p: p.rect(WIN_X, WIN_Y, WIN_W, WIN_H))
     c.blend(img, pane, c.vgradient([(0, "#060A1E"), (.4, "#0C1430"), (.55, "#18224A")]))
     c.stars(img, window_stars(), "#EEF0FF", glow=0.08)
-    c.radial(img, 152, 21, 10, [(0, "#C9D4F0", .14), (1, "#C9D4F0", 0)], mode="add")
-    moon = c.shape(lambda p: p.circle(152, 21, 3.0), blur=0.08) * (1 - c.shape(lambda p: p.circle(153.6, 20.0, 2.7),
-                                                                               blur=0.08))
+    mx, my, mr = VALENTINE_MOON
+    c.radial(img, mx, my, 10, [(0, "#C9D4F0", .14), (1, "#C9D4F0", 0)], mode="add")
+    moon = c.shape(lambda p: p.circle(mx, my, mr), blur=0.08) * (1 - c.shape(lambda p: p.circle(mx + 1.6, my - 1.0, 2.7),
+                                                                              blur=0.08))
     c.blend(img, moon, "#E8ECF6")
     roofs = [(WIN_X, 52), (112, 49.5), (118, 51), (124, 47.5), (131, 50.5), (139, 48.5), (146, 51.5),
              (152, 49), (159, 50.8), (WIN_X + WIN_W, 50)]
