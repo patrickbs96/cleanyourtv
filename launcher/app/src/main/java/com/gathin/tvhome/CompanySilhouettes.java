@@ -9,6 +9,8 @@ import android.graphics.Path;
 import android.graphics.Rect;
 import android.graphics.RectF;
 
+import java.nio.ByteBuffer;
+
 /**
  * The walking company's silhouettes (spec § 4.2), drawn once per size as the mockup's figure() draws them, each kind
  * in {@link #FRAMES} step pictures side by side on one alpha sheet: the tall wanderer with a broad pointed hat, a long
@@ -42,17 +44,17 @@ final class CompanySilhouettes {
     private float scale = 1f, sheetHeight;
 
     /**
-     * The night's back light (buildRim): the rim sheets hold only what lies outside each figure, a thin edge (blur
-     * {@link #RIM_EDGE} of a figure, at least 1 px: about 1 to 2 px) at full strength and a faint glow round it (blur
-     * {@link #RIM_GLOW}, at {@link #RIM_GLOW_ALPHA}). Drawn in warm orange over the dark figure, it outlines it.
+     * The night's back light (buildRim, CompanyRim): from each figure's finished sharp mask, all parts together, a
+     * thin edge ({@link #RIM_EDGE} of a figure, at least 1 px: 2 px at 1080 lines) at full strength and a faint glow
+     * round it (about {@link #RIM_GLOW} of a figure, at {@link #RIM_GLOW_ALPHA}), leaning {@link #RIM_LEAN} of a
+     * figure towards the crater on the upper left; only outside the figure. Drawn in warm orange over the dark
+     * figure, it outlines it: no lines inside, the figure stays a dark shape.
      */
-    static final float RIM_EDGE = 0.012f, RIM_GLOW = 0.05f, RIM_GLOW_ALPHA = 0.3f;
+    static final float RIM_EDGE = 0.015f, RIM_GLOW = 0.05f, RIM_GLOW_ALPHA = 0.3f, RIM_LEAN = 0.02f;
     private final Bitmap[] rims = new Bitmap[CompanyMotion.KINDS];
 
     private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG), stroke = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint softFill = new Paint(Paint.ANTI_ALIAS_FLAG), softStroke = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint edgeFill = new Paint(Paint.ANTI_ALIAS_FLAG), edgeStroke = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint glowFill = new Paint(Paint.ANTI_ALIAS_FLAG), glowStroke = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Path path = new Path(), part = new Path();
     private final RectF oval = new RectF();
     private final Matrix turn = new Matrix();
@@ -61,37 +63,38 @@ final class CompanySilhouettes {
     private Paint f, k;
 
     CompanySilhouettes() {
-        for (Paint p : new Paint[]{fill, softFill, edgeFill, glowFill}) p.setStyle(Paint.Style.FILL);
-        for (Paint p : new Paint[]{stroke, softStroke, edgeStroke, glowStroke}) {
+        for (Paint p : new Paint[]{fill, softFill}) p.setStyle(Paint.Style.FILL);
+        for (Paint p : new Paint[]{stroke, softStroke}) {
             p.setStyle(Paint.Style.STROKE);
             p.setStrokeCap(Paint.Cap.ROUND);
             p.setStrokeJoin(Paint.Join.ROUND);
         }
-        glowFill.setAlpha(Math.round(255 * RIM_GLOW_ALPHA));
-        glowStroke.setAlpha(Math.round(255 * RIM_GLOW_ALPHA));
     }
 
     /**
-     * Draws the rim sheets (the night's back light) for the size the sheets are drawn for, once: the same cells,
-     * only the outside of each figure, a thin edge and a faint glow (OUTER blurs). Nothing before build().
+     * Draws the rim sheets (the night's back light) for the size the sheets are drawn for, once: each kind's step
+     * pictures sharp into one mask, all parts of a figure together, and from that mask its outer contour only
+     * (CompanyRim.outline). Nothing before build().
      */
     void buildRim() {
         if (!isBuilt() || rims[0] != null) return;
         float h = sheetHeight;
-        BlurMaskFilter edge = new BlurMaskFilter(Math.max(1f, RIM_EDGE * h), BlurMaskFilter.Blur.OUTER);
-        BlurMaskFilter glow = new BlurMaskFilter(Math.max(1f, RIM_GLOW * h), BlurMaskFilter.Blur.OUTER);
-        edgeFill.setMaskFilter(edge);
-        edgeStroke.setMaskFilter(edge);
-        glowFill.setMaskFilter(glow);
-        glowStroke.setMaskFilter(glow);
+        int edge = Math.max(1, Math.round(RIM_EDGE * h)), glow = Math.max(1, Math.round(RIM_GLOW * h));
+        int lean = Math.round(RIM_LEAN * h);
         for (int kind = 0; kind < CompanyMotion.KINDS; kind++) {
             Bitmap rim = Bitmap.createBitmap(cellW * FRAMES, cellH, Bitmap.Config.ALPHA_8);
             Canvas c = new Canvas(rim);
             for (int frame = 0; frame < FRAMES; frame++) {
                 float ph = (float) (WorldOverlay.TAU * frame / FRAMES);
-                figure(c, frame * cellW + anchorX, anchorY, h, kind, ph, glowFill, glowStroke);
-                figure(c, frame * cellW + anchorX, anchorY, h, kind, ph, edgeFill, edgeStroke);
+                figure(c, frame * cellW + anchorX, anchorY, h, kind, ph, fill, stroke);
             }
+            // The mask as bytes (rows may be padded: their stride is the width), its outline back in its place.
+            int stride = rim.getRowBytes();
+            ByteBuffer pixels = ByteBuffer.allocate(stride * cellH);
+            rim.copyPixelsToBuffer(pixels);
+            byte[] outline = CompanyRim.outline(pixels.array(), stride, cellH, edge, glow, RIM_GLOW_ALPHA, lean,
+                    lean);
+            rim.copyPixelsFromBuffer(ByteBuffer.wrap(outline));
             rims[kind] = rim;
         }
     }
