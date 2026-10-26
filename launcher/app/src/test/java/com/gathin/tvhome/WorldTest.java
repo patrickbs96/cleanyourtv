@@ -180,9 +180,11 @@ public class WorldTest {
         assertEquals(0, WorldChrome.settingsIcon(World.MARVEL));
         assertEquals(0, WorldChrome.settingsIcon(World.STARWARS));
         assertEquals(0, WorldChrome.settingsIcon(World.CLEAN));
-        // Middle-earth's gold frame glows warm too (its own test below); every other world stays without.
+        // The warm worlds by name: Supernatural's amber and Middle-earth's gold (its own test below) glow warm, every
+        // other world stays without.
+        java.util.Set<World> warm = java.util.EnumSet.of(World.SUPERNATURAL, World.MIDDLE_EARTH);
         for (World other : World.values()) {
-            if (other != w && other != World.MIDDLE_EARTH) assertFalse(other.name(), WorldChrome.warmFocusGlow(other));
+            assertEquals(other.name(), warm.contains(other), WorldChrome.warmFocusGlow(other));
         }
         assertEquals(R.drawable.pill_bg, WorldChrome.pillBackground(World.CLEAN));
         assertEquals(R.drawable.pill_bg, WorldChrome.pillBackground(World.SEASONS));

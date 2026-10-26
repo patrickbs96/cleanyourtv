@@ -2232,14 +2232,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     /**
      * A move of the frame in Middle-earth: the glint runs anew, unless the move follows the last one too closely (a
-     * held key, a fast D-pad), when the frame stays plain so the light never strobes. A refit of the same tile and
-     * every other world: nothing.
+     * held key, a fast D-pad), when no new glint starts so the light never strobes; one still running then runs to
+     * its end rather than breaking off. A refit of the same tile and every other world: nothing.
      */
     private void glintGlass(boolean moved) {
         if (glassGlint == null || !moved) return;
-        boolean glint = glintGate.onMove(SystemClock.uptimeMillis());
+        if (!glintGate.onMove(SystemClock.uptimeMillis())) return;
         glassGlint.cancel();
-        if (glint) glassGlint.start();
+        glassGlint.start();
     }
 
     /** Stops the glint, the frame plain; the next move is a first one again. Nothing outside Middle-earth. */
