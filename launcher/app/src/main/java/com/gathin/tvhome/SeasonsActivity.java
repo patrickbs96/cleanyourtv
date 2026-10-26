@@ -184,6 +184,8 @@ public final class SeasonsActivity extends Activity {
         pickers.addView(month);
         pickers.addView(year);
         form.addView(pickers);
+        // Enter after the names closes the keyboard and goes on to the date.
+        ImeDone.finishInto(names, day);
         // Up and down turn a picker (and with the wheel wrapping never leave it), so left and right go on: day,
         // month, year, Save, and back; in Hebrew the row runs the other way, and so do the arrows.
         boolean rtl = getResources().getConfiguration().getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
@@ -293,11 +295,13 @@ public final class SeasonsActivity extends Activity {
         field.setMaxLines(10);
         field.setGravity(Gravity.TOP | Gravity.START);
         field.setText(PersonalDays.crawlText(prefs, defaultText));
+        // Enter is a new line here; down from the field goes to Save, which closes the keyboard with the dialog.
+        field.setNextFocusDownId(android.R.id.button1);
         LinearLayout frame = new LinearLayout(this);
         frame.setPaddingRelative(dp(24), dp(8), dp(24), 0);
         frame.addView(field, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT));
-        new AlertDialog.Builder(this)
+        AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle(R.string.seasons_crawl)
                 .setMessage(R.string.seasons_crawl_hint)
                 .setView(frame)
@@ -307,6 +311,13 @@ public final class SeasonsActivity extends Activity {
                 })
                 .setNegativeButton(android.R.string.cancel, null)
                 .show();
+        // With the keyboard closed by Back, down on the last line leaves the field for Save; focusing Save closes it.
+        Button save = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+        if (save != null) {
+            save.setOnFocusChangeListener((v, has) -> {
+                if (has) ImeDone.hide(field);
+            });
+        }
         field.requestFocus();
     }
 
@@ -321,7 +332,7 @@ public final class SeasonsActivity extends Activity {
         frame.setPaddingRelative(dp(24), dp(8), dp(24), 0);
         frame.addView(field, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT));
-        new AlertDialog.Builder(this)
+        AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle(R.string.seasons_anniversary_greeting)
                 .setMessage(R.string.seasons_anniversary_greeting_hint)
                 .setView(frame)
@@ -331,6 +342,8 @@ public final class SeasonsActivity extends Activity {
                 })
                 .setNegativeButton(android.R.string.cancel, null)
                 .show();
+        // Enter closes the keyboard and goes to Save; a second OK saves.
+        ImeDone.finishInto(field, dialog.getButton(AlertDialog.BUTTON_POSITIVE));
         field.requestFocus();
     }
 

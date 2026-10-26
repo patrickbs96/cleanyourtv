@@ -313,12 +313,14 @@ public final class KeyBindingsActivity extends Activity implements KeyBindings.L
         frame.setPaddingRelative(dp(24), dp(8), dp(24), 0);
         frame.addView(field, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT));
-        new AlertDialog.Builder(this)
+        AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle(R.string.key_name)
                 .setView(frame)
                 .setPositiveButton(android.R.string.ok, (d, which) -> named.accept(field.getText().toString().trim()))
                 .setNegativeButton(android.R.string.cancel, null)
                 .show();
+        // Enter closes the keyboard and goes to OK; a second OK takes the name.
+        ImeDone.finishInto(field, dialog.getButton(AlertDialog.BUTTON_POSITIVE));
         field.requestFocus();
     }
 
