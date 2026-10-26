@@ -143,9 +143,12 @@ public class PersonalMotionsTest {
         float wh = PersonalMotions.Wedding.NAMES_MAX / 2, wt = PersonalMotions.Wedding.NAMES_TOP;
         assertFalse(PersonalMotions.underPills(new float[]{PersonalMotions.Wedding.NAMES_X - wh, wt,
                 PersonalMotions.Wedding.NAMES_X + wh, wt + PersonalMotions.Wedding.NAMES_SIZE * PersonalMotions.LINE}));
-        // The zone itself: right of the middle, the pills' 42dp row under the header's top.
-        assertTrue(PersonalMotions.underPills(new float[]{150f, 25f, 160f, 30f}));
-        assertFalse(PersonalMotions.underPills(new float[]{100f, 25f, 120f, 30f}));
+        // The zone itself, as the TV shows the pills: x 1305 to 1810, y 125 to 215 of 1920 x 1080.
+        assertTrue(PersonalMotions.underPills(new float[]{150f, 15f, 160f, 20f}));
+        assertFalse(PersonalMotions.underPills(new float[]{100f, 15f, 120f, 20f}));
+        assertFalse(PersonalMotions.underPills(new float[]{150f, 24f, 160f, 30f}));
+        assertTrue(PersonalMotions.PILLS[0] <= 130.5f && PersonalMotions.PILLS[1] <= 12.5f
+                && PersonalMotions.PILLS[3] >= 21.5f);
     }
 
     /** The balloons' bow sits where the painted strings end: on the dock's top edge, only on the birthday. */

@@ -33,10 +33,11 @@ final class PersonalMotions {
     static final float DOCK_Y = SeasonMotions.DOCK * 108;
     /**
      * The pills on the top right (inputs, Wi-Fi, settings: activity_main.xml topButtons, 42dp high, aligned to the end
-     * and to the header's bottom), {left, top, right, bottom} in units with a margin (personal.py: PILLS). Nothing that
-     * matters lies under them: no pennant, no name.
+     * and to the header's bottom), {left, top, right, bottom} in units with a margin (personal.py: PILLS), as the TV
+     * shows them: x 1305 to 1810, y 125 to 215 of 1920 x 1080. Nothing that matters lies under them: no pennant, no
+     * name, and in every look no moon, star or window (tests/test_seasons_pills.py).
      */
-    static final float[] PILLS = {128f, 23f, 192f, 34f};
+    static final float[] PILLS = {128f, 11f, 192f, 23f};
 
     /** Whether the box {left, top, right, bottom} (units) overlaps the pills' zone. */
     static boolean underPills(float[] box) {
@@ -140,10 +141,10 @@ final class PersonalMotions {
         static final float FLAME_Y = CAKE_Y - 19.98f, FLAME_W = 0.768f, FLAME_H = 1.728f, FLAME_GLOW = 3.84f;
         /**
          * The two garlands as personal.py paints them (GARLANDS): per garland its string from x0 to x1 with its ends
-         * at y0 and y1, sagging sag, and its word. "HAPPY" hangs above the pills, "BIRTHDAY" runs from high on the
-         * left down under them. The name stands under the second.
+         * at y0 and y1, sagging sag, and its word. "HAPPY" hangs high left of the pills, "BIRTHDAY" runs from below it
+         * down under them. The name stands under the second.
          */
-        static final float[][] GARLANDS = {{115.2f, 172.8f, 4.32f, 4.32f, 8.64f}, {92f, 188f, 24f, 35f, 9f}};
+        static final float[][] GARLANDS = {{80f, 126f, 4f, 4f, 6f}, {92f, 188f, 24f, 35f, 9f}};
         static final String[] WORDS = {"HAPPY", "BIRTHDAY"};
         /** Half a pennant's width at most (the mockup's w * .022); a pennant is 1.7 times as high. */
         static final float PENNANT_MAX = 0.022f * 192;
@@ -484,15 +485,18 @@ final class PersonalMotions {
      * petals (the mockup's seed 71) float down right of the header, and today's names stand large over the arch.
      */
     static final class Wedding implements LookMotion {
-        static final float ARCH_X = 138.24f, ARCH_FOOT = 75.6f, ARCH_W = 26.88f, ARCH_H = 45.36f, ARCH_POST = 0.55f;
+        static final float ARCH_X = 138.24f, ARCH_FOOT = 75.6f, ARCH_W = 26.88f, ARCH_H = 39.0f, ARCH_POST = 0.55f;
         static final int LIGHTS = 22, PETALS = 16;
         static final float LIGHT_GLOW = 0.012f * 192;
         static final float RING_Y = 57.24f, RING_R = 5.76f, RING_DX = 0.55f;
         /** A sparkle's way over both rings, in seconds, and its glow (units). */
         static final double SPARKLE_PERIOD = 4.0;
         static final float SPARKLE_GLOW = 0.012f * 192, SPARKLE_RAY = 1.5f;
-        /** The names: centred over the arch, their top at NAMES_TOP, 4.4 % of the width per em, at most NAMES_MAX wide. */
-        static final float NAMES_X = ARCH_X, NAMES_TOP = 10.5f, NAMES_SIZE = 0.044f * 192, NAMES_MAX = 96f;
+        /**
+         * The names: centred over the arch, their top at NAMES_TOP (just below the pills), 4.4 % of the width per em, at
+         * most NAMES_MAX wide.
+         */
+        static final float NAMES_X = ARCH_X, NAMES_TOP = 23.5f, NAMES_SIZE = 0.044f * 192, NAMES_MAX = 96f;
         /** The petals float right of this fraction of the width: clear of the header. */
         static final float PETAL_LEFT = 0.42f;
 

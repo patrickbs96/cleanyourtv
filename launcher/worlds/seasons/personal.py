@@ -80,11 +80,12 @@ def muted(hex_colour, k):
 # ---- birthday -----------------------------------------------------------------------------------------------------
 PENNANTS = ("#FF5C8A", "#FFD04A", "#5CC8FF", "#9B7BFF", "#5CF0A0")   # the mockup's five
 # The pills on the top right (inputs, Wi-Fi, settings: activity_main.xml topButtons), x0, y0, x1, y1 in units with a
-# margin; nothing that matters may lie under them (PersonalMotions.PILLS).
-PILLS = (128.0, 23.0, 192.0, 34.0)
+# margin, as the TV shows them (x 1305 to 1810, y 125 to 215 of 1920 x 1080); nothing that matters may lie under them
+# in any look (PersonalMotions.PILLS; tests/test_seasons_pills.py).
+PILLS = (128.0, 11.0, 192.0, 23.0)
 # The two garlands (the mockup's swag()): word, x0, x1, y at each end, sag in units, its colours start at this pennant.
-# "HAPPY" hangs above the pills; "BIRTHDAY" runs from high on the left down under them, its right end lower.
-GARLANDS = [("HAPPY", 115.2, 172.8, 4.32, 4.32, 8.64, 0), ("BIRTHDAY", 92.0, 188.0, 24.0, 35.0, 9.0, 2)]
+# "HAPPY" hangs high left of the pills; "BIRTHDAY" runs from below it down under them, its right end lower.
+GARLANDS = [("HAPPY", 80.0, 126.0, 4.0, 4.0, 6.0, 0), ("BIRTHDAY", 92.0, 188.0, 24.0, 35.0, 9.0, 2)]
 PENNANT_MAX = 192 * 0.022                # half a pennant's width at most (the mockup's w * .022), its height 1.7 times
 CAKE_X, CAKE_Y = 99.84, 69.12            # the mockup's .52 / .64: left of the middle, its plate just above the dock
 CAKE_HW, CAKE_TOP, CAKE_BOTTOM = 15.36, CAKE_Y - 10.8, CAKE_Y + 4.32
@@ -134,7 +135,7 @@ def birthday(rng):
     img = c.vgradient([(0, "#1E0A28"), (.45, "#2E1236"), (TABLE / 108, "#3E1A3E")])
     c.radial(img, 112, 62, 90, [(0, "#FF8CBE", .18), (.5, "#FF8CBE", .06), (1, "#FF8CBE", 0)], ry=50, mode="add")
     # a soft light from above on the garlands, right of the header
-    c.radial(img, 146, 18, 50, [(0, "#C890FF", .08), (1, "#C890FF", 0)], ry=22, mode="add")
+    c.radial(img, 128, 20, 50, [(0, "#C890FF", .08), (1, "#C890FF", 0)], ry=22, mode="add")
     # party lights out of focus on the wall, right of the header and away from the name
     bokeh = [(float(rng.uniform(80, 190)), float(rng.uniform(36, 66)), float(rng.uniform(1.2, 2.6)),
               int(rng.integers(0, 5))) for _ in range(30)]
@@ -322,7 +323,9 @@ def anniversary(rng):
 
 # ---- wedding ------------------------------------------------------------------------------------------------------
 LAWN = 74.2                              # where the lawn begins behind the arch
-ARCH_X, ARCH_FOOT, ARCH_W, ARCH_H = 138.24, 75.6, 26.88, 45.36   # the mockup's .72, .14 and .42; feet above the dock
+# The arch: the mockup's .72 and .14 of the width, lower than its .42 of the height so the names over it stand below
+# the pills on the top right (PersonalMotions.Wedding.NAMES_TOP); its feet above the dock.
+ARCH_X, ARCH_FOOT, ARCH_W, ARCH_H = 138.24, 75.6, 26.88, 39.0
 ARCH_POST = 0.55                         # the posts rise .55 of the height, the arch's top is a half ellipse
 RING_Y, RING_R = 57.24, 5.76             # the rings in the arch (the mockup's .53 of the height, .03 of the width)
 RING_DX = 0.55                           # each ring's centre RING_DX * RING_R either side of ARCH_X
@@ -352,7 +355,7 @@ def wedding(rng):
     img = c.vgradient([(0, "#120A22"), (.30, "#2A1630"), (.50, "#5A3050"), (.64, "#8A4A5E"), (.70, "#A45E66")])
     c.radial(img, ARCH_X, 70, 70, [(0, "#FFBEC8", .16), (1, "#FFBEC8", 0)], ry=30, mode="add")
     c.stars(img, [(x, y, r) for x, y, r in c.random_stars(rng, 26, (84, 188), (3, 40), (0.14, 0.3))
-                  if not (abs(x - ARCH_X) < 50 and 10 < y < 25)], "#FFE8F0", glow=0.08)
+                  if not (abs(x - ARCH_X) < 50 and 22 < y < 36)], "#FFE8F0", glow=0.08)
     # trees and a hedge far off, the lawn
     c.blend(img, c.shape(lambda p: [tree(p, x, y, r) for x, y, r in ((84, 62, 6.5), (97, 60, 8), (108, 64, 5.5),
                                                                     (172, 61, 7.5), (184, 63, 6.5))], blur=0.1),
