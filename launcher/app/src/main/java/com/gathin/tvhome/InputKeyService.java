@@ -32,6 +32,8 @@ public class InputKeyService extends AccessibilityService {
     private boolean repairRecord;
     /** consume_volume_keys: Volume Up/Down go to VolumeKeys instead of on to the firmware. */
     private boolean consumeVolumeKeys;
+    /** repeat_volume_keys, unless consume_volume_keys is on: Volume Up/Down go on as usual, VolumeKeys repeats a held one. */
+    private boolean repeatVolumeKeys;
     /** Stops key filtering while a game controller is connected; null unless gamepad_passthrough and key_filter. */
     private GamepadPassthrough gamepads;
 
@@ -45,6 +47,7 @@ public class InputKeyService extends AccessibilityService {
         if (repairRecord) ServiceRepair.connected(this, getClass());
         inputKeycodes = config.inputKeycodes;
         consumeVolumeKeys = config.consumeVolumeKeys;
+        repeatVolumeKeys = config.repeatVolumeKeys && !consumeVolumeKeys;
         configAppKeys = config.appKeys;
         if (bindings == null) {
             bindings = getSharedPreferences(KeyBindings.NAME, MODE_PRIVATE);
@@ -74,7 +77,8 @@ public class InputKeyService extends AccessibilityService {
     protected boolean onKeyEvent(KeyEvent event) {
         // Learn mode (Key bindings page): the next learnable press goes to the page instead. Never volume or Home.
         if (KeyBindings.learn(event)) return true;
-        if (consumeVolumeKeys && VolumeKeys.handle(this, event)) return true;
+        if (consumeVolumeKeys && VolumeKeys.handle(this, event, true)) return true;
+        if (repeatVolumeKeys) VolumeKeys.handle(this, event, false);
         keys.note(event);
         // A scancode entry is more specific than any keycode, so it goes first.
         if (keys.handleScancode(this, event)) return true;
@@ -100,7 +104,7 @@ public class InputKeyService extends AccessibilityService {
     @Override
     public void onDestroy() {
         if (gamepads != null) gamepads.stop();
-        if (consumeVolumeKeys) VolumeKeys.stop();
+        if (consumeVolumeKeys || repeatVolumeKeys) VolumeKeys.stop();
         keys.drop();
         if (bindings != null) bindings.unregisterOnSharedPreferenceChangeListener(bindingsChanged);
         bindings = null;

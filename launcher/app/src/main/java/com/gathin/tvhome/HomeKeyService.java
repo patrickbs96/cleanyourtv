@@ -53,6 +53,8 @@ public class HomeKeyService extends AccessibilityService {
     private boolean settingsPanel;
     /** consume_volume_keys: Volume Up/Down go to VolumeKeys instead of on to the firmware. */
     private boolean consumeVolumeKeys;
+    /** repeat_volume_keys, unless consume_volume_keys is on: Volume Up/Down go on as usual, VolumeKeys repeats a held one. */
+    private boolean repeatVolumeKeys;
     /** app_keys with the on-TV bindings over them, the same maps InputKeyService reads, for setups that run only this service. */
     private final RemoteKeys.Keys keys = new RemoteKeys.Keys();
     /** The config's own app_keys, kept so a change of the on-TV bindings can be laid over them again. */
@@ -137,7 +139,7 @@ public class HomeKeyService extends AccessibilityService {
             standbyExit = null;
         }
         if (gamepads != null) gamepads.stop();
-        if (consumeVolumeKeys) VolumeKeys.stop();
+        if (consumeVolumeKeys || repeatVolumeKeys) VolumeKeys.stop();
         dropKeys();
         super.onDestroy();
     }
@@ -188,6 +190,7 @@ public class HomeKeyService extends AccessibilityService {
         settingsKeycodes = config.settingsKeycodes;
         settingsPanel = config.settingsKeyPanel;
         consumeVolumeKeys = config.consumeVolumeKeys;
+        repeatVolumeKeys = config.repeatVolumeKeys && !consumeVolumeKeys;
         configAppKeys = config.appKeys;
         // The on-TV bindings are in credential-protected storage too, so they are read and watched only from here.
         if (bindings == null) {
@@ -253,7 +256,8 @@ public class HomeKeyService extends AccessibilityService {
         }
         // Learn mode (Key bindings page): the next learnable press goes to the page instead. Never volume or Home.
         if (KeyBindings.learn(event)) return true;
-        if (consumeVolumeKeys && VolumeKeys.handle(this, event)) return true;
+        if (consumeVolumeKeys && VolumeKeys.handle(this, event, true)) return true;
+        if (repeatVolumeKeys) VolumeKeys.handle(this, event, false);
         keys.note(event);
         // A scancode entry is more specific than any keycode, so it goes first.
         if (keys.handleScancode(this, event)) return true;
