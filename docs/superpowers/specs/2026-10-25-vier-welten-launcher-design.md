@@ -65,6 +65,10 @@ bleiben: nerdig in Licht, Farbe, Schrift und Bewegung, nicht in Logos.
   `getScanCode()`) protokollieren, Patrick drücken lassen, `logcat` lesen; fällt ein anderer Keycode (etwa
   `KEYCODE_UNKNOWN` mit Scancode 398–401), wird nach Scancode gematcht. Die Tasten erreichen die Activity direkt,
   solange Home im Vordergrund ist – kein Accessibility-Dienst nötig, die Lautstärke-Wiederholung bleibt wie sie ist.
+  **Gemessen am 26.10.2026** (echte Fernbedienung, Log `World`): Grün `key=184 scan=399`, Gelb `key=185 scan=400`,
+  Blau `key=186 scan=401` – Android liefert die `KEYCODE_PROG_*`-Codes, der Scancode-Pfad ist nur Reserve.
+  Blau öffnet zusätzlich die Philips-Hilfe (`org.droidtv.eum`): der Firmware-Dienst `GlobalKeyRcv` liest die
+  Taste selbst mit (Scancode 401 → `org.droidtv.action.HELP`), unabhängig davon, ob Home sie verbraucht.
 - Vorhandene Bausteine, auf denen gebaut wird: `Festival` (Haut mit eigenen Pill-Icons, Begrüßung, Akzentfarbe),
   `GlassView.setAccent/setStyle` (Fokusrahmen), `DockDecoration` (Dock-Band), `HeroArt`/Hero-Titel, `UiFont` +
   `res/values/fonts.xml` (Schrift-Indirektion), `WallpaperPlayer` + `WallpaperMood` (Tag/Abend/Nacht nach Sonnenstand),
@@ -231,6 +235,10 @@ und `clock_glow=false` in `config.xml`: nach 10 min Stillstand auf Home läuft d
 Netz, eigenes Vektor-Icon (Bildschirm mit Lichtkranz), öffnet die Aktion; in `top_menu` eine Zeile im Gear-Menü.
 In den Welten Icon-only wie die anderen Pills. Gilt auch in Clean (Konfiguration, keine Welt): die
 Clean-Vergleichsaufnahme wird nach dieser Änderung neu genommen.
+**Nachtrag 26.10. (Abnahme):** Mit beschrifteter vierter Pill blieb dem Uhrblock in Clean zu wenig Breite (Gruß
+gekürzt, Uhr umgebrochen, Datum weg). Patricks Entscheidung: Clean zeigt alle Pills Icon-only wie die Welten
+(`icon_only_buttons` und `icon_only_inputs` im Fork `true`, `wifi_label_width` 0); die Netz-Pill zeigt dann
+keinen Netznamen und keine VPN-Kapsel mehr.
 
 ### 4.10c Wetterzeile (Nachtrag 25.10., bewusste Abweichung von „kein Netz“)
 
