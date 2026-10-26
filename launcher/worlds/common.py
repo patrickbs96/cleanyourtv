@@ -25,7 +25,7 @@ U = w / 192                             # pixels per mockup unit at the drawing 
 MAX_BYTES = 300 * 1024
 MAX_LUMA = 40
 OUT = Path(__file__).resolve().parent.parent / "app" / "src" / "main" / "res" / "drawable-nodpi"
-WORLDS = ("hogwarts", "marvel", "starwars")
+WORLDS = ("hogwarts", "marvel", "starwars", "supernatural")
 SEASONS = ("winter", "spring", "summer", "autumn")   # Jahreskreis' seasons, a day and a night picture each
 
 

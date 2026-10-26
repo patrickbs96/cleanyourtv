@@ -38,6 +38,8 @@ public class WorldSceneTest {
         assertEquals(R.drawable.world_marvel_night, WorldScene.resFor(World.MARVEL, false));
         assertEquals(R.drawable.world_starwars_day, WorldScene.resFor(World.STARWARS, true));
         assertEquals(R.drawable.world_starwars_night, WorldScene.resFor(World.STARWARS, false));
+        assertEquals(R.drawable.world_supernatural_day, WorldScene.resFor(World.SUPERNATURAL, true));
+        assertEquals(R.drawable.world_supernatural_night, WorldScene.resFor(World.SUPERNATURAL, false));
     }
 
     @Test

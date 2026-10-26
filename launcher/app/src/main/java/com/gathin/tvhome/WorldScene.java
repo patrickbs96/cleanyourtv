@@ -167,6 +167,7 @@ final class WorldScene {
             case HOGWARTS: return day ? R.drawable.world_hogwarts_day : R.drawable.world_hogwarts_night;
             case MARVEL: return day ? R.drawable.world_marvel_day : R.drawable.world_marvel_night;
             case STARWARS: return day ? R.drawable.world_starwars_day : R.drawable.world_starwars_night;
+            case SUPERNATURAL: return day ? R.drawable.world_supernatural_day : R.drawable.world_supernatural_night;
             default: return 0;
         }
     }

@@ -1,6 +1,6 @@
 # World scenes
 
-The three worlds (Hogwarts, Marvel, Star Wars) each show a day and a night picture behind Home
+The themed worlds (Hogwarts, Marvel, Star Wars, Supernatural) each show a day and a night picture behind Home
 (`WorldScene.java`; Clean has none). The pictures are drawn by the scripts here from code alone, with
 Pillow and NumPy and a fixed seed, so anyone can redraw them byte for byte. No photos, artwork, logos,
 characters or film imagery are used: silhouettes and gradients only.
@@ -10,11 +10,12 @@ characters or film imagery are used: silhouettes and gradients only.
 | `hogwarts/make_scene.py` | `world_hogwarts_night.jpg` (castle on a cliff, lake, moon), `world_hogwarts_day.jpg` (great hall, cloud ceiling, owls) |
 | `marvel/make_scene.py` | `world_marvel_night.jpg` (crimson skyline, light streak, beacon tower), `world_marvel_day.jpg` (same skyline in warm backlight) |
 | `starwars/make_scene.py` | `world_starwars_day.jpg` (twin suns over dunes, dome, vaporators), `world_starwars_night.jpg` (stars, ringed planet) |
+| `supernatural/make_scene.py` | `world_supernatural_day.jpg` ("Himmel": golden hour, rays of light, a country road with telegraph poles, a motel with its sign off, a long black late-sixties four-door without a badge, a chalk star in a circle on the road, red-sprayed warding marks), `world_supernatural_night.jpg` ("Hölle": clouds, red-glowing cracks on the left horizon, the neon and some windows lit, the star glowing like embers, the tail light red). The word "SUPERNATURAL" over the motel is set in Courier Prime (OFL), no logo; the numbers the overlay draws over are shared with `SupernaturalScene.java` (`tests/test_supernatural_scene.py`) |
 | `seasons/make_scene.py` | Jahreskreis' looks, found by name (`WorldScene.drawableName`): `world_seasons_<season>_day.jpg` and `_night.jpg` for winter (snowy hills, firs; by night moon and stars), spring (green hills, a cherry in blossom), summer (the sea in the evening light, a low sun; by night a moon and its path) and autumn (a forest of spires, trees in rust and amber); painted in `seasons/seasons.py`. One `world_seasons_<occasion>.jpg` each for `new_year` (skyline with lit windows over the dock), `carnival` (dark stage, spotlights, pennants, party hats and streamers), `valentine` (evening table at a window: roses, two glasses, a candle), `easter` (pastel morning, painted eggs above the dock), `mothers_day` (a bunch of flowers, a heart card "Mama") and `fathers_day` (meadow, a field path out of the picture on the right, a handcart with a picnic basket); painted in `seasons/occasions_a.py`. And for `halloween` (orange moon, bare tree, ribbed pumpkins with stems and carved faces), `st_martin` (children with paper lanterns at dusk, a town far off), `nikolaus_eve` and `nikolaus` (front door with wreath and lantern in the snow, two polished boots: empty, then filled with mandarins, nuts, chocolate and a candy cane), `advent` (wreath with fir, berries and ribbons on a wooden table, four unlit candles, cookies, a snowy window with a paper star, a string of lights) and `christmas` (decorated tree with baubles, tinsel, lights and a star, presents under it, snowy ground); painted in `seasons/occasions_b.py`. And for the personal days `birthday` (two pennant garlands "HAPPY" / "BIRTHDAY", a cake with four candles, three balloons whose strings run to the dock's top edge, confetti on the table), `anniversary` (desert at sunset, two suns, three rows of dunes, stars, a small projector in the sand) and `wedding` (garden evening, a rose arch with greenery, roses and lights, two interlocking golden rings); painted in `seasons/personal.py`, with no names and no numbers in them |
 
 ```
 tools/venv/Scripts/pip install pillow numpy
-for w in hogwarts marvel starwars seasons; do tools/venv/Scripts/python launcher/worlds/$w/make_scene.py; done
+for w in hogwarts marvel starwars supernatural seasons; do tools/venv/Scripts/python launcher/worlds/$w/make_scene.py; done
 tools/venv/Scripts/python launcher/worlds/seasons/make_scene.py winter autumn   # only some of Jahreskreis' looks
 tools/venv/Scripts/python launcher/worlds/common.py    # checks them all again
 ```
@@ -42,6 +43,7 @@ writes the same bytes again:
 | Hogwarts | 1903 | night 11, day 12 |
 | Marvel | 1963 | night 21, day 22 |
 | Star Wars | 1977 | day 31, night 32 |
+| Supernatural | 1967 (day), 1968 (night); the warding marks 2020 | day 81, night 82 |
 | Jahreskreis: winter, spring, summer, autumn | 2112, 2103, 2106, 2309 (plus fixed seeds for the cherry's crown and the autumn trees) | day 41/43/45/47, night 42/44/46/48 |
 | Jahreskreis: New Year, Carnival, Valentine's Day, Easter, Mother's Day, Father's Day | 3101 to 3106 (plus the mockup's seeded random for the skyline, the window's stars and the bouquet) | 51 to 56 |
 | Jahreskreis: Halloween, St. Martin, St. Nicholas' eve and day, Advent, Christmas | 3107 to 3111 (the eve and the day share 3109; plus the mockup's seeded random for the tree's baubles and lights) | 57 to 62 |
