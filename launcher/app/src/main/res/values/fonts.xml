@@ -7,6 +7,8 @@
     <string name="font_light" translatable="false">@font/outfit_light</string>
     <string name="font_extralight" translatable="false">@font/outfit_extralight</string>
     <string name="font_medium" translatable="false">@font/outfit_medium</string>
+    <!-- The names and the year count on Jahreskreis' personal days (PersonalMotions). -->
+    <string name="font_bold" translatable="false">@font/outfit_bold</string>
     <!-- The worlds' fonts (WorldTypography), static Latin instances cut from the variable upstream files:
          Cormorant Garamond for Hogwarts, Oswald for Marvel, Michroma for Star Wars. -->
     <string name="font_world_hog_light" translatable="false">@font/cormorant_garamond_light</string>

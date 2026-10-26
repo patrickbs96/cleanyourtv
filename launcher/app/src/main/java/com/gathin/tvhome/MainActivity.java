@@ -316,6 +316,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private WorldDockDecoration worldDock;
     /** The world's continuous motion over its scene (WorldOverlay); null in Clean. */
     private WorldOverlay worldOverlay;
+    /** Seasons only: the bow tying the birthday balloons to the dock, over the dock band (BalloonBowView). */
+    private BalloonBowView balloonBow;
     /** Between onResume and onPause, for WorldOverlay.shouldRun. */
     private boolean resumed;
     /** The idle clock (ClockActivity) was started from Home and has not been left yet. */
@@ -537,6 +539,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             // The overlay switches day and night with the picture, not before its decode and fade.
             worldScene.setListener(() -> worldOverlay.setDay(worldScene.showsDay()));
+        }
+        // Seasons' birthday ties its balloons to the dock's top edge: the bow goes over the dock band, so into
+        // oledLayer right under the focus frame (it moves with the dock's OLED shift); gone on every other look.
+        if (world == World.SEASONS) {
+            balloonBow = new BalloonBowView(this);
+            ViewGroup layer = (ViewGroup) oledLayer;
+            layer.addView(balloonBow, layer.indexOfChild(glass), new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            balloonBow.setLook(seasonsToday != null ? seasonsToday.look : null);
         }
         // The world's dock move: its sparks and scan go over the dock and the frame, added once and reused. The frame
         // is in oledLayer, so they go right above that layer. Seasons moves and starts apps as Clean does: neither.
@@ -2936,20 +2947,29 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     /**
      * Seasons, on resume and every minute: works today's look out again and, on a new day (midnight) or a new look,
-     * hands it to the scene (which fades the new picture in), the overlay (a new motion) and the accent. Nothing in
-     * the other worlds.
+     * hands it to the scene (which fades the new picture in), the overlay (a new motion) and the accent; when only
+     * what the overlay shows has changed (a name edited on the settings page on the day itself), to the overlay alone.
+     * Nothing in the other worlds.
      */
     private void refreshSeasons() {
         if (world != World.SEASONS) return;
         LocalDate day = seasonsDay();
         SeasonsToday next = seasonsToday(day);
-        // The same day and look: nothing new. A mood change is the scene's (its minute update); the overlay follows the
-        // scene's listener, when the new picture shows (or at once where the look shows no change, WorldScene.MOOD).
-        if (day.equals(seasonsDate) && seasonsToday != null && next.look == seasonsToday.look) return;
+        // The same day, look and details: nothing new. A mood change is the scene's (its minute update); the overlay
+        // follows the scene's listener, when the new picture shows (or at once where the look shows no change,
+        // WorldScene.MOOD).
+        SeasonsToday.Change change = SeasonsToday.change(seasonsDate, seasonsToday, day, next);
+        if (change == SeasonsToday.Change.NONE) return;
         seasonsDate = day;
         seasonsToday = next;
+        if (change == SeasonsToday.Change.DETAILS) {
+            // The same picture and accent: only the names or the year count in the motion are new.
+            if (worldOverlay instanceof SeasonsOverlay) ((SeasonsOverlay) worldOverlay).setToday(next);
+            return;
+        }
         worldScene.setLook(day, next.look);
         if (worldOverlay instanceof SeasonsOverlay) ((SeasonsOverlay) worldOverlay).setToday(next);
+        if (balloonBow != null) balloonBow.setLook(next.look);
         // Reorder mode keeps its own blue until it ends (endReorder puts the accent back).
         if (!reordering) glass.setAccent(worldAccent(), true);
     }

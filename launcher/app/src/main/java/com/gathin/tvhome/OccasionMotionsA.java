@@ -52,11 +52,16 @@ final class OccasionMotionsA {
         return x < HEADER_RIGHT && y < HEADER_BOTTOM;
     }
 
-    /** Falling particles drawn as turned rectangles or ovals: confetti and petals (SeasonMotions' fall and sway). */
-    private static final class Falling {
+    /**
+     * Falling particles drawn as turned rectangles or ovals: confetti and petals (SeasonMotions' fall and sway); also
+     * the birthday's confetti (PersonalMotions).
+     */
+    static final class Falling {
         final float[][] q;
         final float[] x, y, alpha, turn, flip;
         final float speed, spin;
+        /** The fall's span across, fractions of the width: by default the whole width (see {@link #across}). */
+        private float left = 0f, right = 1f;
 
         Falling(int n, long seed, float speed, float spin) {
             q = SeasonMotions.particles(n, seed);
@@ -69,17 +74,44 @@ final class OccasionMotionsA {
             this.spin = spin;
         }
 
+        /** Lets the particles fall only between these fractions of the width (sway included); returns this. */
+        Falling across(float left, float right) {
+            this.left = left + 0.02f;
+            this.right = right - 0.02f;
+            return this;
+        }
+
+        /** The leftmost a particle comes, as a fraction of the width (its sway of .02 included). */
+        float leftmost() {
+            return left - 0.02f;
+        }
+
         void frame(SeasonsOverlay o, double t) {
             for (int i = 0; i < q.length; i++) {
                 float[] p = q[i];
                 float fy = SeasonMotions.fallY(p[1], p[2], t, speed);
-                float fx = p[0] + 0.02f * (float) Math.sin(t * 1.3 + p[3] * WorldOverlay.TAU);
+                float fx = left + p[0] * (right - left) + 0.02f * (float) Math.sin(t * 1.3 + p[3] * WorldOverlay.TAU);
                 x[i] = o.ux(fx * 192);
                 y[i] = o.uy(fy * 108);
                 alpha[i] = SeasonMotions.fallAlpha(fy);
                 turn[i] = (float) (Math.toDegrees(t * spin + p[3] * 6) % 360);
                 // A piece of paper turning over as it falls: its height shrinks and grows again.
                 flip[i] = 0.35f + 0.65f * Math.abs((float) Math.cos(t * 2.1 + p[3] * 9));
+            }
+        }
+
+        /** Draws the particles as confetti: {@code rect} turned and flipping over, coloured by their size. */
+        void drawConfetti(Canvas c, Paint bit, RectF rect, int[] colours, float bright) {
+            for (int i = 0; i < q.length; i++) {
+                if (alpha[i] <= 0f) continue;
+                bit.setColor(colours[Math.min(colours.length - 1, (int) (q[i][2] * colours.length))]);
+                bit.setAlpha((int) (255 * alpha[i] * bright));
+                c.save();
+                c.translate(x[i], y[i]);
+                c.rotate(turn[i]);
+                c.scale(1f, flip[i]);
+                c.drawRect(rect, bit);
+                c.restore();
             }
         }
     }
@@ -339,17 +371,7 @@ final class OccasionMotionsA {
                 streamer.setAlpha(210);
                 c.drawLines(lines[i], streamer);
             }
-            for (int i = 0; i < confetti.q.length; i++) {
-                if (confetti.alpha[i] <= 0f) continue;
-                bit.setColor(CONFETTI_COLOURS[Math.min(4, (int) (confetti.q[i][2] * 5))]);
-                bit.setAlpha((int) (255 * confetti.alpha[i]));
-                c.save();
-                c.translate(confetti.x[i], confetti.y[i]);
-                c.rotate(confetti.turn[i]);
-                c.scale(1f, confetti.flip[i]);
-                c.drawRect(rect, bit);
-                c.restore();
-            }
+            confetti.drawConfetti(c, bit, rect, CONFETTI_COLOURS, 1f);
         }
     }
 
@@ -388,9 +410,7 @@ final class OccasionMotionsA {
                 petal.setColor(0xFFDC2846);
                 flame = new Paint(Paint.ANTI_ALIAS_FLAG);
                 flame.setColor(0xFFFFD27A);
-                glow = new Paint(Paint.ANTI_ALIAS_FLAG);
-                glow.setShader(new RadialGradient(0f, 0f, 1f, new int[]{0xFFFFBE64, 0x00FFBE64}, null,
-                        Shader.TileMode.CLAMP));
+                glow = SeasonMotions.glow(0xFFFFBE64);
                 oval = new RectF();
                 flameOval = new RectF();
             }
@@ -412,18 +432,8 @@ final class OccasionMotionsA {
 
         @Override public void draw(Canvas c) {
             if (!ready || petal == null) return;
-            float x = o.ux(FLAME_X * 192), y = o.uy(FLAME_Y * 108);
-            float glowR = GLOW * 192 * o.unit * (0.85f + 0.15f * flicker);
-            glow.setAlpha((int) (255 * 0.5f * (0.7f + 0.3f * flicker) * bright));
-            c.save();
-            c.translate(x, y);
-            c.scale(glowR, glowR);
-            c.drawCircle(0f, 0f, 1f, glow);
-            c.restore();
-            float fw = FLAME_W * 192 * o.unit * flicker, fh = FLAME_H * 108 * o.unit * flicker;
-            flameOval.set(x - fw + lean * fw, y - fh, x + fw + lean * fw, y + fh * 0.8f);
-            flame.setAlpha((int) (255 * bright));
-            c.drawOval(flameOval, flame);
+            SeasonMotions.drawFlame(c, flame, glow, flameOval, o.ux(FLAME_X * 192), o.uy(FLAME_Y * 108),
+                    FLAME_W * 192 * o.unit, FLAME_H * 108 * o.unit, GLOW * 192 * o.unit, flicker, lean, bright);
             for (int i = 0; i < petals.q.length; i++) {
                 if (petals.alpha[i] <= 0f) continue;
                 petal.setAlpha((int) (255 * 0.8f * petals.alpha[i] * bright));

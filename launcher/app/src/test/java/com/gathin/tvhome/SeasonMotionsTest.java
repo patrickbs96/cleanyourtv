@@ -15,7 +15,7 @@ import java.util.List;
 public class SeasonMotionsTest {
     private static final SeasonsToday TODAY = SeasonsToday.resolve(LocalDate.of(2027, 1, 10), List.of(), false, false);
 
-    @Test public void theSeasonsMoveAndTheOtherLooksStayStillForNow() {
+    @Test public void theSeasonsMoveAndTheOtherLooksAreOthers() {
         assertEquals(SeasonMotions.Fall.SNOW, ((SeasonMotions.Fall) LookMotion.forLook(Look.WINTER, TODAY)).kind);
         assertEquals(SeasonMotions.Fall.BLOSSOM, ((SeasonMotions.Fall) LookMotion.forLook(Look.SPRING, TODAY)).kind);
         assertEquals(SeasonMotions.Fall.LEAF, ((SeasonMotions.Fall) LookMotion.forLook(Look.AUTUMN, TODAY)).kind);
@@ -26,7 +26,6 @@ public class SeasonMotionsTest {
             assertNotSame(look.id, LookMotion.forLook(look, TODAY), LookMotion.forLook(look, TODAY));
         }
         assertNull(SeasonMotions.of(Look.ADVENT));
-        assertSame(LookMotion.NONE, LookMotion.forLook(Look.BIRTHDAY, TODAY));
         assertSame(LookMotion.NONE, LookMotion.forLook(null, TODAY));
         assertNull(SeasonMotions.of(Look.BIRTHDAY));
     }

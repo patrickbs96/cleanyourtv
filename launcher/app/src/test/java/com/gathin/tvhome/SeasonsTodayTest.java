@@ -88,6 +88,53 @@ public class SeasonsTodayTest {
         assertNull(PersonalDay.decode(null));
     }
 
+    /** The leading entry's years: an anniversary's count on its day, 0 without a personal day. */
+    @Test
+    public void yearsAreTheLeadingEntrys() {
+        PersonalDay a = PersonalDay.decode("anniversary;7;1;2022;Alex & Robin");
+        assertEquals(5, SeasonsToday.resolve(LocalDate.of(2027, 7, 1), List.of(a), false, false).years());
+        assertEquals(0, today(2027, 7, 1).years());
+    }
+
+    /**
+     * Task 4's carry-in: a name or start year edited on the settings page on the day itself, with the look the same,
+     * reaches the overlay (DETAILS); the same entries again change nothing; a new day or look is the scene's too.
+     */
+    @Test
+    public void anEditedEntryOnTheSameDayReachesTheOverlay() {
+        LocalDate day = LocalDate.of(2026, 12, 24);
+        SeasonsToday before = SeasonsToday.resolve(day, List.of(ALEX), false, false);
+        SeasonsToday same = SeasonsToday.resolve(day, List.of(PersonalDay.decode("birthday;12;24;1990;Alex")), false,
+                false);
+        SeasonsToday renamed = SeasonsToday.resolve(day, List.of(PersonalDay.decode("birthday;12;24;1990;Robin")),
+                false, false);
+        SeasonsToday older = SeasonsToday.resolve(day, List.of(PersonalDay.decode("birthday;12;24;1980;Alex")), false,
+                false);
+        SeasonsToday two = SeasonsToday.resolve(day, List.of(ALEX, PersonalDay.decode("birthday;12;24;1992;Robin")),
+                false, false);
+        assertTrue(same.showsSameAs(before));
+        assertFalse(renamed.showsSameAs(before));
+        assertFalse(older.showsSameAs(before));
+        assertFalse(two.showsSameAs(before));
+        assertFalse(before.showsSameAs(null));
+        assertEquals(SeasonsToday.Change.NONE, SeasonsToday.change(day, before, day, same));
+        assertEquals(SeasonsToday.Change.DETAILS, SeasonsToday.change(day, before, day, renamed));
+        assertEquals(SeasonsToday.Change.DETAILS, SeasonsToday.change(day, before, day, older));
+        assertEquals(SeasonsToday.Change.DETAILS, SeasonsToday.change(day, before, day, two));
+        // An entry removed: the look changes (Christmas), so the scene follows as well.
+        SeasonsToday none = SeasonsToday.resolve(day, List.of(), false, false);
+        assertEquals(SeasonsToday.Change.DAY_OR_LOOK, SeasonsToday.change(day, before, day, none));
+        // A new day, or nothing shown yet.
+        LocalDate next = day.plusDays(1);
+        assertEquals(SeasonsToday.Change.DAY_OR_LOOK,
+                SeasonsToday.change(day, none, next, SeasonsToday.resolve(next, List.of(), false, false)));
+        assertEquals(SeasonsToday.Change.DAY_OR_LOOK, SeasonsToday.change(null, null, day, before));
+        // Advent's candles with the same look and day compare too (a test date moved within Advent keeps the day apart).
+        SeasonsToday advent = today(2026, 12, 13);
+        assertTrue(advent.showsSameAs(today(2026, 12, 13)));
+        assertFalse(advent.showsSameAs(today(2026, 12, 20)));
+    }
+
     @Test
     public void birthdayLeadsWhenTwoKindsMeet() {
         PersonalDay a = PersonalDay.decode("anniversary;12;24;2019;Alex & Robin");

@@ -32,12 +32,14 @@ interface LookMotion {
     /** The motion for this look on this day (Advent's candles, the personal day's names); never null. */
     static LookMotion forLook(Look look, SeasonsToday today) {
         // The four seasons' (SeasonMotions), New Year to Father's Day (OccasionMotionsA), Halloween to Christmas
-        // (OccasionMotionsB); the personal days' arrive with their pictures (Jahreskreis Task 8), until then still.
+        // (OccasionMotionsB), the personal days' with today's names and years (PersonalMotions).
         LookMotion season = SeasonMotions.of(look);
         if (season != null) return season;
         LookMotion occasion = OccasionMotionsA.of(look);
         if (occasion != null) return occasion;
         occasion = OccasionMotionsB.of(look, today);
-        return occasion != null ? occasion : NONE;
+        if (occasion != null) return occasion;
+        LookMotion personal = PersonalMotions.of(look, today);
+        return personal != null ? personal : NONE;
     }
 }

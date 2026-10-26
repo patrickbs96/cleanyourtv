@@ -12,13 +12,20 @@ import java.util.List;
  */
 final class SeasonsToday {
 
+    /** What changed between two looks at a day (MainActivity.refreshSeasons): nothing; only what the overlay shows
+     * (a name or start year edited, the look the same); or the day or the look, which the scene follows too. */
+    enum Change { NONE, DETAILS, DAY_OR_LOOK }
+
+    /** The day this is for. */
+    final LocalDate date;
     final Look look;
     /** The personal days showing today, birthdays first, then anniversaries, then wedding days. */
     final List<PersonalDay> personal;
     /** The Advent candles burning today, 0 outside Advent. */
     final int adventCandles;
 
-    private SeasonsToday(Look look, List<PersonalDay> personal, int adventCandles) {
+    private SeasonsToday(LocalDate date, Look look, List<PersonalDay> personal, int adventCandles) {
+        this.date = date;
         this.look = look;
         this.personal = personal;
         this.adventCandles = adventCandles;
@@ -40,7 +47,7 @@ final class SeasonsToday {
             Look occasion = SeasonsCalendar.occasion(d, mothersDay, fathersDay);
             look = occasion != null ? occasion : SeasonsCalendar.season(d);
         }
-        return new SeasonsToday(look, Collections.unmodifiableList(showing), SeasonsCalendar.adventCandles(d));
+        return new SeasonsToday(d, look, Collections.unmodifiableList(showing), SeasonsCalendar.adventCandles(d));
     }
 
     /** The names of today's entries of the leading kind, joined by " & "; empty without a personal day. */
@@ -54,5 +61,36 @@ final class SeasonsToday {
             out.append(p.names);
         }
         return out.toString();
+    }
+
+    /** The years of today's leading entry (the age, the anniversary or wedding count); 0 without a personal day. */
+    int years() {
+        return personal.isEmpty() ? 0 : personal.get(0).years(date);
+    }
+
+    /**
+     * Whether this day shows the same as {@code other}: the same look, Advent candles and personal entries (each
+     * one's kind, names and years, in order), so its overlay, greeting and accent would not change.
+     */
+    boolean showsSameAs(SeasonsToday other) {
+        if (other == null || look != other.look || adventCandles != other.adventCandles) return false;
+        if (personal.size() != other.personal.size()) return false;
+        for (int i = 0; i < personal.size(); i++) {
+            PersonalDay a = personal.get(i), b = other.personal.get(i);
+            if (a.kind != b.kind || !a.names.equals(b.names) || a.years(date) != b.years(other.date)) return false;
+        }
+        return true;
+    }
+
+    /**
+     * What changed from the last look Home showed ({@code last} on {@code lastDay}) to {@code next} on {@code day}:
+     * a new day or look (the scene fades, the motion is new), only the details (the overlay's names or year count:
+     * an entry edited on the settings page the same day), or nothing.
+     */
+    static Change change(LocalDate lastDay, SeasonsToday last, LocalDate day, SeasonsToday next) {
+        if (last == null || lastDay == null || !lastDay.equals(day) || next.look != last.look) {
+            return Change.DAY_OR_LOOK;
+        }
+        return next.showsSameAs(last) ? Change.NONE : Change.DETAILS;
     }
 }

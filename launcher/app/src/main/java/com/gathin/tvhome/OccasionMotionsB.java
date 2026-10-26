@@ -1,5 +1,8 @@
 package com.gathin.tvhome;
 
+import static com.gathin.tvhome.SeasonMotions.drawGlow;
+import static com.gathin.tvhome.SeasonMotions.glow;
+
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
@@ -38,23 +41,6 @@ final class OccasionMotionsB {
             case CHRISTMAS: return new Christmas();
             default: return null;
         }
-    }
-
-    /** One glow of radius 1 round the origin in this colour, fading out; scaled to its size while drawing. */
-    private static Paint glow(int colour) {
-        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-        p.setShader(new RadialGradient(0f, 0f, 1f, new int[]{colour, colour & 0x00FFFFFF}, null, Shader.TileMode.CLAMP));
-        return p;
-    }
-
-    /** Draws {@code glow} round (x, y) with radius r and this alpha (0..1). */
-    private static void drawGlow(Canvas c, Paint glow, float x, float y, float r, float alpha) {
-        glow.setAlpha((int) (255 * Math.max(0f, Math.min(1f, alpha))));
-        c.save();
-        c.translate(x, y);
-        c.scale(r, r);
-        c.drawCircle(0f, 0f, 1f, glow);
-        c.restore();
     }
 
     /**
@@ -495,11 +481,8 @@ final class OccasionMotionsB {
             snow.draw(c);
             c.restore();
             for (int i = 0; i < flames; i++) {
-                float x = o.ux(FLAME_X[i]), y = o.uy(FLAME_Y[i]), f = size[i];
-                drawGlow(c, warm, x, y, FLAME_GLOW * o.unit * (0.85f + 0.15f * f), 0.5f * (0.7f + 0.3f * f));
-                float fw = FLAME_W * o.unit * f, fh = FLAME_H * o.unit * f;
-                oval.set(x - fw + lean[i] * fw, y - fh, x + fw + lean[i] * fw, y + fh * 0.8f);
-                c.drawOval(oval, flame);
+                SeasonMotions.drawFlame(c, flame, warm, oval, o.ux(FLAME_X[i]), o.uy(FLAME_Y[i]), FLAME_W * o.unit,
+                        FLAME_H * o.unit, FLAME_GLOW * o.unit, size[i], lean[i], 1f);
             }
             for (int k = 0; k < LIGHTS; k++) {
                 float x = LIGHTS_FROM + k * LIGHTS_STEP;

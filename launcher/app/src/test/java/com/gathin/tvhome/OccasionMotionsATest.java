@@ -28,12 +28,12 @@ public class OccasionMotionsATest {
             assertTrue(look.id, SeasonsOverlay.ticks(LookMotion.forLook(look, TODAY)));
             assertNotSame(look.id, LookMotion.forLook(look, TODAY), LookMotion.forLook(look, TODAY));
         }
-        // The seasons keep theirs, Halloween to Christmas are OccasionMotionsB's, the personal days are still for now.
+        // The seasons keep theirs, Halloween to Christmas are OccasionMotionsB's, the personal days PersonalMotions'.
         assertTrue(LookMotion.forLook(Look.WINTER, TODAY) instanceof SeasonMotions.Fall);
         assertNull(OccasionMotionsA.of(Look.WINTER));
         assertNull(OccasionMotionsA.of(Look.HALLOWEEN));
         assertNull(OccasionMotionsA.of(null));
-        assertSame(LookMotion.NONE, LookMotion.forLook(Look.BIRTHDAY, TODAY));
+        assertNull(OccasionMotionsA.of(Look.BIRTHDAY));
     }
 
     /** As many as the mockup draws: 60 pieces of confetti, 12 petals; three fireworks of 28 sparks each. */

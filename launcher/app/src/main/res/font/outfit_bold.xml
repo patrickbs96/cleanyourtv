@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Outfit at weight 700, built once per process: the names and the year count Jahreskreis draws on the personal
+     days (PersonalMotions). Android 8 ignores the weight here and draws the default instance. -->
+<font-family xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <font
+        android:font="@font/outfit"
+        android:fontStyle="normal"
+        android:fontWeight="700"
+        android:fontVariationSettings="'wght' 700"
+        tools:targetApi="28" />
+</font-family>

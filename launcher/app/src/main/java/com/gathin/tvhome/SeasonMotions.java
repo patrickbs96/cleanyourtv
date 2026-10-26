@@ -89,6 +89,38 @@ final class SeasonMotions {
                 Math.min(h, (int) Math.ceil(o.uy(FALL_END * 108) + reach)));
     }
 
+    /** One glow of radius 1 round the origin in this colour, fading out; scaled to its size while drawing. */
+    static Paint glow(int colour) {
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        p.setShader(new RadialGradient(0f, 0f, 1f, new int[]{colour, colour & 0x00FFFFFF}, null, Shader.TileMode.CLAMP));
+        return p;
+    }
+
+    /** Draws {@code glow} (see {@link #glow}) round (x, y) with radius r and this alpha (0..1). */
+    static void drawGlow(Canvas c, Paint glow, float x, float y, float r, float alpha) {
+        glow.setAlpha((int) (255 * Math.max(0f, Math.min(1f, alpha))));
+        c.save();
+        c.translate(x, y);
+        c.scale(r, r);
+        c.drawCircle(0f, 0f, 1f, glow);
+        c.restore();
+    }
+
+    /**
+     * A candle's flame at (x, y) under its warm glow, as the mockup draws one (Valentine's candle, the Advent candles,
+     * the birthday cake's): at size {@code f} (a flicker, about .75 .. 1) of its half width and half height, leaning
+     * by {@code lean} of its width, the glow of radius {@code glowR} swelling a little with it; all at
+     * {@code bright} (1, or dimmed at night). {@code oval} is the caller's, reused.
+     */
+    static void drawFlame(Canvas c, Paint flame, Paint glow, RectF oval, float x, float y, float halfW, float halfH,
+            float glowR, float f, float lean, float bright) {
+        drawGlow(c, glow, x, y, glowR * (0.85f + 0.15f * f), 0.5f * (0.7f + 0.3f * f) * bright);
+        float fw = halfW * f, fh = halfH * f;
+        oval.set(x - fw + lean * fw, y - fh, x + fw + lean * fw, y + fh * 0.8f);
+        flame.setAlpha((int) (255 * bright));
+        c.drawOval(oval, flame);
+    }
+
     /** Snow, blossoms or leaves falling: the mockup's fall() with its sway, each kind with its look and count. */
     static final class Fall implements LookMotion {
         static final int SNOW = 0, BLOSSOM = 1, LEAF = 2;
@@ -135,6 +167,11 @@ final class SeasonMotions {
 
         int count() {
             return q.length;
+        }
+
+        /** The box this fall happens in, {left, top, right, bottom} as fractions of the width and height. */
+        float[] box() {
+            return new float[]{left, top, right, bottom};
         }
 
         /**
