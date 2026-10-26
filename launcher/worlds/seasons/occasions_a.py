@@ -246,6 +246,7 @@ ROSES = [(-0.03, -0.28), (0, -0.32), (0.03, -0.27), (-0.015, -0.23), (0.018, -0.
 # The crescent moon in the window's lower right pane, under the pills on the top right (personal.py: PILLS) and over
 # the roofs.
 VALENTINE_MOON = (156.0, 36.0, 3.0)
+VALENTINE_MOON_HALO = (10, [(0, "#C9D4F0", .14), (1, "#C9D4F0", 0)])   # radius and c.radial stops, added light
 
 
 def window_stars():
@@ -272,7 +273,7 @@ def valentine(rng):
     c.blend(img, pane, c.vgradient([(0, "#060A1E"), (.4, "#0C1430"), (.55, "#18224A")]))
     c.stars(img, window_stars(), "#EEF0FF", glow=0.08)
     mx, my, mr = VALENTINE_MOON
-    c.radial(img, mx, my, 10, [(0, "#C9D4F0", .14), (1, "#C9D4F0", 0)], mode="add")
+    c.radial(img, mx, my, *VALENTINE_MOON_HALO, mode="add")
     moon = c.shape(lambda p: p.circle(mx, my, mr), blur=0.08) * (1 - c.shape(lambda p: p.circle(mx + 1.6, my - 1.0, 2.7),
                                                                               blur=0.08))
     c.blend(img, moon, "#E8ECF6")

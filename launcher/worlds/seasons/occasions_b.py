@@ -20,8 +20,8 @@ wicks, the tree's lights) it uses the same numbers as here; they are named in ca
 
 Picture rule (spec § 3): what matters stands right of the middle, directly above the dock (its top edge at y 76.6
 units), never behind it and never in the header on the top left (x below 76, y below 34), and nothing that matters
-under the pills on the top right (personal.py: PILLS; tests/test_seasons_pills.py checks the moon, the tree's star, the
-Advent window, its paper star and lights, and the bats).
+under the pills on the top right (personal.py: PILLS; tests/test_seasons_pills.py checks the moon, the St. Nicholas
+door, the tree's star, the Advent window, its paper star and lights, the bats, and how faint the halos are there).
 """
 import sys
 from pathlib import Path
@@ -105,6 +105,7 @@ def strokes(img, segs, width, colour, alpha=1.0, blur=0.03):
 
 # ---- halloween ----------------------------------------------------------------------------------------------------
 MOON_X, MOON_Y, MOON_R = 146.0, 36.0, 11.0      # below the pills on the top right (personal.py: PILLS)
+MOON_HALO = (42, [(0, "#FF9628", .30), (.35, "#FF9628", .10), (1, "#FF9628", 0)])   # radius, c.radial stops (added)
 PUMPKIN_GROUND = 75.8                   # where the pumpkins stand, just above the dock's top edge
 # The mockup's three pumpkins (x .56 .7 .82 of the width, radius .03 .042 .026 of it), whole above the dock.
 PUMPKINS = [(108.0, 6.4), (133.0, 8.8), (157.5, 5.6)]
@@ -174,7 +175,7 @@ def halloween(rng):
     img = c.vgradient([(0, "#0C0618"), (.35, "#180C2A"), (.62, "#2A1436"), (.72, "#2E1638")])
     c.stars(img, sky_stars(rng, 24, 46, (0.15, 0.32)), "#E8DCF0", glow=0.08)
     # the orange moon with its craters and glow, on the right below the pills and clear of the corner
-    c.radial(img, MOON_X, MOON_Y, 42, [(0, "#FF9628", .30), (.35, "#FF9628", .10), (1, "#FF9628", 0)], mode="add")
+    c.radial(img, MOON_X, MOON_Y, *MOON_HALO, mode="add")
     c.blend(img, c.shape(lambda p: p.circle(MOON_X, MOON_Y, MOON_R), blur=0.1), "#F2BC66")
     moon = c.shape(lambda p: p.circle(MOON_X, MOON_Y, MOON_R))
     c.blend(img, c.shape(lambda p: [p.circle(MOON_X + dx * 192, MOON_Y + dy * 108, rr * 108)
@@ -212,6 +213,7 @@ LANTERN_STRING, LANTERN_R = 1.0, 2.3
 LANTERN_COLOURS = ("#FFCF5A", "#FF8A5C", "#9FD8FF")   # the mockup's three
 LANTERN_LIGHT = ("#FFF0C0", "#FFD0B0", "#E0F4FF")
 MARTIN_MOON = (118.0, 18.0, 2.6)        # a thin crescent, right of the middle and left of the pills
+MARTIN_MOON_HALO = (9, [(0, "#C9D4F0", .10), (1, "#C9D4F0", 0)])
 
 
 def lantern_tip(x, ht):
@@ -255,7 +257,7 @@ def st_martin(rng):
     mx, my, mr = MARTIN_MOON
     moon = c.shape(lambda p: p.circle(mx, my, mr), blur=0.08) * (1 - c.shape(lambda p: p.circle(mx + 1.3, my - 0.8, 2.4),
                                                                               blur=0.08))
-    c.radial(img, mx, my, 9, [(0, "#C9D4F0", .10), (1, "#C9D4F0", 0)], mode="add")
+    c.radial(img, mx, my, *MARTIN_MOON_HALO, mode="add")
     c.blend(img, moon, "#E6EAF6")
     # the town far off, with a few lit windows
     c.blend(img, c.shape(town, blur=0.08), "#141630")
@@ -294,8 +296,11 @@ def st_martin(rng):
 
 # ---- nikolaus -----------------------------------------------------------------------------------------------------
 WALL_X, WALL_BOTTOM = 96.0, 73.6
-DOOR_X, DOOR_Y, DOOR_W = 119.0, 21.6, 30.7          # the mockup's .62 / .2 of the screen, .16 of the width
-WREATH_X, WREATH_Y, WREATH_R = DOOR_X + DOOR_W / 2, 34.5, 4.8
+# The door (the mockup's .62 of the width, .16 wide), its frame (DOOR_FRAME round the leaf) below the pills on the top
+# right (personal.py: PILLS), so a little lower than the mockup's .2; its two panels and the wreath move with it.
+DOOR_X, DOOR_Y, DOOR_W, DOOR_FRAME = 119.0, 24.6, 30.7, 1.4
+DOOR_PANELS = ((3.6, 18.0), (25.2, 18.4))           # each panel's top below the door's and its height
+WREATH_X, WREATH_Y, WREATH_R = DOOR_X + DOOR_W / 2, DOOR_Y + 12.9, 4.8
 NIK_LANTERN_X, NIK_LANTERN_Y = 165.0, 33.0          # the lantern by the door (OccasionMotionsB.Nikolaus flickers it)
 MAT_TOP, BOOT_GROUND = 74.0, 75.5
 BOOT_S = 192 * 0.03 * 1.3                          # the mockup's boot size, larger: its shaft is 2.1 times this high
@@ -456,15 +461,17 @@ def nikolaus_scene(rng, filled):
     c.blend(img, c.shape(lambda p: p.rect(99.8, 44, 13.4, 1.0), blur=0.05), "#B4BED0")
     # the door: its frame, the leaf with two panels, a knob and a letter slot
     dx, dy, dw = DOOR_X, DOOR_Y, DOOR_W
-    c.blend(img, c.shape(lambda p: p.rect(dx - 1.4, dy - 1.4, dw + 2.8, WALL_BOTTOM - dy + 1.4), blur=0.04), "#1E0E08")
+    fr = DOOR_FRAME
+    c.blend(img, c.shape(lambda p: p.rect(dx - fr, dy - fr, dw + 2 * fr, WALL_BOTTOM - dy + fr), blur=0.04), "#1E0E08")
     leaf = c.shape(lambda p: p.rect(dx, dy, dw, WALL_BOTTOM - dy), blur=0.03)
     hshaded(img, leaf, (dx, dy, dx + dw, WALL_BOTTOM), dx, dx + dw, [(0, "#4A2214"), (.4, "#62301C"), (1, "#3E1C10")])
-    for py, ph in ((dy + 4.0, 19.5), (dy + 27.5, 20.0)):
+    for top, ph in DOOR_PANELS:
+        py = dy + top
         c.blend(img, c.shape(lambda p: frame(p, dx + 3.0, py, dw - 6.0, ph, 0.5), blur=0.05) * 0.8, "#2A120A")
         c.add(img, c.shape(lambda p: p.rect(dx + 3.6, py + 0.6, dw - 7.2, 0.3), blur=0.1) * 0.12, "#FFC890")
-    c.blend(img, c.shape(lambda p: p.rect(dx + 9.5, dy + 25.2, dw - 19, 1.3), blur=0.03), "#B08A3A")
-    c.blend(img, c.shape(lambda p: p.circle(dx + dw * 0.86, dy + 28.0, 0.95), blur=0.04), "#D8B04A")
-    c.add(img, c.shape(lambda p: p.circle(dx + dw * 0.86 - 0.3, dy + 27.7, 0.35), blur=0.1) * 0.5, "#FFF0C0")
+    c.blend(img, c.shape(lambda p: p.rect(dx + 9.5, dy + 22.9, dw - 19, 1.3), blur=0.03), "#B08A3A")
+    c.blend(img, c.shape(lambda p: p.circle(dx + dw * 0.86, dy + 25.6, 0.95), blur=0.04), "#D8B04A")
+    c.add(img, c.shape(lambda p: p.circle(dx + dw * 0.86 - 0.3, dy + 25.3, 0.35), blur=0.1) * 0.5, "#FFF0C0")
     door_wreath(img, rng)
     wall_lantern(img)
     # the snowy ground, the doorstep and the mat (the snow kept dim, OLED rule)
@@ -502,6 +509,7 @@ def nikolaus(rng):
 # PILLS) and its sill above the table.
 ADV_WIN_X, ADV_WIN_Y, ADV_WIN_W, ADV_WIN_H = 107.5, 25.0, 57.6, 33.0
 PAPER_STAR = (ADV_WIN_X + ADV_WIN_W * 0.72, ADV_WIN_Y + ADV_WIN_H * 0.3)
+PAPER_STAR_HALO = (11, [(0, "#FFF0C8", .40), (.4, "#FFE0A0", .12), (1, "#FFE0A0", 0)])   # radius, c.radial stops
 ADV_TABLE = 64.0
 WREATH = (130.0, 68.6, 23.0, 5.8)                                    # centre, half axes (the mockup's .68 / .67)
 # The four candles on the wreath's back half (the mockup's (-.6, -.4), (-.2, -.75), (.2, -.75), (.6, -.4) of its
@@ -560,7 +568,7 @@ def advent(rng):
     # the paper star hanging in the window, glowing
     sx, sy = PAPER_STAR
     c.blend(img, c.shape(lambda p: line(p, [(sx, wy + 1.5), (sx, sy - 3.8)], 0.12), blur=0.02), "#2A1A10")
-    c.radial(img, sx, sy, 11, [(0, "#FFF0C8", .40), (.4, "#FFE0A0", .12), (1, "#FFE0A0", 0)], mode="add")
+    c.radial(img, sx, sy, *PAPER_STAR_HALO, mode="add")
     star = c.shape(lambda p: p.poly(star_points(sx, sy, 3.84, 1.34, 8, turn=0.12)), blur=0.04)
     shaded(img, star, (sx - 4, sy - 4, sx + 4, sy + 4), sx, sy, 3.9, [(0, "#FFFCEC"), (.5, "#FFE6A8"), (1, "#E8B060")])
     c.blend(img, c.shape(lambda p: [line(p, [(sx, sy), pt], 0.08) for pt in star_points(sx, sy, 3.6, 1.2, 8, 0.12)
@@ -693,6 +701,9 @@ TREE_X, TREE_TOP, TREE_BASE = 138.0, 28.875, 70.2   # TREE_TOP = TREE_BASE - 55.
 TREE_H = TREE_BASE - TREE_TOP
 TREE_SPREAD = 18.72                                 # half the tree's width at its base: the mockup's .13 times TREE_K
 STAR_Y = TREE_TOP - 1.08
+# The star's halo: radius and c.radial stops (added light); 7 rather than the mockup's 9.6, so it fades out below the
+# pills (OccasionMotionsB.Christmas.STAR_GLOW likewise).
+STAR_HALO = (7.0, [(0, "#FFE696", .45), (.4, "#FFE696", .14), (1, "#FFE696", 0)])
 TREE_LIGHTS, LIGHTS_SEED = 30, 31                   # the mockup's lights, rng(31): OccasionMotionsB twinkles them
 GIFT_GROUND = 75.6
 
@@ -797,7 +808,7 @@ def christmas(rng):
         c.add(img, c.shape(lambda p: [p.circle(x, y, 1.4) for x, y in group], blur=0.9) * 0.3, colour)
         c.blend(img, c.shape(lambda p: [p.circle(x, y, 0.42) for x, y in group], blur=0.05) * 0.9, colour)
     # the star on top
-    c.radial(img, TREE_X, STAR_Y, 9.6, [(0, "#FFE696", .45), (.4, "#FFE696", .14), (1, "#FFE696", 0)], mode="add")
+    c.radial(img, TREE_X, STAR_Y, *STAR_HALO, mode="add")
     star = c.shape(lambda p: p.poly(star_points(TREE_X, STAR_Y, 3.84, 1.54, 5)), blur=0.04)
     shaded(img, star, (TREE_X - 4, STAR_Y - 4, TREE_X + 4, STAR_Y + 4), TREE_X - 0.6, STAR_Y - 0.8, 4.2,
            [(0, "#FFFBE8"), (.5, "#FFE7A3"), (1, "#D8A848")])

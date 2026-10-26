@@ -30,6 +30,18 @@ DOCK = 76.6                              # the dock's top edge in units (y 766 o
 # (personal.py: PILLS), below them or left of them.
 MOONS = {"winter": (150.0, 30.0, 4.2), "spring": (121.5, 22.0, 4.4), "summer": (126.7, 30.0, 4.0),
          "autumn": (166.0, 30.0, 3.6)}
+# Each moon's halo round it: radius (units) and stops as c.radial takes them (added light); tests/test_seasons_pills.py
+# bounds what it adds under the pills.
+MOON_HALOS = {"winter": (16, [(0, "#C9D8EE", .14), (1, "#C9D8EE", 0)]),
+              "spring": (18, [(0, "#DDE6F0", .16), (1, "#DDE6F0", 0)]),
+              "summer": (16, [(0, "#DCE4F5", .14), (1, "#DCE4F5", 0)]),
+              "autumn": (14, [(0, "#E8D6B8", .12), (1, "#E8D6B8", 0)])}
+
+
+def moon_halo(img, look):
+    """The halo round a season's night moon (MOONS, MOON_HALOS), as added light."""
+    (mx, my, _), (r, stops) = MOONS[look], MOON_HALOS[look]
+    return c.radial(img, mx, my, r, stops, mode="add")
 
 
 def sky_stars(rng, n, y_max, r_range=(0.18, 0.4)):
@@ -129,7 +141,7 @@ def winter(day, rng):
         c.stars(img, sky_stars(rng, 40, 52, (0.18, 0.42)), "#DCE6FF",
                 glow=0.15)
         mx, my, mr = MOONS["winter"]
-        c.radial(img, mx, my, 16, [(0, "#C9D8EE", .14), (1, "#C9D8EE", 0)], mode="add")
+        moon_halo(img, "winter")
         c.radial(img, mx, my, mr, [(0, "#EEF3FF", .95), (.8, "#D5E0F5", .92), (1, "#D5E0F5", 0)])
     # the far hill, snow under the sky's light, with its lit crest
     hill = under(back)
@@ -197,7 +209,7 @@ def spring(day, rng):
         c.stars(img, sky_stars(rng, 26, 44, (0.18, 0.38)), "#E8EEFF",
                 glow=0.12)
         mx, my, mr = MOONS["spring"]
-        c.radial(img, mx, my, 18, [(0, "#DDE6F0", .16), (1, "#DDE6F0", 0)], mode="add")
+        moon_halo(img, "spring")
         c.radial(img, mx, my, mr, [(0, "#F4F6FA", .95), (.8, "#DCE3EE", .92), (1, "#DCE3EE", 0)])
     # the cherry tree first, so the far hill's crest covers its foot
     base = float(back[int(160 * c.U)]) + 3
@@ -252,7 +264,7 @@ def summer(day, rng):
         path_colour, path_alpha = "#FFC882", 0.22
     else:
         mx, my, mr = MOONS["summer"]
-        c.radial(img, mx, my, 16, [(0, "#DCE4F5", .14), (1, "#DCE4F5", 0)], mode="add")
+        moon_halo(img, "summer")
         c.radial(img, mx, my, mr, [(0, "#F2F5FB", .95), (.8, "#D8DFEC", .92), (1, "#D8DFEC", 0)])
         path_colour, path_alpha = "#B9C8E6", 0.10
     # the still path of light on the water; the moving glitter over it is the overlay's
@@ -314,7 +326,7 @@ def autumn(day, rng):
                 glow=0.1)
         # the moon between the spires' tips, below the pills
         mx, my, mr = MOONS["autumn"]
-        c.radial(img, mx, my, 14, [(0, "#E8D6B8", .12), (1, "#E8D6B8", 0)], mode="add")
+        moon_halo(img, "autumn")
         c.radial(img, mx, my, mr, [(0, "#F3E8D2", .92), (.8, "#E0CFAE", .9), (1, "#E0CFAE", 0)])
         far_colour, near_colour = "#160B06", "#050302"
     # a row of spires further back in the haze, then the mockup's forest in front

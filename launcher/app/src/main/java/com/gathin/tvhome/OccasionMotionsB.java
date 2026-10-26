@@ -500,7 +500,9 @@ final class OccasionMotionsB {
         /** The tree (occasions_b.py: TREE_*), units: its middle, top, base and half width at the base; at .75 of the
          * mockup's size, so its star stays below the pills on the top right. */
         static final float TREE_X = 138f, TREE_TOP = 28.875f, TREE_BASE = 70.2f, TREE_SPREAD = 18.72f;
-        static final float STAR_Y = TREE_TOP - 1.08f, LIGHT_GLOW = 0.01f * 192, STAR_GLOW = 0.05f * 192;
+        /** The star's centre, a light's glow and the star's (w * .028, smaller than the mockup's .05 so it fades out
+         * below the pills on the top right; occasions_b.py: STAR_HALO likewise). */
+        static final float STAR_Y = TREE_TOP - 1.08f, LIGHT_GLOW = 0.01f * 192, STAR_GLOW = 0.028f * 192;
         private static final int[] COLOURS = {0xFFFFC882, 0xFFFFDA82, 0xFFFFEC96};
 
         private final SeasonMotions.Fall snow = new SeasonMotions.Fall(SeasonMotions.Fall.SNOW, FLAKES, 23);

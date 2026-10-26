@@ -79,6 +79,32 @@ def disc(x, y, r):
     return (x - r, y - r, x + r, y + r)
 
 
+def _luma(hex_colour):
+    s = hex_colour.lstrip("#")
+    r, g, b = (int(s[i:i + 2], 16) for i in (0, 2, 4))
+    return 0.299 * r + 0.587 * g + 0.114 * b
+
+
+def halo_light(cx, cy, r, stops, zone):
+    """The most light (Rec. 601 luminance, 0-255) a halo painted with c.radial(..., mode="add") adds anywhere under
+    the pills: its alpha falls off with the distance, so the most is at the zone's point nearest its centre."""
+    px, py = min(max(cx, zone[0]), zone[2]), min(max(cy, zone[1]), zone[3])
+    d = ((px - cx) ** 2 + (py - cy) ** 2) ** 0.5 / r
+    if d >= stops[-1][0]:
+        return 0.0
+    for (p0, c0, a0), (p1, c1, a1) in zip(stops, stops[1:]):
+        if p0 <= d <= p1:
+            t = (d - p0) / (p1 - p0)
+            return (a0 + (a1 - a0) * t) * (_luma(c0) + (_luma(c1) - _luma(c0)) * t)
+    return 0.0
+
+
+# A soft halo may reach under the pills, but only as a faint brightening of the dark sky behind them, never as a
+# visible light: at most HALO_MAX of 255 luminance added there. The values today are listed in
+# test_halos_fade_out_under_the_pills.
+HALO_MAX = 24.0
+
+
 @unittest.skipUnless(HAVE_SCENES, "the scene modules need numpy and Pillow (tools/venv)")
 class PillsStayFreeTest(unittest.TestCase):
     @classmethod
@@ -100,6 +126,39 @@ class PillsStayFreeTest(unittest.TestCase):
         self.assertGreaterEqual(y1, 21.5)
         self.assertEqual(x1, 192.0)
         self.assertEqual(list(self.zone), java_floats(self.personal_java, "PILLS"))
+
+    def halos(self):
+        b = occasions_b
+        out = [(f"{look} moon halo", m[0], m[1], *seasons.MOON_HALOS[look]) for look, m in seasons.MOONS.items()]
+        out.append(("halloween moon halo", b.MOON_X, b.MOON_Y, *b.MOON_HALO))
+        out.append(("st_martin moon halo", *b.MARTIN_MOON[:2], *b.MARTIN_MOON_HALO))
+        out.append(("valentine moon halo", *occasions_a.VALENTINE_MOON[:2], *occasions_a.VALENTINE_MOON_HALO))
+        out.append(("advent paper star halo", *b.PAPER_STAR, *b.PAPER_STAR_HALO))
+        out.append(("christmas star halo", b.TREE_X, b.STAR_Y, *b.STAR_HALO))
+        return out
+
+    def test_halos_fade_out_under_the_pills(self):
+        # Most light added under the pills, of 255: winter 16.9, spring 23.4, summer 17.7, autumn 13.0, Halloween
+        # 20.8, the Christmas star 16.8 painted plus at most 8.4 from the overlay's twinkle; the St. Martin and
+        # Valentine moons and the Advent paper star add none.
+        for name, x, y, r, stops in self.halos():
+            light = halo_light(x, y, r, stops, self.zone)
+            self.assertLessEqual(light, HALO_MAX, f"{name} adds {light:.1f} under the pills")
+        # The overlay's glow on the star: the paint's colour fading linearly to nothing at STAR_GLOW, at most .35.
+        christmas = class_body(self.b_java, "Christmas")
+        glow = java_float(christmas, "STAR_GLOW")
+        b = occasions_b
+        d = max(0.0, b.STAR_Y - self.zone[3]) / glow
+        self.assertLessEqual(0.35 * max(0.0, 1 - d) * _luma("#FFE696"), HALO_MAX / 2)
+
+    def test_nikolaus_door(self):
+        b = occasions_b
+        fr = b.DOOR_FRAME
+        self.assertFree("nikolaus door", (b.DOOR_X - fr, b.DOOR_Y - fr, b.DOOR_X + b.DOOR_W + fr, b.WALL_BOTTOM))
+        self.assertFree("nikolaus wreath", disc(b.WREATH_X, b.WREATH_Y, b.WREATH_R * 1.2))
+        # The panels stay on the leaf, above the doorstep.
+        for top, height in b.DOOR_PANELS:
+            self.assertLess(b.DOOR_Y + top + height, b.WALL_BOTTOM - 2)
 
     def test_moons(self):
         for season, (x, y, r) in seasons.MOONS.items():
