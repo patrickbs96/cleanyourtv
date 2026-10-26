@@ -110,8 +110,14 @@ public final class KeyBindingsActivity extends Activity implements KeyBindings.L
             return;
         }
         String suggestion = getString(R.string.key_name_default, scancode > 0 ? scancode : keycode);
+        // Stored at once under the suggested name, the name dialog only renames: some buttons also start their app
+        // from the firmware (Philips' Netflix button), which covers this page before the dialog could be confirmed.
+        int n = KeyBindings.add(prefs, suggestion, keycode, scancode);
+        changed();
+        rebuild(TAP_TAG + n);
         askName(suggestion, name -> {
-            int n = KeyBindings.add(prefs, name.isEmpty() ? suggestion : name, keycode, scancode);
+            if (name.isEmpty() || name.equals(suggestion)) return;
+            KeyBindings.rename(prefs, n, name);
             changed();
             rebuild(TAP_TAG + n);
         });

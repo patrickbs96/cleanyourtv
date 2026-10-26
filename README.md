@@ -644,7 +644,8 @@ and a wallpaper.
     time Home comes up after the TV starts. Once per boot, so Home and Back still reach the launcher.
   - **Follow theme (reset on-TV choices)**, which clears every choice above. Pushing or resetting a theme
     clears them too.
-  - **Key bindings** (this fork): **Learn a button**, press a remote button within 15 seconds and name it; then
+  - **Key bindings** (this fork): **Learn a button**, press a remote button within 15 seconds and name it (it is
+    kept under "Button <code>" at once, since a button like Philips' Netflix also opens its app from the firmware); then
     pick what its tap, double tap and hold do (an app, the Sources menu, Close all apps or Nothing), and the Home
     button's double tap. OK on a button's name renames or removes it, after a confirmation. The arrows, OK, Back,
     Home, Power and volume can't be learned, nor the colour buttons and Settings, which keep switching the worlds
