@@ -228,6 +228,11 @@ public class CompanyMotionTest {
         }
         float rim = CompanyMotion.rimFor(WorldScene.Mood.NIGHT);
         assertTrue("" + rim, rim > 0.3f && rim <= 0.8f);
+        // With the outline the figures stood out too strongly at full strength: a little see-through by night only.
+        float strength = CompanyMotion.strengthFor(WorldScene.Mood.NIGHT);
+        assertTrue("" + strength, strength >= 0.6f && strength < 1f);
+        assertEquals(1f, CompanyMotion.strengthFor(WorldScene.Mood.MORNING), 0f);
+        assertEquals(1f, CompanyMotion.strengthFor(WorldScene.Mood.DAY), 0f);
         // A thin edge of 1 to 2 px at 1080 lines (figures 108 px high), a faint glow round it.
         float edge = CompanySilhouettes.RIM_EDGE * 108f;
         assertTrue("" + edge, edge >= 1f && edge <= 2f);

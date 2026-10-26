@@ -191,7 +191,17 @@ final class CompanyMotion {
     }
 
     /** The night's back light: the rim sheets' paint alpha, subtle (an outline, not glowing figures). */
-    static final float RIM_NIGHT = 0.7f;
+    static final float RIM_NIGHT = 0.5f;
+
+    /**
+     * The whole company's strength in a mood, everywhere on its way: by night a little see-through, as the outlined
+     * figures stood out too strongly at full strength (Patrick, TV, 27.10.); fully there in the morning and by day.
+     */
+    static float strengthFor(WorldScene.Mood mood) {
+        return mood == WorldScene.Mood.NIGHT ? NIGHT_STRENGTH : 1f;
+    }
+
+    static final float NIGHT_STRENGTH = 0.75f;
 
     /**
      * The strength at {@code x} while the dimmed area goes over from the name {@code fromLeft}..{@code fromRight} to

@@ -336,12 +336,15 @@ final class MiddleEarthOverlay extends WorldOverlay {
         float cw = silhouettes.placeW(), top = dockPx - silhouettes.anchorY();
         // A new name's dimmed area comes in over NAME_BLEND_MS while the motion runs (its ticks draw it), at once else.
         float blend = isRunning() ? (now - nameAt) / (float) CompanyMotion.NAME_BLEND_MS : 1f;
-        // By night: not dimmed behind the name, and outlined by the warm back light of the rim sheets.
+        // By night: not dimmed behind the name, a little see-through everywhere, and outlined by the warm back light
+        // of the rim sheets.
         float dim = CompanyMotion.dimFor(mood), rim = silhouettes.hasRim() ? CompanyMotion.rimFor(mood) : 0f;
+        float strength = CompanyMotion.strengthFor(mood);
         for (int i = 0; i < CompanyMotion.COMPANY.length; i++) {
             float x = head - CompanyMotion.OFFSETS[i] * s, left = x - silhouettes.anchorX();
             if (left + cw < 0f || left > w) continue;
-            float alpha = CompanyMotion.blendAlpha(x, fromLeft, fromRight, nameLeft, nameRight, w, blend, dim);
+            float alpha = strength
+                    * CompanyMotion.blendAlpha(x, fromLeft, fromRight, nameLeft, nameRight, w, blend, dim);
             companyPaint.setAlpha(Math.round(255 * alpha));
             silhouettes.cell(CompanyMotion.stepFrame(walked, i, CompanySilhouettes.FRAMES), cell);
             place.set(left, top, left + cw, top + silhouettes.placeH());
