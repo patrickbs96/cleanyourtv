@@ -157,6 +157,9 @@ public final class LauncherSettingsActivity extends Activity {
         // Not a theme choice either: Follow theme and a theme push leave the bindings alone (spec § 4.10d).
         findViewById(R.id.keyBindingsChoice).setOnClickListener(v ->
                 open(new Intent(this, KeyBindingsActivity.class)));
+        // Jahreskreis' personal days (spec § 4.7), on the TV only and left alone by Follow theme the same way.
+        findViewById(R.id.seasonsChoice).setOnClickListener(v ->
+                open(new Intent(this, SeasonsActivity.class)));
         findViewById(R.id.defaultHomeChoice).setOnClickListener(v -> {
             Toast.makeText(this, R.string.home_settings_help, Toast.LENGTH_LONG).show();
             open(new Intent(Settings.ACTION_HOME_SETTINGS));

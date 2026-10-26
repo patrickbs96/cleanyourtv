@@ -6,6 +6,13 @@
         <item name="android:windowAnimationStyle">@null</item>
     </style>
 
+    <!-- A page over Home that paints its own background (SeasonsActivity): translucent, so a start that only
+         saves something over adb and finishes shows not even a starting window. -->
+    <style name="Theme.TvHome.Overlay">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
+
     <!-- Frosted pill, tvOS style. -->
     <style name="TopButtonBase">
         <item name="android:layout_width">wrap_content</item>

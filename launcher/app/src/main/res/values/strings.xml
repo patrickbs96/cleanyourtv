@@ -159,6 +159,30 @@
     <string name="world_marvel">Marvel</string>
     <string name="world_starwars">Star Wars</string>
     <string name="world_hint">The remote\'s colour keys or 0 to 4 switch directly</string>
+    <!-- Seasons' personal days (Launcher settings; SeasonsActivity, Jahreskreis spec § 4.7). They stay on the TV. -->
+    <string name="seasons_settings_hint">Birthdays, anniversaries and wedding days that Seasons celebrates, the anniversary crawl text, Mother\'s Day and Father\'s Day</string>
+    <string name="seasons_hint">The entries stay on this TV only. OK on an entry changes or removes it.</string>
+    <string name="seasons_add">Add an entry</string>
+    <string name="seasons_new">New entry</string>
+    <string name="seasons_edit">Change entry</string>
+    <string name="seasons_kind">Kind</string>
+    <string name="seasons_kind_birthday">Birthday</string>
+    <string name="seasons_kind_anniversary">Anniversary</string>
+    <string name="seasons_kind_wedding">Wedding day</string>
+    <string name="seasons_names">Name or names</string>
+    <string name="seasons_names_hint">One name, or several joined with &amp;</string>
+    <string name="seasons_names_missing">Enter a name first</string>
+    <string name="seasons_date">Day, month and start year</string>
+    <string name="seasons_year_hint">The start year counts the years: the year of birth, the year it began or the wedding year.</string>
+    <string name="seasons_save">Save</string>
+    <string name="seasons_remove">Remove</string>
+    <string name="seasons_remove_confirm">Remove “%1$s”? The entry is deleted from this TV, and Seasons no longer celebrates the day.</string>
+    <string name="seasons_crawl">Crawl text</string>
+    <string name="seasons_crawl_hint">Rolls on an anniversary. {names}, {years} and {episode} are filled in; empty brings back the default text.</string>
+    <!-- The anniversary crawl's default (Jahreskreis Task 9); {episode}, {names} and {years} are filled in. -->
+    <string name="seasons_crawl_default">Not so long ago, in a town quite close by …\n\nEpisode {episode}\n{names}\n\n{years} years later …</string>
+    <string name="seasons_mothers_day">Mother\'s Day: %1$s</string>
+    <string name="seasons_fathers_day">Father\'s Day: %1$s</string>
     <!-- Hidden test switch (long OK on the World row): the scene's day or night picture, until the launcher restarts. -->
     <string name="world_scene">Scene</string>
     <string name="world_scene_auto">Auto (by the sun)</string>

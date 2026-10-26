@@ -659,6 +659,14 @@ and a wallpaper.
     service (Spotify while it plays, a Plex server); a hung app is first sent away by Home's first press and then
     ended. Android does not report what it ended, so the toast gives no count. From Android 14 Android lets an app
     that is not a system app end only its own processes, so there Close all apps does nothing.
+  - **Seasons** (this fork): the personal days the Seasons world celebrates. **Add an entry** picks its kind
+    (birthday, anniversary or wedding day), takes the name or names from the keyboard and day, month and start year
+    from pickers without it; OK on an entry changes it, and its Remove asks first with the focus on Cancel. Below:
+    the anniversary's **Crawl text** with `{names}`, `{years}` and `{episode}` (empty brings back the default), and
+    the **Mother's Day** and **Father's Day** switches, off by default. The entries stay on the TV, in the
+    launcher's `seasons` preferences; Follow theme and a theme push leave them alone. To try a date, `adb shell am
+    start -n com.gathin.tvhome/.SeasonsActivity --es force_date 2026-12-06` (or `auto`) sets it until the launcher
+    restarts, without opening the page.
   - **Choose default home** opens Android's home picker, and **TV system settings** the TV's own settings
     page.
 - **Change the default home:** Launcher settings and the optional Default-home tile

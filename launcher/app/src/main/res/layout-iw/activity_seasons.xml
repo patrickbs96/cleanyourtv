@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hebrew Seasons page: the same views, right-aligned and in RTL text; SeasonsActivity copies addChoice's gravity and
+     text direction onto the rows it makes, so the entries align the same way. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FF101419"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layoutDirection="rtl"
+        android:paddingStart="72dp"
+        android:paddingEnd="72dp"
+        android:paddingTop="38dp"
+        android:paddingBottom="38dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="right"
+            android:textDirection="rtl"
+            android:text="@string/world_seasons"
+            android:textColor="#FFFFFFFF"
+            android:textSize="34sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="7dp"
+            android:gravity="right"
+            android:textDirection="rtl"
+            android:text="@string/seasons_hint"
+            android:textColor="#FFACB8C1"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/addChoice"
+            style="@style/SettingsRow"
+            android:layout_marginTop="28dp"
+            android:gravity="right|center_vertical"
+            android:textDirection="rtl"
+            android:text="@string/seasons_add" />
+
+        <LinearLayout
+            android:id="@+id/dayList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+        <TextView
+            android:id="@+id/crawlChoice"
+            style="@style/SettingsRow"
+            android:layout_marginTop="28dp"
+            android:gravity="right|center_vertical"
+            android:textDirection="rtl"
+            android:text="@string/seasons_crawl" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="7dp"
+            android:gravity="right"
+            android:textDirection="rtl"
+            android:text="@string/seasons_crawl_hint"
+            android:textColor="#FFACB8C1"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/mothersDayChoice"
+            style="@style/SettingsRow"
+            android:layout_marginTop="28dp"
+            android:gravity="right|center_vertical"
+            android:textDirection="rtl" />
+
+        <TextView
+            android:id="@+id/fathersDayChoice"
+            style="@style/SettingsRow"
+            android:layout_marginTop="10dp"
+            android:gravity="right|center_vertical"
+            android:textDirection="rtl" />
+    </LinearLayout>
+</ScrollView>

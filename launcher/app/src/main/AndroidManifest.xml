@@ -124,6 +124,16 @@
             android:exported="false"
             android:excludeFromRecents="true"
             android:screenOrientation="landscape" />
+        <!-- Seasons' personal days, opened from Launcher settings (Jahreskreis spec § 4.7). Exported only for the
+             test date over adb (am start with the string extra force_date, see SeasonsActivity):
+             WRITE_SECURE_SETTINGS, which the adb shell has and ordinary apps don't, as for ThemeProvider. No
+             screenOrientation: Android 8.0 refuses it on a translucent activity. -->
+        <activity
+            android:name=".SeasonsActivity"
+            android:exported="true"
+            android:permission="android.permission.WRITE_SECURE_SETTINGS"
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.TvHome.Overlay" />
         <!-- The system input switcher (com.android.tv.action.VIEW_INPUTS), which is what the remote's Input
              button becomes through the TV's Live TV app or InputKeyService. Disabled here and switched on by
              MainActivity only while handle_view_inputs is true (config.xml or a theme), for sets whose stock
