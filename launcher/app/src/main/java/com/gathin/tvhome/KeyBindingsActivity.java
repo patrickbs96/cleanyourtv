@@ -20,6 +20,8 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -32,6 +34,8 @@ import java.util.function.Consumer;
 public final class KeyBindingsActivity extends Activity implements KeyBindings.Learner {
 
     private SharedPreferences prefs;
+    /** The config's app_keys (config.xml or a theme), for the Home row's default double tap. */
+    private List<String> configAppKeys = Collections.emptyList();
     private TextView learnChoice;
     private LinearLayout list;
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -45,6 +49,7 @@ public final class KeyBindingsActivity extends Activity implements KeyBindings.L
         super.onCreate(state);
         setContentView(R.layout.activity_key_bindings);
         prefs = getSharedPreferences(KeyBindings.NAME, MODE_PRIVATE);
+        configAppKeys = Config.load(this).appKeys;
         learnChoice = findViewById(R.id.learnChoice);
         learnChoice.setOnClickListener(v -> {
             if (learning) stopLearning();
@@ -175,12 +180,15 @@ public final class KeyBindingsActivity extends Activity implements KeyBindings.L
         caption.setTextColor(Color.WHITE);
         caption.setTextSize(20);
         list.addView(caption);
+        // As it works: config.xml's default (close_apps) until the row is set; Nothing is stored as NONE, which
+        // turns that default off too.
+        String homeDouble = KeyBindings.homeDouble(prefs, configAppKeys);
         TextView home = row(HOME_TAG, getString(R.string.key_double,
-                AppPickerDialog.label(this, KeyBindings.homeDouble(prefs))), 10, true);
+                AppPickerDialog.label(this, homeDouble)), 10, true);
         home.setOnClickListener(v -> AppPickerDialog.show(this,
                 getString(R.string.key_home) + " · " + getString(R.string.key_slot_double),
-                KeyBindings.homeDouble(prefs), target -> {
-                    KeyBindings.setHomeDouble(prefs, target);
+                homeDouble, target -> {
+                    KeyBindings.setHomeDouble(prefs, target.isEmpty() ? KeyBindings.NONE : target);
                     changed();
                     rebuild(HOME_TAG);
                 }));

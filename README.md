@@ -627,7 +627,8 @@ and a wallpaper.
   where the TV ships a settings app of its own beside Android's - Xiaomi China, TCL/FFALCON and Fire OS are
   in `settings_fallback_components` - because that app holds pages Android's has no row for, such as
   Xiaomi's Account & Security with the ADB switch; **Module cards** with `module_cards`; **Edit dock** with
-  `dock_row`; and **Reorder apps**. The launcher's own page has these rows, top to bottom:
+  `dock_row`; **Reorder apps**; and **Close all apps** (this fork, see Key bindings below). The launcher's own
+  page has these rows, top to bottom:
   - **Reorder apps**, only with `launcher_settings_button`: OK picks an app up, the arrows move it, Back
     places it, and Back again finishes.
   - **Apps per row** 4, 5, 6 or 7; **Rows below dock** 0 to 3, how many rows of tiles stay visible under the
@@ -646,7 +647,13 @@ and a wallpaper.
     pick what its tap, double tap and hold do (an app, the Sources menu, Close all apps or Nothing), and the Home
     button's double tap. OK on a button's name renames or removes it, after a confirmation. The arrows, OK, Back,
     Home, Power and volume can't be learned. Needs `HomeKeyService` or `InputKeyService`; the bindings are laid over
-    `app_keys`, and Follow theme and a theme push leave them alone.
+    `app_keys`, and Follow theme and a theme push leave them alone. **Close all apps** ends the background
+    processes of every installed app (`KILL_BACKGROUND_PROCESSES`) except this launcher, Live TV, Android's and
+    Philips' system packages, Play Services and Store, the Assistant and Chromecast. Home's double tap does it by
+    default (`double:KEYCODE_HOME:close_apps` in `app_keys`; the first press still goes home at once), and Nothing
+    on the Home row turns that off. Without root it cannot end the app on screen or an app with a foreground
+    service (Spotify while it plays, a Plex server); a hung app is first sent away by Home's first press and then
+    ended. Android does not report what it ended, so the toast gives no count.
   - **Choose default home** opens Android's home picker, and **TV system settings** the TV's own settings
     page.
 - **Change the default home:** Launcher settings and the optional Default-home tile

@@ -34,7 +34,8 @@ import java.util.regex.Pattern;
  * consumes it. The on-TV bindings (KeyBindings) come after the config's entries, so they win.
  * A target of "input:<input id>" switches to that TV input (an HDMI port) instead of opening an app, a target
  * of "inputs" opens the input switcher, for a remote whose source button sends a key Android does not map, and
- * one of the action words (back, home, recents, mute, sleep, screensaver, settings, wifi) does that action.
+ * one of the action words (back, home, recents, mute, sleep, screensaver, settings, wifi, close_apps) does that
+ * action; close_apps ends the background apps (CloseApps), and config.xml gives it to Home's double tap.
  */
 final class RemoteKeys {
 
@@ -485,7 +486,7 @@ final class RemoteKeys {
     static boolean isAction(String target) {
         switch (target) {
             case "back": case "home": case "recents": case "mute": case "sleep":
-            case "screensaver": case "settings": case "wifi":
+            case "screensaver": case "settings": case "wifi": case KeyBindings.CLOSE_APPS:
                 return true;
             default:
                 return false;
@@ -520,6 +521,10 @@ final class RemoteKeys {
                 break;
             case "wifi":
                 start(ctx, SystemSettings.intent(ctx, Settings.ACTION_WIFI_SETTINGS));
+                break;
+            case KeyBindings.CLOSE_APPS:
+                // KILL_BACKGROUND_PROCESSES is the app's, so a key service's context may call it too (spec § 4.10f).
+                CloseApps.start(ctx);
                 break;
             default:
                 break;   // "sleep" below Android 9: consumed, nothing to do

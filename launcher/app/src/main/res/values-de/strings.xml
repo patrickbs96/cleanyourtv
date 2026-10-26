@@ -112,6 +112,7 @@
     <string name="target_nothing">Nichts</string>
     <string name="target_inputs">Quellen-Menü</string>
     <string name="target_close_apps">Alle Apps schließen</string>
+    <string name="close_apps_done">Hintergrund-Apps geschlossen. Was gerade abspielt, läuft weiter.</string>
     <string name="key_rename">Umbenennen</string>
     <string name="key_remove">Entfernen</string>
     <string name="key_remove_confirm">„%1$s“ entfernen? Einzelklick, Doppelklick und Halten dieser Taste werden gelöscht, und die Taste macht wieder, was sie vorher tat.</string>

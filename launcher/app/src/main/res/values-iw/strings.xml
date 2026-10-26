@@ -189,6 +189,7 @@
     <string name="target_nothing">כלום</string>
     <string name="target_inputs">תפריט מקורות</string>
     <string name="target_close_apps">סגירת כל האפליקציות</string>
+    <string name="close_apps_done">אפליקציות הרקע נסגרו. מה שמתנגן עכשיו ממשיך לפעול.</string>
     <string name="key_rename">שינוי שם</string>
     <string name="key_remove">הסרה</string>
     <string name="key_remove_confirm">להסיר את „%1$s”? הלחיצה, הלחיצה הכפולה וההחזקה יימחקו, והמקש יחזור לפעולתו הקודמת.</string>

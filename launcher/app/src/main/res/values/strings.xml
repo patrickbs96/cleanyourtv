@@ -204,6 +204,8 @@
     <string name="target_nothing">Nothing</string>
     <string name="target_inputs">Sources menu</string>
     <string name="target_close_apps">Close all apps</string>
+    <!-- After Close all apps. Android does not say how many it ended, so no count; what plays keeps playing. -->
+    <string name="close_apps_done">Background apps closed. Anything still playing keeps running.</string>
     <string name="key_rename">Rename</string>
     <string name="key_remove">Remove</string>
     <!-- %1$s the button's name. -->

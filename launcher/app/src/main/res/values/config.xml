@@ -194,8 +194,12 @@
          and hold:KEYCODE_PROG_YELLOW:sleep. Prefix an entry with "hold:" for the same button's long press:
          "hold:KEYCODE_BUTTON_8:org.xbmc.kodi" opens Kodi when held for half a second, while the unprefixed entry
          still opens on a tap; "hold:scan:490:..." works for scancodes. A key with only a hold entry does nothing
-         on a tap. A listed app that is not installed leaves the button doing nothing. Leave empty to omit. -->
+         on a tap. A listed app that is not installed leaves the button doing nothing. Leave empty to omit.
+         Fork: "double:" makes the double-tap entry (400 ms), and close_apps ends the background apps; Home's double
+         tap does that by default (its first press still goes to the system at once). Nothing on the Home row of the
+         Key bindings page turns it off; a theme's app_keys list replaces this one, default included. -->
     <string-array name="app_keys" translatable="false">
+        <item>double:KEYCODE_HOME:close_apps</item>
     </string-array>
 
     <!-- Package of the stock launcher, for TVs whose firmware turns it back on after it was disabled. XGIMI's

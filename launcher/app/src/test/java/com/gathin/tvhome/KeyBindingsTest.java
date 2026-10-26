@@ -91,6 +91,26 @@ public class KeyBindingsTest {
         assertTrue(KeyBindings.toAppKeys(p).isEmpty());
     }
 
+    @Test public void theConfigsHomeDoubleTapStandsUntilTheHomeRowIsSet() {
+        FakePrefs p = new FakePrefs();
+        List<String> config = List.of("double:KEYCODE_HOME:close_apps", "190:a.b");
+        assertEquals(config, KeyBindings.overlay(config, p));
+        assertEquals("close_apps", KeyBindings.homeDouble(p, config));
+        KeyBindings.setHomeDouble(p, "com.netflix.ninja");
+        assertEquals(List.of("190:a.b", "double:" + KeyEvent.KEYCODE_HOME + ":com.netflix.ninja"),
+                KeyBindings.overlay(config, p));
+        assertEquals("com.netflix.ninja", KeyBindings.homeDouble(p, config));
+    }
+
+    @Test public void nothingOnTheHomeRowDropsTheConfigsDoubleTap() {
+        FakePrefs p = new FakePrefs();
+        List<String> config = List.of("double:3:close_apps", " double:KEYCODE_HOME : close_apps", "double:185:x");
+        KeyBindings.setHomeDouble(p, KeyBindings.NONE);
+        assertEquals(List.of("double:185:x"), KeyBindings.overlay(config, p));
+        assertEquals("", KeyBindings.homeDouble(p, config));
+        assertTrue(KeyBindings.toAppKeys(p).isEmpty());
+    }
+
     @Test public void bindingsComeAfterTheConfigSoTheyWin() {
         FakePrefs p = new FakePrefs();
         int n = KeyBindings.add(p, "Netflix", 0, 695);

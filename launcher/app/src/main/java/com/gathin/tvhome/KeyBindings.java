@@ -28,8 +28,10 @@ final class KeyBindings {
     static final String TAP = "tap";
     static final String DOUBLE = "double";
     static final String HOLD = "hold";
-    /** The target that ends every app in the background (Task 17, spec § 4.10f); until then it does nothing. */
+    /** The target that ends every app in the background (CloseApps, spec § 4.10f). */
     static final String CLOSE_APPS = "close_apps";
+    /** Stored for Home's double tap when Nothing is picked, so the config's default (close_apps) no longer applies. */
+    static final String NONE = "none";
     /** How long learn mode waits for a press. */
     static final long LEARN_MS = 15_000;
 
@@ -89,13 +91,43 @@ final class KeyBindings {
         prefs.edit().remove("key." + n).remove(TAP + "." + n).remove(DOUBLE + "." + n).remove(HOLD + "." + n).apply();
     }
 
+    /**
+     * Sets Home's double tap; an empty or null target clears it, so the config's own (config.xml has
+     * double:KEYCODE_HOME:close_apps) applies again. NONE is Nothing chosen on the page: no double tap, over the config.
+     */
     static void setHomeDouble(SharedPreferences prefs, String target) {
         if (target == null || target.trim().isEmpty()) prefs.edit().remove(HOME_DOUBLE).apply();
         else prefs.edit().putString(HOME_DOUBLE, target.trim()).apply();
     }
 
+    /** What is stored for Home's double tap: "" when nothing (the config's applies), NONE, or a target. */
     static String homeDouble(SharedPreferences prefs) {
         return prefs.getString(HOME_DOUBLE, "");
+    }
+
+    /** Home's double tap as it works: the stored one, "" for NONE, else the config's (its last entry for Home). */
+    static String homeDouble(SharedPreferences prefs, List<String> config) {
+        String stored = homeDouble(prefs);
+        if (NONE.equals(stored)) return "";
+        if (!stored.isEmpty()) return stored;
+        String target = "";
+        for (String entry : config) {
+            if (!isHomeDouble(entry)) continue;
+            String text = entry.trim();
+            target = text.substring(text.indexOf(':', "double:".length()) + 1).trim();
+        }
+        return target;
+    }
+
+    /** Whether an app_keys entry is a "double:" entry for Home, by keycode (3) or by name (KEYCODE_HOME). */
+    static boolean isHomeDouble(String entry) {
+        if (entry == null) return false;
+        String text = entry.trim();
+        if (!text.startsWith("double:")) return false;
+        String[] parts = text.substring("double:".length()).split(":", 2);
+        if (parts.length != 2) return false;
+        String key = parts[0].trim();
+        return key.equals(String.valueOf(KeyEvent.KEYCODE_HOME)) || key.equals("KEYCODE_HOME");
     }
 
     /** The learned buttons, in the order they were learned. */
@@ -137,13 +169,20 @@ final class KeyBindings {
             if (!hold.isEmpty()) entries.add("hold:" + code + ":" + hold);
         }
         String home = homeDouble(prefs);
-        if (!home.isEmpty()) entries.add("double:" + KeyEvent.KEYCODE_HOME + ":" + home);
+        if (!home.isEmpty() && !NONE.equals(home)) entries.add("double:" + KeyEvent.KEYCODE_HOME + ":" + home);
         return entries;
     }
 
-    /** The config's app_keys followed by the bindings; the parsers keep the last entry for a key, so these win. */
+    /**
+     * The config's app_keys followed by the bindings; the parsers keep the last entry for a key, so these win. Once
+     * the Home row is set, the config's Home double tap goes: Nothing (NONE) there must leave Home with none.
+     */
     static List<String> overlay(List<String> config, SharedPreferences prefs) {
-        List<String> entries = new ArrayList<>(config);
+        List<String> entries = new ArrayList<>();
+        boolean homeSet = !homeDouble(prefs).isEmpty();
+        for (String entry : config) {
+            if (!homeSet || !isHomeDouble(entry)) entries.add(entry);
+        }
         entries.addAll(toAppKeys(prefs));
         return entries;
     }
