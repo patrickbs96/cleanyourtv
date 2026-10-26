@@ -1,7 +1,8 @@
 > **Dieser Fork: Vier Welten (Branch `vier-welten`).** Der Launcher bekommt neben Clean drei wählbare Welten
 > (Hogwarts, Marvel, Star Wars) mit eigener Szene für Tag und Nacht, Schrift, Dock und Bewegung. Die Farbtasten der
 > Fernbedienung wechseln direkt (Grün Clean, Gelb Hogwarts, Rot Marvel, Blau Star Wars), in den
-> Launcher-Einstellungen gibt es die Zeile „Welt“. Clean bleibt der unveränderte Launcher. Entwurf:
+> Launcher-Einstellungen gibt es die Zeile „Welt“. Clean behält sein Aussehen; neu für alle: OLED-Versatz,
+> Uhr-Screensaver, Ambilight-Pill, Wetterzeile, Tastenbelegung, Alle Apps schließen (Home doppelt). Entwurf:
 > [`docs/superpowers/specs/2026-10-25-vier-welten-launcher-design.md`](docs/superpowers/specs/2026-10-25-vier-welten-launcher-design.md),
 > Szenen und Bedienung: [`launcher/worlds/README.md`](launcher/worlds/README.md). Darunter folgt das README des
 > Originalprojekts, ergänzt nur um die Schriftlizenzen der Welten und den Hinweis zur Netzberechtigung.
