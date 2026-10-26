@@ -115,6 +115,9 @@ final class SeasonMotions {
         private Paint paint;
         private RectF oval;
         private float bright = 1f;
+        /** Where this fall happens, fractions of the width and height: by default the whole width and the band from
+         * FALL_START to FALL_END (see {@link #within}). */
+        private float left = 0f, right = 1f, top = FALL_START, bottom = FALL_END;
 
         Fall(int kind) {
             this(kind, COUNT[kind], SEED[kind]);
@@ -132,6 +135,23 @@ final class SeasonMotions {
 
         int count() {
             return q.length;
+        }
+
+        /**
+         * Lets the particles fall only inside this box (fractions of the width and height), at the same speed on
+         * screen as in the whole band, fading out at its bottom: e.g. snow behind a window. Returns this fall.
+         */
+        Fall within(float left, float top, float right, float bottom) {
+            this.left = left;
+            this.top = top;
+            this.right = right;
+            this.bottom = bottom;
+            return this;
+        }
+
+        /** Where a height {@code fy} of the whole band (FALL_START .. FALL_END) lands in a box from top to bottom. */
+        static float inBox(float fy, float top, float bottom) {
+            return top + (fy - FALL_START) * (bottom - top) / (FALL_END - FALL_START);
         }
 
         @Override public void layout(SeasonsOverlay o, int w, int h) {
@@ -152,12 +172,15 @@ final class SeasonMotions {
         @Override public void frame(long now) {
             if (o == null) return;
             double t = now / 1000.0;
+            // A smaller box falls through its band faster, so the particles move as fast on screen (1 for the band).
+            float scale = (bottom - top) / (FALL_END - FALL_START);
             for (int i = 0; i < q.length; i++) {
                 float[] p = q[i];
-                float fy = fallY(p[1], p[2], t, SPEED[kind]);
-                float fx = p[0] + SWAY * (float) Math.sin(t * SWAY_RATE + p[3] * WorldOverlay.TAU);
+                float fy = fallY(p[1], p[2], t, SPEED[kind] / scale);
+                float fx = left + p[0] * (right - left)
+                        + SWAY * (float) Math.sin(t * SWAY_RATE + p[3] * WorldOverlay.TAU);
                 x[i] = o.ux(fx * 192);
-                y[i] = o.uy(fy * 108);
+                y[i] = o.uy(inBox(fy, top, bottom) * 108);
                 // Snow's alpha grows with its size, as the mockup's .5 + q.s * .5; petals and leaves are opaque.
                 float a = kind == SNOW ? 0.5f + 0.5f * p[2] : 1f;
                 alpha[i] = a * fallAlpha(fy) * bright;

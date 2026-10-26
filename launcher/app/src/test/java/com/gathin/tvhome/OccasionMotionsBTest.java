@@ -73,6 +73,45 @@ public class OccasionMotionsBTest {
         }
     }
 
+    /**
+     * The window's snow is seen only through its four panes: inside the frame, never on the cross bars, around the
+     * paper star, and ending above the candles' wicks, which stand in front of the lower panes.
+     */
+    @Test public void adventSnowStaysBehindThePanes() {
+        float[][] panes = OccasionMotionsB.Advent.panes();
+        assertEquals(4, panes.length);
+        float wx = OccasionMotionsB.Advent.WIN_X, wy = OccasionMotionsB.Advent.WIN_Y;
+        float ww = OccasionMotionsB.Advent.WIN_W, wh = OccasionMotionsB.Advent.WIN_H;
+        float frame = OccasionMotionsB.Advent.FRAME, half = OccasionMotionsB.Advent.CROSS / 2;
+        float mx = wx + ww / 2, my = wy + wh / 2;
+        // The lowest wick top: the inner candles' (foot 66.4 - 16 - 1).
+        assertEquals(49.4f, OccasionMotionsB.Advent.snowBottom(), 1e-4f);
+        for (float[] p : panes) {
+            assertTrue(p[0] < p[2] && p[1] < p[3]);
+            // Inside the frame.
+            assertTrue(p[0] >= wx + frame - 1e-4f && p[2] <= wx + ww - frame + 1e-4f);
+            assertTrue(p[1] >= wy + frame - 1e-4f && p[3] <= wy + wh - frame + 1e-4f);
+            // Clear of the cross: wholly on one side of each bar.
+            assertTrue(p[2] <= mx - half + 1e-4f || p[0] >= mx + half - 1e-4f);
+            assertTrue(p[3] <= my - half + 1e-4f || p[1] >= my + half - 1e-4f);
+            // Above every candle's wick.
+            for (float foot : OccasionMotionsB.Advent.CANDLE_FOOT) {
+                assertTrue(p[3] <= foot - OccasionMotionsB.Advent.CANDLE_H - OccasionMotionsB.Advent.WICK + 1e-4f);
+            }
+        }
+        // The star's hole lies wholly inside one pane (so the even-odd clip cuts it out cleanly).
+        float sx = OccasionMotionsB.Advent.STAR_X, sy = OccasionMotionsB.Advent.STAR_Y, sr = OccasionMotionsB.Advent.STAR_R;
+        int holding = 0;
+        for (float[] p : panes) {
+            if (sx - sr > p[0] && sx + sr < p[2] && sy - sr > p[1] && sy + sr < p[3]) holding++;
+        }
+        assertEquals(1, holding);
+        // The fall is mapped into the box: the band's start and end land on the box's top and bottom.
+        assertEquals(0.2f, SeasonMotions.Fall.inBox(SeasonMotions.FALL_START, 0.2f, 0.4f), 1e-6f);
+        assertEquals(0.4f, SeasonMotions.Fall.inBox(SeasonMotions.FALL_END, 0.2f, 0.4f), 1e-6f);
+        assertEquals(40, OccasionMotionsB.Advent.snowInPanes().count());
+    }
+
     /** The carved faces breathe like a candle: between about half and full light, and never jump (no strobe). */
     @Test public void halloweenFacesFlickerCalmly() {
         float lo = 1f, hi = 0f;

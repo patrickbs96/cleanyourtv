@@ -369,32 +369,42 @@ final class OccasionMotionsB {
      * Advent: as many of the wreath's four candles burn as Sundays of Advent have passed ({@link #flamesFor}), their
      * flames flickering (OccasionMotionsA.Valentine.flicker, each at its own beat) under a warm glow, at the wicks
      * occasions_b.py paints (CANDLES, CANDLE_H, FLAME_UP); the string of lights along the top twinkles (the mockup's
-     * .55 + .45 sin(2.5t + 1.3i)), and snow (seed 81, the mockup's) falls in the window only. The mockup lets forty
-     * flakes fall over its small canvas; on the TV the window would show only a handful of them, so here the fall over
-     * the whole width has {@link #WINDOW_FLAKES} and the window shows about a sixth of them.
+     * .55 + .45 sin(2.5t + 1.3i)), and the mockup's forty snowflakes (seed 81) fall behind the window's four panes
+     * only ({@link #panes}): never over the frame, its cross, the paper star or the sill, and ending above the
+     * candles' wicks.
      */
     static final class Advent implements LookMotion {
-        /** Each candle's x and the y of its flame (units), lit in this order. */
+        /** The candles (occasions_b.py: CANDLES, CANDLE_H, FLAME_UP): x and foot, units, lit in this order; the wick
+         * stands WICK above the top. */
         static final float[] FLAME_X = {116.2f, 125.4f, 134.6f, 143.8f};
-        static final float[] FLAME_Y = {67.4f - 16f - 2.6f, 66.4f - 16f - 2.6f, 66.4f - 16f - 2.6f, 67.4f - 16f - 2.6f};
+        static final float[] CANDLE_FOOT = {67.4f, 66.4f, 66.4f, 67.4f};
+        static final float CANDLE_H = 16f, FLAME_UP = 2.6f, WICK = 1.0f;
+        /** Each candle's flame (units). */
+        static final float[] FLAME_Y = {CANDLE_FOOT[0] - CANDLE_H - FLAME_UP, CANDLE_FOOT[1] - CANDLE_H - FLAME_UP,
+                CANDLE_FOOT[2] - CANDLE_H - FLAME_UP, CANDLE_FOOT[3] - CANDLE_H - FLAME_UP};
         /** A flame's half width and half height (the mockup's w * .005, h * .022) and its glow (w * .045), units. */
         static final float FLAME_W = 0.005f * 192, FLAME_H = 0.022f * 108, FLAME_GLOW = 0.045f * 192;
         /** The string of lights (occasions_b.py: LIGHTS_*, lights_y): bulbs at x FROM + k * STEP. */
         static final float LIGHTS_FROM = 82f, LIGHTS_STEP = 7.6f, LIGHT_GLOW = 0.012f * 192;
-        static final int LIGHTS = 15, WINDOW_FLAKES = 160;
-        /** The window (occasions_b.py: ADV_WIN_*), units. */
-        static final float WIN_X = 107.5f, WIN_Y = 10.8f, WIN_W = 57.6f, WIN_H = 43.2f;
+        static final int LIGHTS = 15, WINDOW_FLAKES = 40;
+        /** The window (occasions_b.py: ADV_WIN_*), units; its frame reaches FRAME inside the opening (the painted bars
+         * are 3 wide on its edges) and the cross is CROSS wide, both as advent() paints them. */
+        static final float WIN_X = 107.5f, WIN_Y = 10.8f, WIN_W = 57.6f, WIN_H = 43.2f, FRAME = 1.5f, CROSS = 1.5f;
+        /** The paper star hanging in the room before the upper right pane (occasions_b.py: PAPER_STAR, its points
+         * 3.84 out), units; the snow keeps STAR_R round it clear. */
+        static final float STAR_X = WIN_X + WIN_W * 0.72f, STAR_Y = WIN_Y + WIN_H * 0.3f, STAR_R = 4.2f;
         private static final int[] LIGHT_COLOURS = {0xFFFFB46E, 0xFFFFCD6E, 0xFFFFE68C};
 
         private final int flames;
         private final float[] size = new float[FLAME_X.length], lean = new float[FLAME_X.length];
         private final float[] on = new float[LIGHTS];
-        private final SeasonMotions.Fall snow = new SeasonMotions.Fall(SeasonMotions.Fall.SNOW, WINDOW_FLAKES, 81);
+        private final SeasonMotions.Fall snow = snowInPanes();
         private boolean ready;
         private SeasonsOverlay o;
         private Paint flame, warm;
         private final Paint[] bulb = new Paint[LIGHT_COLOURS.length];
-        private RectF oval, window;
+        private RectF oval;
+        private Path clip;
 
         Advent(int candles) {
             flames = flamesFor(candles);
@@ -407,6 +417,30 @@ final class OccasionMotionsB {
 
         int flames() {
             return flames;
+        }
+
+        /** Where the panes' snow ends (units): above the highest candle's wick, which stands in front of the window. */
+        static float snowBottom() {
+            float top = Float.MAX_VALUE;
+            for (float foot : CANDLE_FOOT) top = Math.min(top, foot - CANDLE_H - WICK);
+            return Math.min(top, WIN_Y + WIN_H - FRAME);
+        }
+
+        /**
+         * The four panes the snow is seen through, {left, top, right, bottom} in units: inside the frame, either side
+         * of the cross, the lower two cut off above the candles' wicks ({@link #snowBottom}).
+         */
+        static float[][] panes() {
+            float l = WIN_X + FRAME, r = WIN_X + WIN_W - FRAME, t = WIN_Y + FRAME, b = snowBottom();
+            float mx = WIN_X + WIN_W / 2, my = WIN_Y + WIN_H / 2, half = CROSS / 2;
+            return new float[][]{{l, t, mx - half, my - half}, {mx + half, t, r, my - half},
+                    {l, my + half, mx - half, b}, {mx + half, my + half, r, b}};
+        }
+
+        /** The mockup's forty flakes, falling only across the panes (a little above them, so they come in from the top). */
+        static SeasonMotions.Fall snowInPanes() {
+            return new SeasonMotions.Fall(SeasonMotions.Fall.SNOW, WINDOW_FLAKES, 81).within(
+                    (WIN_X + FRAME) / 192f, (WIN_Y - 2f) / 108f, (WIN_X + WIN_W - FRAME) / 192f, snowBottom() / 108f);
         }
 
         /** The string of lights' sag at x (units), the mockup's h * .05 + sin(x / w * TAU * 3) * h * .02. */
@@ -422,13 +456,17 @@ final class OccasionMotionsB {
                 warm = glow(0xFFFFBE5A);
                 for (int k = 0; k < bulb.length; k++) bulb[k] = glow(LIGHT_COLOURS[k]);
                 oval = new RectF();
-                window = new RectF();
+                clip = new Path();
             }
-            // Snow in the window: the fall over the whole width, drawn only inside the panes (regions[0] narrowed).
+            // Snow behind the panes: the fall within the window, drawn through a clip of the four panes only.
             snow.layout(o, w, h);
-            window.set(o.ux(WIN_X), o.uy(WIN_Y), o.ux(WIN_X + WIN_W), o.uy(WIN_Y + WIN_H));
-            o.regions[0].set((int) Math.floor(window.left), (int) Math.floor(window.top), (int) Math.ceil(window.right),
-                    (int) Math.ceil(window.bottom));
+            clip.rewind();
+            for (float[] p : panes()) clip.addRect(o.ux(p[0]), o.uy(p[1]), o.ux(p[2]), o.uy(p[3]), Path.Direction.CW);
+            // The star hangs in the room, before the glass: a hole in the panes (even-odd, the panes do not overlap).
+            clip.addCircle(o.ux(STAR_X), o.uy(STAR_Y), STAR_R * o.unit, Path.Direction.CW);
+            clip.setFillType(Path.FillType.EVEN_ODD);
+            o.regions[0].set((int) Math.floor(o.ux(WIN_X + FRAME)), (int) Math.floor(o.uy(WIN_Y + FRAME)),
+                    (int) Math.ceil(o.ux(WIN_X + WIN_W - FRAME)), (int) Math.ceil(o.uy(snowBottom())));
             float g = FLAME_GLOW * o.unit;
             if (flames > 0) {
                 o.regions[1].set((int) Math.floor(o.ux(FLAME_X[0]) - g), (int) Math.floor(o.uy(FLAME_Y[1]) - g),
@@ -453,7 +491,7 @@ final class OccasionMotionsB {
         @Override public void draw(Canvas c) {
             if (!ready || flame == null) return;
             c.save();
-            c.clipRect(window);
+            c.clipPath(clip);
             snow.draw(c);
             c.restore();
             for (int i = 0; i < flames; i++) {
