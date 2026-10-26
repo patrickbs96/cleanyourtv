@@ -115,6 +115,12 @@ final class WorldTypography {
                 heroName.setShadowLayer(10 * dp, 0, 0, 0x59FFE81F);
                 // Tipped back 18° from its bottom edge, the way the crawl lies in the picture.
                 heroName.setRotationX(18f);
+                // The glow under that perspective cost ~20 ms of render thread per frame: a blurred text shadow cannot
+                // come from the glyph cache when tipped back, so every frame anything moved (the overlay's 30 fps)
+                // blurred the name anew (Task 12 fix 1: 100 % janky, 95th 29 ms; without the shadow 13 ms). In a
+                // layer the name and its glow are drawn flat once per text change, and the tilt only maps that
+                // texture. The layer has the view's bounds, the same clip as hero (clipChildren) gives it now.
+                heroName.setLayerType(View.LAYER_TYPE_HARDWARE, null);
                 heroName.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
                     v.setPivotX(0f);
                     v.setPivotY(b - t);
