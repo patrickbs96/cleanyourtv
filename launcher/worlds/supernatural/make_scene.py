@@ -53,6 +53,7 @@ SIGN_FONT = FONTS / "oswald_bold.ttf"                 # Oswald (OFL), a narrow f
 # ---- named numbers, in units (192 x 108); SupernaturalScene.java holds the same -----------------------------------
 PILLS = (128.0, 23.0, 192.0, 34.0)       # the pills' zone on the top right (PersonalMotions.PILLS): nothing under it
 HORIZON = 56.2                           # the mockup's .52
+HILLS = (0.02, 0.02, 0.7, 0.015, 2.3, 40.0)   # the hills' ridge (hills_line); the flash lights only the sky above it
 # The lettering "SUPERNATURAL" over the motel: x, y, width, height. Its height is 6 % of the screen (spec § 4.4: the
 # logo picture takes this place at that height); it lies below the pills and above the motel's roof.
 LETTERING = (129.0, 35.6, 47.0, 6.48)
@@ -67,6 +68,7 @@ STAR = (90.2, 73.0, 10.6, 2.4)
 STAR_RAYS = 1.22
 # The motel: left, right, the roof's top, the eaves under it, the ground in front of the doors.
 MOTEL = (119.0, 186.0, 43.4, 44.8, 58.6)
+ROOF_OVERHANG = 1.6                      # how far the flat roof reaches past the walls on both sides
 ROOM_X = (122.0, 130.6, 139.2, 147.8, 156.4, 165.0)   # each room's window; its door follows 4.8 to the right
 WINDOW = (4.2, 3.6, 50.4)                # width, height, top
 DOOR = (4.8, 2.6, 8.4, 50.2)             # offset from the window, width, height, top
@@ -76,11 +78,14 @@ WARD = (179.6, 51.4, 4.4)
 DOOR_MARKS = ((128.1, 47.6), (136.7, 47.6), (145.3, 47.6), (153.9, 47.6), (162.5, 47.6), (171.1, 47.6))  # door middles
 DOOR_MARK_R = 0.95
 # The sign on its pole: the board (x, y, width, height), the pole's x and foot; the neon "MOTEL" and "VACANCY" as
-# rectangles (x, y, width, height) and MOTEL's letters' centres (the overlay lets one of them fail).
+# rectangles (x, y, width, height), MOTEL's letters' centres and half widths as their ink is painted (the overlay lets
+# one of them fail; motel_letter_spans() measures them from the drawn mask, main() and the tests check these).
 SIGN = (107.0, 10.4, 24.0, 11.2)
 SIGN_POLE = (121.0, 59.6)
+SIGN_POLE_HALF = 0.45                    # the pole's half width
 NEON_MOTEL = (109.0, 11.6, 20.0, 5.4)
-NEON_MOTEL_X = (111.0, 115.0, 119.0, 123.0, 127.0)
+NEON_MOTEL_X = (112.8, 116.975, 120.275, 123.275, 126.175)
+NEON_MOTEL_HALF = (1.9, 1.575, 1.375, 1.175, 1.175)
 NEON_VACANCY = (111.0, 17.6, 16.0, 2.8)
 # The sun on the horizon by day and the rays of light fanning up from it: angles in radians from straight up,
 # negative to the left; each ray's half width in radians and its length in units.
@@ -139,9 +144,36 @@ def rect_mask(box, blur=0.0):
 
 def hills_line():
     """The mockup's distant hills per pixel column: HORIZON - (2 % + 2 % sin(i .7) + 1.5 % sin(i 2.3)) of the height,
-    with i the column as a fortieth of the width."""
-    i = XS / 192 * 40
-    return (HORIZON - 108 * (0.02 + 0.02 * np.sin(i * 0.7) + 0.015 * np.sin(i * 2.3))).astype(np.float32)
+    with i the column as a fortieth of the width (HILLS: base, first amplitude and rate, second amplitude and rate,
+    the fraction of the width; SupernaturalScene.hillTop draws the same ridge)."""
+    base, a1, f1, a2, f2, cols = HILLS
+    i = XS / 192 * cols
+    return (HORIZON - 108 * (base + a1 * np.sin(i * f1) + a2 * np.sin(i * f2))).astype(np.float32)
+
+
+def motel_letter_spans():
+    """MOTEL's letters as painted: each one's (left, right) ink in units, read off the drawn mask's columns."""
+    mask = text_mask("MOTEL", SIGN_FONT, NEON_MOTEL, fit_width=False)
+    cols = np.where(mask.max(axis=0) > 0.5)[0]
+    runs = []
+    for col in cols:
+        if runs and col == runs[-1][1] + 1:
+            runs[-1][1] = col
+        else:
+            runs.append([col, col])
+    return [(a / c.U, (b + 1) / c.U) for a, b in runs]
+
+
+def check_motel_letters():
+    """NEON_MOTEL_X and NEON_MOTEL_HALF must be where the letters are painted (the overlay puts one out there)."""
+    spans = motel_letter_spans()
+    ok = len(spans) == len(NEON_MOTEL_X)
+    for (left, right), x, half in zip(spans, NEON_MOTEL_X, NEON_MOTEL_HALF):
+        ok = ok and abs((left + right) / 2 - x) < 0.03 and abs((right - left) / 2 - half) < 0.03
+    if not ok:
+        print("FAIL MOTEL's letters are painted at", [(round(a, 3), round(b, 3)) for a, b in spans],
+              "- update NEON_MOTEL_X / NEON_MOTEL_HALF here and in SupernaturalScene.java")
+    return ok
 
 
 def road(p):
@@ -217,8 +249,10 @@ def motel(img, day, rng):
     # the end wall right of the last door, set off by a pilaster
     c.blend(img, rect_mask((173.2, eaves, 0.7, ground - eaves)), "#4A321E" if day else "#0E0F13")
     # the flat roof with its overhang, and the walkway in front
-    c.blend(img, rect_mask((x0 - 1.6, roof, x1 - x0 + 3.2, eaves - roof + 0.2)), "#4E3520" if day else "#0F1014")
-    c.blend(img, rect_mask((x0 - 1.6, roof, x1 - x0 + 3.2, 0.35)), "#C08A52" if day else "#262A33")
+    c.blend(img, rect_mask((x0 - ROOF_OVERHANG, roof, x1 - x0 + 2 * ROOF_OVERHANG, eaves - roof + 0.2)),
+            "#4E3520" if day else "#0F1014")
+    c.blend(img, rect_mask((x0 - ROOF_OVERHANG, roof, x1 - x0 + 2 * ROOF_OVERHANG, 0.35)),
+            "#C08A52" if day else "#262A33")
     c.blend(img, rect_mask((x0 - 1.0, ground - 0.3, x1 - x0 + 2.0, 1.1)), "#6E5034" if day else "#16171C")
     ww, wh, wy = WINDOW
     dx, dw, dh, dy = DOOR
@@ -290,7 +324,8 @@ def sign(img, day):
     """The motel's sign on its pole: off by day, its neon lit steadily at night (the overlay flickers it)."""
     sx, sy, sw, sh = SIGN
     px, foot = SIGN_POLE
-    c.blend(img, rect_mask((px - 0.45, sy + sh - 0.2, 0.9, foot - sy - sh + 0.2)), "#2A1A10" if day else "#08090B")
+    c.blend(img, rect_mask((px - SIGN_POLE_HALF, sy + sh - 0.2, 2 * SIGN_POLE_HALF, foot - sy - sh + 0.2)),
+            "#2A1A10" if day else "#08090B")
     c.blend(img, rect_mask((sx, sy, sw, sh)), "#3A2A1A" if day else "#0E1014")
     frame = c.shape(lambda p: [p.rect(sx, sy, sw, 0.35), p.rect(sx, sy + sh - 0.35, sw, 0.35),
                                p.rect(sx, sy, 0.35, sh), p.rect(sx + sw - 0.35, sy, 0.35, sh)])
@@ -590,7 +625,8 @@ def main():
         print("day", sky_corners(sky_day))
         print("night", sky_corners(sky_night))
         return 0
-    ok = check_sky(sky_day, LETTERING_SKY_DAY, "day")
+    ok = check_motel_letters()
+    ok = check_sky(sky_day, LETTERING_SKY_DAY, "day") and ok
     ok = check_sky(sky_night, LETTERING_SKY_NIGHT, "night") and ok
     ok = c.export(day, "supernatural_day", seed=GRAIN_DAY) and ok
     ok = c.export(night, "supernatural_night", seed=GRAIN_NIGHT) and ok

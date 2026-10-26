@@ -117,6 +117,47 @@ public class SupernaturalOverlayTest {
         assertFalse(PersonalMotions.underPills(SupernaturalOverlay.vacancyBox()));
     }
 
+    /**
+     * Putting a letter out covers all of its painted ink (NEON_MOTEL_X / NEON_MOTEL_HALF, which the Python test ties
+     * to the drawing code) and none of its neighbours', and stays above VACANCY's caps.
+     */
+    @Test public void letterCoversFitTheirLetters() {
+        float[] x = SupernaturalScene.NEON_MOTEL_X, half = SupernaturalScene.NEON_MOTEL_HALF;
+        float[] ink = SupernaturalScene.NEON_MOTEL;
+        assertEquals(x.length, half.length);
+        for (int i = 0; i < x.length; i++) {
+            float[] b = SupernaturalOverlay.motelLetterBox(i);
+            assertTrue("letter " + i, b[0] < x[i] - half[i] && b[2] > x[i] + half[i]);
+            assertTrue("letter " + i, b[1] < ink[1] && b[3] >= ink[1] + ink[3]);
+            if (i > 0) assertTrue("letter " + i + " reaches its left neighbour", b[0] > x[i - 1] + half[i - 1]);
+            if (i < x.length - 1) {
+                assertTrue("letter " + i + " reaches its right neighbour", b[2] < x[i + 1] - half[i + 1]);
+            }
+            assertTrue("letter " + i + " over VACANCY", b[3] < SupernaturalScene.NEON_VACANCY[1]);
+        }
+        // M is the widest letter, about 4 units.
+        assertEquals(3.8f, 2 * half[0], 0.3f);
+    }
+
+    /** The flash lights only the sky: not the motel, its roof, the sign, its pole, the hills or the wings' shadow. */
+    @Test public void flashLightsOnlyTheSky() {
+        float[][] dark = {
+                {150f, 50f}, {118f, 43.6f}, {187f, 50f}, {176f, 47f},    // the motel's wall, the roof's overhangs
+                {119f, 15f}, {108f, 21f}, {130.5f, 11f},                  // the sign board
+                {121f, 30f}, {121f, 45f},                                  // its pole
+                {40f, 55.9f}, {10f, 55f}, {100f, 56f},                    // the hills and the land at the horizon
+                {150f, 25f}, {42f, 25f}};                                   // inside the wings
+        for (float[] p : dark) assertFalse(p[0] + ", " + p[1], SupernaturalOverlay.lit(p[0], p[1]));
+        float[][] sky = {{60f, 5f}, {186f, 10f}, {10f, 45f}, {96f, 40f}, {100f, 48f}, {114f, 44f}, {190f, 40f}};
+        for (float[] p : sky) assertTrue(p[0] + ", " + p[1], SupernaturalOverlay.lit(p[0], p[1]));
+        // Nothing below the ridge or the horizon, wherever it is.
+        for (float xx = 0f; xx <= 192f; xx += 0.5f) {
+            float ridge = SupernaturalScene.hillTop(xx);
+            assertTrue(ridge <= SupernaturalScene.HORIZON && ridge > 48f);
+            assertFalse(SupernaturalOverlay.lit(xx, ridge + 0.05f));
+        }
+    }
+
     /** Two wings spread wide over the sky, mirrored, above the horizon and clear of the dock. */
     @Test public void wingsSpreadOverTheSky() {
         float[] wing = SupernaturalOverlay.wing();

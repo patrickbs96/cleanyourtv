@@ -48,8 +48,13 @@ final class SupernaturalOverlay extends WorldOverlay {
     static final float LOGO_MAX_W = 2f * (SupernaturalScene.UNITS_W - 2f
             - (SupernaturalScene.LETTERING[0] + SupernaturalScene.LETTERING[2] / 2f));
 
-    /** The covers that put a letter out: half width and height round its centre, and VACANCY's round its middle. */
-    private static final float LETTER_RX = 2.3f, LETTER_RY = 3.9f, VACANCY_RX = 8.6f, VACANCY_RY = 1.9f;
+    /**
+     * The cover that puts a letter out reaches LETTER_MARGIN past its ink on both sides (fading out there, less than
+     * the narrowest gap between two letters), a little above it and down to just above VACANCY's caps. VACANCY's
+     * cover is an ellipse round its middle.
+     */
+    private static final float LETTER_MARGIN = 0.25f, LETTER_TOP = 0.3f, LETTER_BOTTOM = 0.2f,
+            OVER_VACANCY = 0.25f, VACANCY_RX = 8.6f, VACANCY_RY = 1.9f;
     /** The neon off: the dark tube on the board; VACANCY dims towards the board's blue-grey. */
     private static final int MOTEL_OFF = 0xFF3A1C22, VACANCY_OFF = 0xFF10181E;
     /** The rain: drops, the dock's top edge they fall to, their slant (x per y) and how long they are (units). */
@@ -64,8 +69,10 @@ final class SupernaturalOverlay extends WorldOverlay {
     private static final float HEAT_X = 96f, HEAT_W = 30f, HEAT_Y = SupernaturalScene.HORIZON + 0.6f, HEAT_STEP = 0.65f,
             HEAT_H = 0.15f;
     private static final int HEAT_BANDS = 5;
-    /** The neon's reflection on the wet road (make_scene.py wet_reflections) and the motel's roof (MOTEL). */
-    private static final float SHEEN_X = 114.5f, SHEEN_Y = 65f, ROOF_Y = 43.4f;
+    /** The neon's reflection on the wet road (make_scene.py wet_reflections). */
+    private static final float SHEEN_X = 114.5f, SHEEN_Y = 65f;
+    /** The right wing's outline (wing()), for {@link #lit}. */
+    private static final float[] WING = wing();
 
     private final float[] dropX = new float[DROPS], dropY = new float[DROPS], dropSpeed = new float[DROPS];
     private final float[] rain = new float[DROPS * 4];
@@ -74,6 +81,7 @@ final class SupernaturalOverlay extends WorldOverlay {
     /** The bolts in units and in view pixels, as segments {x0, y0, x1, y1}; boltSegs[i] how many each has. */
     private final float[][] boltUnits = new float[BOLTS][BOLT_SEGS * 4], boltPx = new float[BOLTS][BOLT_SEGS * 4];
     private final int[] boltSegs = new int[BOLTS];
+    private final Shader[] letterFade = new Shader[SupernaturalScene.NEON_MOTEL_X.length];
 
     private final Paint rainPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     /** Radial glows of radius 1, each scaled to its ellipse: the cracks' red light, the star, tail light, sheen. */
@@ -90,7 +98,8 @@ final class SupernaturalOverlay extends WorldOverlay {
     private final Paint dust = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint logoPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
     private final Paint skyPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
-    private final Path cracks = new Path(), wings = new Path(), litSky = new Path(), rayPath = new Path();
+    private final Path cracks = new Path(), wings = new Path(), litSky = new Path(), rayPath = new Path(),
+            standing = new Path();
     private final Matrix skyMatrix = new Matrix();
     private final RectF cover = new RectF(), logoRect = new RectF();
     private final float[] box = new float[4];
@@ -123,8 +132,14 @@ final class SupernaturalOverlay extends WorldOverlay {
         rainPaint.setStyle(Paint.Style.STROKE);
         sigilGlow.setShader(new RadialGradient(0f, 0f, 1f, new int[]{0xE6FF3020, 0x66FF3020, 0x00FF3020},
                 new float[]{0f, 0.45f, 1f}, Shader.TileMode.CLAMP));
-        motelOff.setShader(new RadialGradient(0f, 0f, 1f, new int[]{MOTEL_OFF, MOTEL_OFF, MOTEL_OFF & 0x00FFFFFF},
-                new float[]{0f, 0.7f, 1f}, Shader.TileMode.CLAMP));
+        // Each letter's cover across a unit square: full over its ink, fading out over the margin on both sides.
+        int none = MOTEL_OFF & 0x00FFFFFF;
+        for (int i = 0; i < letterFade.length; i++) {
+            float[] b = motelLetterBox(i);
+            float fade = LETTER_MARGIN / (b[2] - b[0]);
+            letterFade[i] = new LinearGradient(0f, 0f, 1f, 0f, new int[]{none, MOTEL_OFF, MOTEL_OFF, none},
+                    new float[]{0f, fade, 1f - fade, 1f}, Shader.TileMode.CLAMP);
+        }
         vacancyOff.setShader(new RadialGradient(0f, 0f, 1f,
                 new int[]{VACANCY_OFF, VACANCY_OFF, VACANCY_OFF & 0x00FFFFFF}, new float[]{0f, 0.75f, 1f},
                 Shader.TileMode.CLAMP));
@@ -167,6 +182,8 @@ final class SupernaturalOverlay extends WorldOverlay {
         logo = null;
         if (sky != null) sky.recycle();
         sky = null;
+        // Attached again, the next layout reads the picture afresh (it may have come or gone meanwhile).
+        logoRead = false;
     }
 
     @Override
@@ -217,8 +234,21 @@ final class SupernaturalOverlay extends WorldOverlay {
             }
             wings.close();
         }
+        // Only the sky lights up (lit()): from the top down to the hills' ridge, without the motel, the sign and its
+        // pole standing in it, and without the wings, which stay dark as their shadow.
         litSky.reset();
-        litSky.addRect(0f, Math.min(0f, uy(0f)), w, horizon, Path.Direction.CW);
+        litSky.moveTo(ux(0f), Math.min(0f, uy(0f)));
+        litSky.lineTo(ux(SupernaturalScene.UNITS_W), Math.min(0f, uy(0f)));
+        for (float x = SupernaturalScene.UNITS_W; x >= 0f; x -= 1f) {
+            litSky.lineTo(ux(x), uy(SupernaturalScene.hillTop(x)));
+        }
+        litSky.lineTo(ux(0f), uy(SupernaturalScene.hillTop(0f)));
+        litSky.close();
+        for (float[] b : new float[][]{motelBlock(), SupernaturalScene.box(SupernaturalScene.SIGN), signPole()}) {
+            standing.reset();
+            standing.addRect(ux(b[0]), uy(b[1]), ux(b[2]), uy(b[3]), Path.Direction.CW);
+            litSky.op(standing, Path.Op.DIFFERENCE);
+        }
         litSky.op(wings, Path.Op.DIFFERENCE);
         for (int b = 0; b < BOLTS; b++) {
             float[] u = boltUnits[b], p = boltPx[b];
@@ -322,9 +352,14 @@ final class SupernaturalOverlay extends WorldOverlay {
         float m = motelDim(now, SEED, true);
         if (m > 0f) {
             int letter = motelLetter(now, SEED);
+            float[] b = motelLetterBox(letter);
+            motelOff.setShader(letterFade[letter]);
             motelOff.setAlpha((int) (255 * 0.85f * m));
-            oval(c, motelOff, SupernaturalScene.NEON_MOTEL_X[letter],
-                    SupernaturalScene.NEON_MOTEL[1] + SupernaturalScene.NEON_MOTEL[3] / 2f, LETTER_RX, LETTER_RY);
+            c.save();
+            c.translate(ux(b[0]), uy(b[1]));
+            c.scale((b[2] - b[0]) * unit, (b[3] - b[1]) * unit);
+            c.drawRect(0f, 0f, 1f, 1f, motelOff);
+            c.restore();
         }
         float v = vacancyDim(now, SEED, true);
         if (v > 0f) {
@@ -337,9 +372,9 @@ final class SupernaturalOverlay extends WorldOverlay {
             skyFlash.setAlpha((int) (255 * skyFlashAlpha(since, SEED, true)));
             c.drawPath(litSky, skyFlash);
             int b = Math.floorMod(lightningSlot(since), BOLTS);
-            // Far behind the wings: the bolt shows only where the sky is lit.
+            // Far away behind the wings, the hills, the motel and the sign: it shows only where the sky is lit.
             c.save();
-            c.clipOutPath(wings);
+            c.clipPath(litSky);
             boltGlow.setAlpha((int) (255 * 0.3f * flash));
             c.drawLines(boltPx[b], 0, boltSegs[b] * 4, boltGlow);
             boltCore.setAlpha((int) (255 * flash));
@@ -482,9 +517,50 @@ final class SupernaturalOverlay extends WorldOverlay {
 
     /** The box {left, top, right, bottom} in units that putting MOTEL's letter {@code i} out covers. */
     static float[] motelLetterBox(int i) {
-        float x = SupernaturalScene.NEON_MOTEL_X[i];
-        float y = SupernaturalScene.NEON_MOTEL[1] + SupernaturalScene.NEON_MOTEL[3] / 2f;
-        return new float[]{x - LETTER_RX, y - LETTER_RY, x + LETTER_RX, y + LETTER_RY};
+        float x = SupernaturalScene.NEON_MOTEL_X[i], half = SupernaturalScene.NEON_MOTEL_HALF[i] + LETTER_MARGIN;
+        float[] ink = SupernaturalScene.NEON_MOTEL;
+        float bottom = Math.min(ink[1] + ink[3] + LETTER_BOTTOM, SupernaturalScene.NEON_VACANCY[1] - OVER_VACANCY);
+        return new float[]{x - half, ink[1] - LETTER_TOP, x + half, bottom};
+    }
+
+    /** The motel with its roof's overhang, {left, top, right, bottom} in units: the flash leaves it unlit. */
+    static float[] motelBlock() {
+        float[] m = SupernaturalScene.MOTEL;
+        return new float[]{m[0] - SupernaturalScene.ROOF_OVERHANG, m[2], m[1] + SupernaturalScene.ROOF_OVERHANG, m[4]};
+    }
+
+    /** The sign's pole from under the board to its foot, as a box in units. */
+    static float[] signPole() {
+        float[] p = SupernaturalScene.SIGN_POLE, s = SupernaturalScene.SIGN;
+        return new float[]{p[0] - SupernaturalScene.SIGN_POLE_HALF, s[1] + s[3], p[0] + SupernaturalScene.SIGN_POLE_HALF,
+                p[1]};
+    }
+
+    /**
+     * Whether the flash lights the point (x, y) in units: the sky above the hills' ridge, but not the motel, the sign
+     * board or its pole standing in it, nor the wings' shadow. The same shape as the path the overlay fills.
+     */
+    static boolean lit(float x, float y) {
+        if (y >= SupernaturalScene.hillTop(x)) return false;
+        if (inBox(motelBlock(), x, y) || inBox(SupernaturalScene.box(SupernaturalScene.SIGN), x, y)
+                || inBox(signPole(), x, y)) return false;
+        return !inWings(x, y);
+    }
+
+    private static boolean inBox(float[] b, float x, float y) {
+        return x >= b[0] && x <= b[2] && y >= b[1] && y <= b[3];
+    }
+
+    /** Whether (x, y) lies in either wing: the left one is the right one's mirror image round WING_X (even-odd). */
+    static boolean inWings(float x, float y) {
+        if (x < WING_X) x = 2 * WING_X - x;
+        boolean inside = false;
+        int n = WING.length / 2;
+        for (int i = 0, j = n - 1; i < n; j = i++) {
+            float xi = WING[2 * i], yi = WING[2 * i + 1], xj = WING[2 * j], yj = WING[2 * j + 1];
+            if ((yi > y) != (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+        }
+        return inside;
     }
 
     /** The box in units that dimming VACANCY covers. */
@@ -554,7 +630,7 @@ final class SupernaturalOverlay extends WorldOverlay {
     static float[] letteringCover() {
         float[] l = SupernaturalScene.LETTERING;
         return new float[]{l[0] - 1f, Math.max(PersonalMotions.PILLS[3] + 0.2f, l[1] - 1f), l[0] + l[2] + 1f,
-                Math.min(ROOF_Y - 0.3f, l[1] + l[3] + 1f)};
+                Math.min(SupernaturalScene.MOTEL[2] - 0.3f, l[1] + l[3] + 1f)};
     }
 
     /**

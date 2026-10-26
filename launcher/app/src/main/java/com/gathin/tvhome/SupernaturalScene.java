@@ -49,8 +49,26 @@ final class SupernaturalScene {
     static final float[] SIGN = {107.0f, 10.4f, 24.0f, 11.2f};
     static final float[] NEON_MOTEL = {109.0f, 11.6f, 20.0f, 5.4f};
     static final float[] NEON_VACANCY = {111.0f, 17.6f, 16.0f, 2.8f};
-    /** The centres of MOTEL's five letters across (NEON_MOTEL_X): the overlay lets one of them fail. */
-    static final float[] NEON_MOTEL_X = {111.0f, 115.0f, 119.0f, 123.0f, 127.0f};
+    /**
+     * The centres of MOTEL's five letters across (NEON_MOTEL_X) and their ink's half widths (NEON_MOTEL_HALF), as
+     * painted (make_scene.py motel_letter_spans): the overlay lets one of them fail. The ink runs down NEON_MOTEL.
+     */
+    static final float[] NEON_MOTEL_X = {112.8f, 116.975f, 120.275f, 123.275f, 126.175f};
+    static final float[] NEON_MOTEL_HALF = {1.9f, 1.575f, 1.375f, 1.175f, 1.175f};
+    /** The sign's pole (SIGN_POLE): its x and its foot, and its half width (SIGN_POLE_HALF). */
+    static final float[] SIGN_POLE = {121.0f, 59.6f};
+    static final float SIGN_POLE_HALF = 0.45f;
+    /**
+     * The motel (MOTEL): left, right, the roof's top, the eaves, the ground before the doors; the roof overhangs both
+     * sides by ROOF_OVERHANG.
+     */
+    static final float[] MOTEL = {119.0f, 186.0f, 43.4f, 44.8f, 58.6f};
+    static final float ROOF_OVERHANG = 1.6f;
+    /**
+     * The hills' ridge (HILLS): HORIZON - 108 (base + a1 sin(i f1) + a2 sin(i f2)) with i = x / 192 * cols; see
+     * {@link #hillTop}.
+     */
+    static final float[] HILLS = {0.02f, 0.02f, 0.7f, 0.015f, 2.3f, 40.0f};
 
     /** The sun on the horizon by day (SUN): centre and radius; the rays fan up from its centre. */
     static final float[] SUN = {67.2f, 54.0f, 6.5f};
@@ -74,6 +92,17 @@ final class SupernaturalScene {
     static final float[] CRACK_AREA = {4.0f, 54.0f, 70.0f, 12.0f};
 
     private SupernaturalScene() {
+    }
+
+    /**
+     * Where the land begins at x (units): the hills' ridge as make_scene.py hills_line paints it, or the horizon where
+     * the ridge dips below it.
+     */
+    static float hillTop(float x) {
+        double i = x / UNITS_W * HILLS[5];
+        double ridge = HORIZON
+                - UNITS_H * (HILLS[0] + HILLS[1] * Math.sin(i * HILLS[2]) + HILLS[3] * Math.sin(i * HILLS[4]));
+        return (float) Math.min(HORIZON, ridge);
     }
 
     /** A rectangle {x, y, width, height} as a box {left, top, right, bottom}, as PersonalMotions.underPills takes. */
