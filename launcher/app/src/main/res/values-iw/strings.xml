@@ -175,6 +175,13 @@
     <string name="seasons_crawl_default">לא לפני זמן רב, בעיר קרובה מאוד …\n\nפרק {episode}\n{names}\n\n{years} שנים אחר כך …</string>
     <string name="seasons_mothers_day">יום האם: %1$s</string>
     <string name="seasons_fathers_day">יום האב: %1$s</string>
+    <string name="seasons_greeting_happy_birthday">יום הולדת שמח, %1$s</string>
+    <string name="seasons_greeting_birthday">מזל טוב, %1$s</string>
+    <string name="seasons_greeting_fourth">Happy 4th · %1$s</string>
+    <string name="seasons_greeting_anniversary_one">שנה אחת · %1$s</string>
+    <string name="seasons_greeting_anniversary">%1$d שנים · %2$s</string>
+    <string name="seasons_greeting_wedding_one">שנה לנישואין</string>
+    <string name="seasons_greeting_wedding">%1$d שנות נישואין</string>
     <string name="world_scene">סצנה</string>
     <string name="world_scene_auto">אוטומטי (לפי השמש)</string>
     <string name="world_scene_day">יום</string>

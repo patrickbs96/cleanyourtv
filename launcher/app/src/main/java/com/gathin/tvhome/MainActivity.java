@@ -322,6 +322,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private CrawlView crawl;
     /** Which keys end the crawl and which are eaten (only a fresh press ends it; that whole press is eaten). */
     private final CrawlKeys crawlKeys = new CrawlKeys();
+    /**
+     * Today's personal days in every world (Jahreskreis § 4.6), for the greeting, the icon next to the clock and the
+     * confetti: Seasons' own day in Seasons, else worked out the same way on create, resume and every minute
+     * (refreshPersonal). Its list is empty on every other day, and Home is then exactly as before.
+     */
+    private SeasonsToday personalToday;
+    /** The icon next to the clock (cake, holo heart, rings); gone without a personal day and in Seasons. */
+    private ImageView personalDayIcon;
+    /** The kind the icon shows now, null while it is gone. */
+    private PersonalDay.Kind personalIconKind;
+    /** The personal days' confetti while it plays (ConfettiBurstView), else null. */
+    private ConfettiBurstView confetti;
+    /** Starts the confetti a moment after the return to Home (the first frame back first). */
+    private final Runnable startConfetti = this::startConfetti;
     /** Between onResume and onPause, for WorldOverlay.shouldRun. */
     private boolean resumed;
     /** The idle clock (ClockActivity) was started from Home and has not been left yet. */
@@ -431,6 +445,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         public void run() {
             // Seasons' look first (midnight): the greeting below takes its accent.
             refreshSeasons();
+            refreshPersonal();
             updateGreeting();
             updateRace();
             // The pill follows the network callbacks and each return to Home; only the diya's flame follows the
@@ -609,6 +624,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // The world's type, colours and hero style over the header and the shelf; Clean returns untouched.
         WorldTypography.apply(world, greeting, findViewById(R.id.clock), findViewById(R.id.date),
                 findViewById(R.id.clockDivider), heroName, heroMeta);
+        // Today's personal days, before the first greeting (onStart): the icon after the clock follows them.
+        personalDayIcon = findViewById(R.id.personalDayIcon);
+        refreshPersonal();
         btnWifi = findViewById(R.id.btnWifi);
         shamsiDate = findViewById(R.id.shamsiDate);
         stats = findViewById(R.id.stats);
@@ -1137,6 +1155,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (openLiveTvAfterBoot()) return;
         // Seasons' look may have moved on while Home was away (past midnight); before the greeting takes its accent.
         refreshSeasons();
+        refreshPersonal();
         updateGreeting();
         updateRace();
         // The network and Inputs pills keep their state while Home is in the background, and callbacks update them
@@ -1159,6 +1178,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         screensaver = false;
         updateWorldOverlay();
         playCrawlIfDue();
+        playConfettiIfDue();
         handler.postDelayed(minuteTick, MINUTE_MS);
         if (festive && diya != null) {
             diya.start();
@@ -1334,6 +1354,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // Nothing of the crawl goes on behind another app; the day stays done.
         stopCrawl();
         crawlKeys.reset();
+        // Nor of the confetti; the day stays done.
+        handler.removeCallbacks(startConfetti);
+        if (confetti != null) confetti.stop();
         root.removeCallbacks(showIdleClock);
         endReorder();   // Home or another app while reordering keeps the order so far
         wallpaperPlayer.stop();
@@ -2986,6 +3009,56 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (!reordering) glass.setAccent(worldAccent(), true);
     }
 
+    /**
+     * Today's personal days in every world (Jahreskreis § 4.6), on create, resume and every minute after
+     * refreshSeasons: Seasons' own day there, else the same entries and test date worked out here (a short prefs
+     * read). Shows or hides the icon after the clock; on a day without an entry it stays gone and nothing changes.
+     */
+    private void refreshPersonal() {
+        personalToday = world == World.SEASONS ? seasonsToday : seasonsToday(seasonsDay());
+        PersonalDay.Kind kind = PersonalGreeting.iconKind(world, personalToday);
+        if (kind == personalIconKind) return;
+        personalIconKind = kind;
+        if (kind == null) {
+            personalDayIcon.setVisibility(View.GONE);
+            return;
+        }
+        personalDayIcon.setImageResource(kind == PersonalDay.Kind.ANNIVERSARY ? R.drawable.ic_day_holo_heart
+                : kind == PersonalDay.Kind.WEDDING ? R.drawable.ic_day_rings : R.drawable.ic_day_cake);
+        // In the clock's white in Clean, in the greeting's colour in the worlds (gold, holo blue).
+        int tint = world.isClean() ? ((TextView) findViewById(R.id.clock)).getCurrentTextColor()
+                : WorldTypography.greetingColor(world, greetingColor, worldAccent());
+        personalDayIcon.setImageTintList(ColorStateList.valueOf(tint));
+        personalDayIcon.setVisibility(View.VISIBLE);
+    }
+
+    /**
+     * The personal days' confetti (Jahreskreis § 4.6): at the first return to Home of the day with an entry, outside
+     * Seasons; reduced motion or animations off skip it and still count the day (ConfettiBurstView.due).
+     */
+    private void playConfettiIfDue() {
+        if (confetti != null) return;
+        SharedPreferences prefs = getSharedPreferences(PersonalDays.PREFS, MODE_PRIVATE);
+        if (!ConfettiBurstView.due(prefs, world, personalToday, animations, reducedMotion)) return;
+        handler.removeCallbacks(startConfetti);
+        handler.postDelayed(startConfetti, 450);
+    }
+
+    private void startConfetti() {
+        if (!resumed || isFinishing() || isDestroyed() || confetti != null) return;
+        ConfettiBurstView burst = new ConfettiBurstView(this);
+        confetti = burst;
+        root.addView(burst, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        // Clean has no accent of its own: a festival's skin gives it one, else its key colour (colours).
+        int accent = world.isClean() && festive ? festival.accentColor() : worldAccent();
+        burst.play(ConfettiBurstView.colours(accent), () -> {
+            if (confetti == burst) confetti = null;
+            // Not inside the view's own detach (the activity going): removed on the next turn.
+            root.post(() -> root.removeView(burst));
+        });
+    }
+
     /** Day or night for the world's greeting words (Lumos/Nox): the scene's, by the sun at config.xml's place. */
     private boolean worldDay() {
         return worldScene.isDay();
@@ -3029,7 +3102,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         // A world's greeting words win over a festival's, as its skin does.
         String festiveGreeting = festive && world.isClean() ? festival.greetingText(getResources()) : "";
-        if (!festiveGreeting.isEmpty()) {
+        // A personal day's greeting wins over both, in every world (Jahreskreis § 4.8); "" on every other day.
+        String personal = PersonalGreeting.text(getResources(), world, personalToday, worldDay());
+        if (!personal.isEmpty()) {
+            String text = PersonalGreeting.pick(personal, festiveGreeting, "");
+            // In capitals already in the worlds, for the reason given below.
+            greeting.setText(world.isClean() ? text : text.toUpperCase(Locale.getDefault()));
+            // A festival's skin keeps its colour in Clean; the worlds keep theirs.
+            greeting.setTextColor(festive && world.isClean()
+                    ? WorldTypography.liftTowardsWhite(festival.accentColor(), 0.25f)
+                    : WorldTypography.greetingColor(world, greetingColor, worldAccent()));
+        } else if (!festiveGreeting.isEmpty()) {
             greeting.setText(festiveGreeting);
             greeting.setTextColor(WorldTypography.liftTowardsWhite(festival.accentColor(), 0.25f));
         } else {

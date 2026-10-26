@@ -27,6 +27,8 @@ final class PersonalDays {
     static final String CRAWL_TEXT = "crawl_text";
     /** The day the anniversary crawl last started (OncePerDay), so it rolls once a day. */
     static final String CRAWL_LAST = "crawl_last";
+    /** The day the personal days' confetti last played in the other worlds (OncePerDay, ConfettiBurstView). */
+    static final String CONFETTI_LAST = "confetti_last";
     static final String FORCE_DATE = "force_date";
     /** The force_date value that goes back to the real date. */
     static final String AUTO = "auto";

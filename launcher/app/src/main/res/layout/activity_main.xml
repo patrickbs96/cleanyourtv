@@ -247,6 +247,19 @@
                         android:letterSpacing="0.08"
                         android:textAllCaps="true" />
 
+                    <!-- A personal day's icon after the time (Jahreskreis § 4.6: cake, holo heart or rings, all day,
+                         not in Seasons); gone on every other day, so the row is as before. -->
+                    <ImageView
+                        android:id="@+id/personalDayIcon"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:layout_gravity="bottom"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginBottom="9dp"
+                        android:focusable="false"
+                        android:importantForAccessibility="no"
+                        android:visibility="gone" />
+
                     <View
                         android:id="@+id/clockDivider"
                         android:layout_width="1dp"

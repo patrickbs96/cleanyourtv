@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- An anniversary next to the clock (Jahreskreis § 4.6): a holo heart over a small projector, its beam rising to
+     the heart's tip. One colour, tinted by Home. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="28dp" android:height="28dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <!-- Heart outline -->
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.5" android:strokeLineJoin="round"
+        android:pathData="M12,15.2C12,15.2 4.2,10.6 4.2,6.2C4.2,3.9 6,2.4 7.9,2.4C9.6,2.4 11.1,3.5 12,5C12.9,3.5 14.4,2.4 16.1,2.4C18,2.4 19.8,3.9 19.8,6.2C19.8,10.6 12,15.2 12,15.2Z" />
+    <!-- Scan lines across the heart -->
+    <path android:strokeColor="#99FFFFFF" android:strokeWidth="0.9" android:strokeLineCap="round"
+        android:pathData="M7,6.4H17M7.6,9H16.4M9.6,11.6H14.4" />
+    <!-- Beam from the projector to the heart's tip -->
+    <path android:fillColor="#66FFFFFF"
+        android:pathData="M12,15.6L14.2,19.2H9.8Z" />
+    <!-- Projector -->
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M8.4,19.4h7.2a1,1 0 0,1 1,1v0.6a1,1 0 0,1 -1,1h-7.2a1,1 0 0,1 -1,-1v-0.6a1,1 0 0,1 1,-1z" />
+</vector>
