@@ -10,7 +10,7 @@ characters or film imagery are used: silhouettes and gradients only.
 | `hogwarts/make_scene.py` | `world_hogwarts_night.jpg` (castle on a cliff, lake, moon), `world_hogwarts_day.jpg` (great hall, cloud ceiling, owls) |
 | `marvel/make_scene.py` | `world_marvel_night.jpg` (crimson skyline, light streak, beacon tower), `world_marvel_day.jpg` (same skyline in warm backlight) |
 | `starwars/make_scene.py` | `world_starwars_day.jpg` (twin suns over dunes, dome, vaporators), `world_starwars_night.jpg` (stars, ringed planet) |
-| `seasons/make_scene.py` | Jahreskreis' looks, found by name (`WorldScene.drawableName`): `world_seasons_<season>_day.jpg` and `_night.jpg` for winter (snowy hills, firs; by night moon and stars), spring (green hills, a cherry in blossom), summer (the sea in the evening light, a low sun; by night a moon and its path) and autumn (a forest of spires, trees in rust and amber); painted in `seasons/seasons.py` |
+| `seasons/make_scene.py` | Jahreskreis' looks, found by name (`WorldScene.drawableName`): `world_seasons_<season>_day.jpg` and `_night.jpg` for winter (snowy hills, firs; by night moon and stars), spring (green hills, a cherry in blossom), summer (the sea in the evening light, a low sun; by night a moon and its path) and autumn (a forest of spires, trees in rust and amber); painted in `seasons/seasons.py`. One `world_seasons_<occasion>.jpg` each for `new_year` (skyline with lit windows over the dock), `carnival` (dark stage, spotlights, pennants, party hats and streamers), `valentine` (evening table at a window: roses, two glasses, a candle), `easter` (pastel morning, painted eggs above the dock), `mothers_day` (a bunch of flowers, a heart card "Mama") and `fathers_day` (meadow, a field path out of the picture on the right, a handcart with a picnic basket); painted in `seasons/occasions_a.py` |
 
 ```
 tools/venv/Scripts/pip install pillow numpy
@@ -43,6 +43,7 @@ writes the same bytes again:
 | Marvel | 1963 | night 21, day 22 |
 | Star Wars | 1977 | day 31, night 32 |
 | Jahreskreis: winter, spring, summer, autumn | 2112, 2103, 2106, 2309 (plus fixed seeds for the cherry's crown and the autumn trees) | day 41/43/45/47, night 42/44/46/48 |
+| Jahreskreis: New Year, Carnival, Valentine's Day, Easter, Mother's Day, Father's Day | 3101 to 3106 (plus the mockup's seeded random for the skyline, the window's stars and the bouquet) | 51 to 56 |
 
 Rules for a changed or new picture:
 
@@ -53,7 +54,8 @@ Rules for a changed or new picture:
   light only. The worlds are moods, not fan art.
 - Moving things belong in the overlay (`HogwartsOverlay`, `MarvelOverlay`, `StarWarsOverlay`; Jahreskreis'
   `SeasonsOverlay` with one `LookMotion` per look, `SeasonMotions` for the seasons' snow, blossoms, fireflies and
-  leaves), not in the picture.
+  leaves, `OccasionMotionsA` for the fireworks, streamers and confetti, candle and petals, butterflies, motes and
+  clouds of New Year to Father's Day), not in the picture; the picture is whole without them (reduced motion).
 - **Jahreskreis** (spec § 3): what matters stands right of the app name, directly above the dock (its top edge at
   y 766 of 1080), never behind it and never in the header on the top left (greeting, clock, date, weather). Hills are
   drawn per pixel column, so they meet the right edge without a seam. Night versions are painted dark (OLED rule) and
