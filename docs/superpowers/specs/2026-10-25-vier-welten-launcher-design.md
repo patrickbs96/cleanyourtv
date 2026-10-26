@@ -193,8 +193,11 @@ Heute: `res/anim/app_open_enter/exit`. Die Welten legen einen Effekt *vor* den `
 | Welt | Effekt |
 |---|---|
 | Hogwarts | Kachel skaliert 1,07→1,25 (400 ms) und glüht weiß-gold; ein konischer Funkenwirbel (14 em, 1,5 Umdrehungen) dreht sich 1,1 s heraus; ab 60 % blendet Schwarz ein („Nox“); bei 100 % `startActivity` |
-| Marvel | Kachel 1,07→1,35 (900 ms, cubic-out); drei Ringe laufen von der Kachelmitte nach außen (versetzt 0/150/300 ms, 900 ms); ab 400 ms wischt ein anamorpher Lichtstreifen (40 % Breite) 800 ms von links nach rechts; bei 1,0 s Schnitt auf Weiß (300 ms), `startActivity` |
-| Star Wars | 70 Streaks aus der Bildmitte in zufälligen Winkeln, Start 150–500 ms versetzt, 900 ms auf 900 px Länge; die Szene zoomt 1,1 s auf 1,4×; die Kachel wird ab 100 ms 1 s lang auf 6×1,6 gezogen und verblasst; bei 1,0 s Weiß (250 ms), `startActivity` |
+| Marvel | Kachel 1,07→1,35 (900 ms, cubic-out); drei Ringe laufen von der Kachelmitte nach außen (versetzt 0/150/300 ms, 900 ms); ab 400 ms wischt ein anamorpher Lichtstreifen (40 % Breite) 800 ms von links nach rechts; bei 1,0 s Schnitt auf Weiß (200 ms), `startActivity` bei 1,2 s |
+| Star Wars | 70 Streaks aus der Bildmitte in zufälligen Winkeln, Start 150–500 ms versetzt, 900 ms auf 900 px Länge; die Szene zoomt 1,1 s auf 1,4×; die Kachel wird ab 100 ms 1 s lang auf 6×1,6 gezogen und verblasst; bei 1,0 s Weiß (200 ms), `startActivity` bei 1,2 s |
+
+Die Weißschnitte waren im Motion-Mockup 300 bzw. 250 ms; sie sind auf 200 ms gekürzt, damit kein Effekt länger als
+1,2 s läuft (Controller-Entscheidung 26.10., R12 revidiert).
 
 Wenn die App bereits läuft (Task im Hintergrund), gleicher Effekt. Bei `reduced_motion`: sofort `startActivity`.
 

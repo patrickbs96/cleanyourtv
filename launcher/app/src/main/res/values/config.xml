@@ -452,7 +452,7 @@
          with "clock_glow" in a theme. -->
     <bool name="clock_glow">false</bool>
     <!-- OLED burn-in guard: once a minute the header, the pills, the top shelf, the grid with its dock band and the focus
-         highlight move together by a random 0 to 3 dp in each direction (never to the same place twice in a row), a
+         highlight move together by a random 0 to 3 pixels in each direction (never to the same place twice in a row), a
          400 ms glide, a jump with reduced_motion. Home starts unmoved and the first move comes with the first minute;
          leaving Home puts it back. The backgrounds (wallpaper, sky, glow) stay put. false keeps Home still. Can also
          be set with "oled_shift" in a theme's config.json. -->

@@ -19,11 +19,12 @@ public class LaunchGuardTest {
 
     @Test
     public void durationsStayUnderLimit() {
-        for (World w : World.values()) assertTrue(WorldLaunchMotion.durationMs(w) <= 1300);
+        // Every effect at most 1.2 s (ruling R12 revised): the whites are cut to 200 ms.
+        for (World w : World.values()) assertTrue(WorldLaunchMotion.durationMs(w) <= 1200);
         assertEquals(0, WorldLaunchMotion.durationMs(World.CLEAN));
         assertEquals(1200, WorldLaunchMotion.durationMs(World.HOGWARTS));
-        assertEquals(1300, WorldLaunchMotion.durationMs(World.MARVEL));
-        assertEquals(1250, WorldLaunchMotion.durationMs(World.STARWARS));
+        assertEquals(1200, WorldLaunchMotion.durationMs(World.MARVEL));
+        assertEquals(1200, WorldLaunchMotion.durationMs(World.STARWARS));
     }
 
     @Test
@@ -79,11 +80,13 @@ public class LaunchGuardTest {
         // Hogwarts: black only from 60 % of 1.2 s, full at the start.
         assertEquals(0f, WorldLaunchMotion.blendAlpha(World.HOGWARTS, 700), 1e-6);
         assertEquals(1f, WorldLaunchMotion.blendAlpha(World.HOGWARTS, 1200), 1e-6);
-        // Marvel: white from 1.0 s over 300 ms; Star Wars over 250 ms.
+        // Marvel and Star Wars: white from 1.0 s over 200 ms.
         assertEquals(0f, WorldLaunchMotion.blendAlpha(World.MARVEL, 999), 1e-6);
-        assertEquals(1f, WorldLaunchMotion.blendAlpha(World.MARVEL, 1300), 1e-6);
+        assertTrue(WorldLaunchMotion.blendAlpha(World.MARVEL, 1100) < 1f);
+        assertEquals(1f, WorldLaunchMotion.blendAlpha(World.MARVEL, 1200), 1e-6);
         assertEquals(0f, WorldLaunchMotion.blendAlpha(World.STARWARS, 999), 1e-6);
-        assertEquals(1f, WorldLaunchMotion.blendAlpha(World.STARWARS, 1250), 1e-6);
+        assertTrue(WorldLaunchMotion.blendAlpha(World.STARWARS, 1100) < 1f);
+        assertEquals(1f, WorldLaunchMotion.blendAlpha(World.STARWARS, 1200), 1e-6);
         assertEquals(0xFF000000, WorldLaunchMotion.blendColor(World.HOGWARTS));
         assertEquals(0xFFFFFFFF, WorldLaunchMotion.blendColor(World.MARVEL));
         // Every effect is full at its own end: the app never comes up over a half-faded Home.

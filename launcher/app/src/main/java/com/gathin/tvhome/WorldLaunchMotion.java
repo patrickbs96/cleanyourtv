@@ -19,9 +19,10 @@ import java.util.function.Consumer;
  * startActivity. Hogwarts: the tile grows 1.07 to 1.25 in 400 ms and glows white-gold, a conic spark swirl turns out
  * of it for 1.1 s, from 60 % on the screen fades to black ("Nox"), the app starts at 1.2 s. Marvel: the tile grows to
  * 1.35 in 900 ms (cubic-out), three rings run out from its middle (0/150/300 ms, 900 ms each), from 400 ms an
- * anamorphic light streak wipes across in 800 ms, at 1.0 s a cut to white (300 ms), then the app. Star Wars: 70
- * streaks shoot out of the screen's middle (150 to 500 ms apart, 900 ms, 900 mockup px), the scene zooms to 1.4×
- * in 1.1 s, the tile stretches to 6×1.6 from 100 ms for 1 s and fades, white at 1.0 s (250 ms), then the app.
+ * anamorphic light streak wipes across in 800 ms, at 1.0 s a cut to white (200 ms), then the app at 1.2 s. Star
+ * Wars: 70 streaks shoot out of the screen's middle (150 to 500 ms apart, 900 ms, 900 mockup px), the scene zooms to
+ * 1.4× in 1.1 s, the tile stretches to 6×1.6 from 100 ms for 1 s and fades, white at 1.0 s (200 ms), then the app at
+ * 1.2 s. No effect runs longer than 1.2 s (the mockup's whites were 300 and 250 ms).
  *
  * <p>Clean, reduced motion and animations off never get here: MainActivity starts the app at once
  * ({@link #shouldPlay}), so Clean adds no view. While an effect plays a second OK is swallowed ({@link #begin} and
@@ -35,7 +36,9 @@ import java.util.function.Consumer;
  */
 final class WorldLaunchMotion {
 
-    static final long HOGWARTS_MS = 1200, MARVEL_MS = 1000 + 300, STARWARS_MS = 1250;
+    /** All at most 1.2 s, the limit for every effect (ruling R12 revised): the white cut is 200 ms. */
+    static final long WHITE_MS = 200;
+    static final long HOGWARTS_MS = 1200, MARVEL_MS = 1000 + WHITE_MS, STARWARS_MS = 1000 + WHITE_MS;
     /** The app starts at the latest this long after the effect should have ended (a stalled frame, a lost tick). */
     static final long TIMEOUT_GRACE_MS = 200;
     /** The blend stays this long after the start: the app's window is in front by then. */
@@ -74,8 +77,8 @@ final class WorldLaunchMotion {
                 float p = clamp(t / (float) HOGWARTS_MS);
                 return p < 0.6f ? 0f : ease((p - 0.6f) / 0.4f);
             }
-            case MARVEL: return t < 1000 ? 0f : ease(clamp((t - 1000) / 300f));
-            case STARWARS: return t < 1000 ? 0f : ease(clamp((t - 1000) / 250f));
+            case MARVEL:
+            case STARWARS: return t < 1000 ? 0f : ease(clamp((t - 1000) / (float) WHITE_MS));
             default: return 0f;
         }
     }

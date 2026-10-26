@@ -8,13 +8,13 @@ import java.util.Random;
 
 /**
  * OLED burn-in guard (config.xml oled_shift, spec § 4.10a): once a minute Home's header, pills, shelf, grid with its
- * dock band and the focus frame move together by a random −3…+3 in X and Y, a pure translation, 400 ms soft. It
+ * dock band and the focus frame move together by a random −3…+3 px in X and Y, a pure translation, 400 ms soft. It
  * starts at 0 and only the first minute tick moves it, so a screenshot right after a cold start shows Home unmoved.
  * The views given here are moved by nothing else, so the translation is theirs alone (MainActivity wraps the moving
  * part of Home in one layer for exactly that).
  */
 final class OledShift {
-    /** The farthest the views move from their place, per axis, before density. */
+    /** The farthest the views move from their place, per axis, in pixels (no density). */
     static final int MAX = 3;
     static final long MOVE_MS = 400;
 
@@ -52,10 +52,9 @@ final class OledShift {
     void next() {
         if (!enabled) return;
         current = nextOffset(rnd, current);
-        if (views.isEmpty()) return;
-        float density = views.get(0).getResources().getDisplayMetrics().density;
-        float x = current[0] * density;
-        float y = current[1] * density;
+        // Real pixels, as spec § 4.10a says (ruling R15 revised): ±3 px, not ±3 dp (±6 px at density 2).
+        float x = current[0];
+        float y = current[1];
         for (View v : views) {
             if (!animated) {
                 v.setTranslationX(x);
@@ -77,7 +76,7 @@ final class OledShift {
         }
     }
 
-    /** The offset in steps of one (before density), {0, 0} at rest. */
+    /** The offset in pixels, {0, 0} at rest. */
     int[] current() {
         return current.clone();
     }
