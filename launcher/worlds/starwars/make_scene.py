@@ -8,7 +8,7 @@
     python launcher/worlds/starwars/make_scene.py
 
 Shapes use the mockup's 192 x 108 units (vier-welten-v3.html). Silhouettes only: no characters, ships, emblems or
-lettering. The hyperspace streaks, the twinkling and the hologram flicker are the overlay's (drawn live).
+lettering. The hyperspace streaks and the twinkling are the overlay's (drawn live).
 """
 import math
 import sys

@@ -153,7 +153,7 @@ API 21 ignoriert die Hardware-Pipeline das Rechteck, der Aufwand je Tick ist das
 |---|---|---|---|
 | Hogwarts | Große Halle bei Tag: verzauberte Decke mit Wolken, Lichtschächte, zwei Eulen-Silhouetten | Schloss auf der Klippe (Türme mit Spitzdächern, erleuchtete Fenster, Viadukt), See mit Spiegelung, großer Mond, Sternenhimmel | 10 schwebende Kerzen: Flackern 6–9 s/Zyklus, Drift ±2 px über 9 s, zeitversetzt; 12 Sterne funkeln 3–4 s; bei Tag nur die Kerzen, kleiner |
 | Marvel | Skyline bei Tag unter tiefstehender Sonne, warmes Gegenlicht, der hohe Turm mit Leuchtfeuer | Skyline bei Nacht in Crimson-Schwarz, anamorphe Lichtkante bei 46 % Höhe, Fensterraster | Reaktor rechts (10 Segmente, 3 Ringe) dreht 1 U/18 s, Kern pulst 2 s; Lichtkante atmet 4 s; Leuchtfeuer pulst 2 s |
-| Star Wars | Doppelsonnen-Untergang über Dünen mit Hitzeschleier, Farm-Kuppel, zwei Vaporatoren, einsame Figur | Reiner Weltraum: Sternenfeld dichter, ein großer Ringplanet rechts unten angeschnitten | Hyperraum-Streifen an beiden Rändern ziehen (1,1 s Schleife, nur äußere 16 % Breite); 15–20 Sterne funkeln; Hologramm-Flackern der UI alle 6–7 s für 60 ms |
+| Star Wars | Doppelsonnen-Untergang über Dünen mit Hitzeschleier, Farm-Kuppel, zwei Vaporatoren, einsame Figur | Reiner Weltraum: Sternenfeld dichter, ein großer Ringplanet rechts unten angeschnitten | Hyperraum-Streifen an beiden Rändern ziehen (1,1 s Schleife, nur äußere 16 % Breite); 15–20 Sterne funkeln; ~~Hologramm-Flackern der UI alle 6–7 s für 60 ms~~ (Nachtrag 26.10.: auf Patricks Wunsch entfernt, irritierend.) |
 
 Clean: kein Bild, kein Overlay (wie heute: `background_color`, Ambient-Glow).
 

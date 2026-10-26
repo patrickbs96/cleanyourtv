@@ -11,9 +11,9 @@ import java.util.Random;
 
 /**
  * Star Wars' motion: hyperspace streaks in the outer 16 % of the width on both sides (a faint line every 70 px,
- * tilted as the mockup's 100° gradient, drifting at 60 px per 1.1 s and fading towards the middle), seventeen
- * stars twinkling (3 to 4 s), and every 6 to 7 s the hologram flicker: a signal Home answers with a 60 ms dip of
- * the greeting, clock and pills (setHoloFlickerListener).
+ * tilted as the mockup's 100° gradient, drifting at 60 px per 1.1 s and fading towards the middle) and seventeen
+ * stars twinkling (3 to 4 s). The header's hologram flicker (a 60 ms dip every 6 to 7 s) was removed on 26.10. at
+ * Patrick's request: it irritated.
  */
 final class StarWarsOverlay extends WorldOverlay {
     /** The day picture's stars (make_scene.py DAY_STARS): x, y, radius in units. */
@@ -33,9 +33,6 @@ final class StarWarsOverlay extends WorldOverlay {
     private final Paint star = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint streak = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final float[] lines = new float[MAX_LINES * 4];
-    private final Random flickerTimes = new Random(0x5A11L);
-    private Runnable onHoloFlicker;
-    private long nextFlicker;
     /** 1080-line pixels to view pixels; the horizontal step between stripes and how far one leans. */
     private float px, step, lean;
 
@@ -48,27 +45,6 @@ final class StarWarsOverlay extends WorldOverlay {
         }
         star.setColor(0xFFDFE8FF);
         streak.setStyle(Paint.Style.STROKE);
-    }
-
-    /** Called on the main thread at each hologram flicker, every 6 to 7 s while the overlay moves; null for none. */
-    void setHoloFlickerListener(Runnable onHoloFlicker) {
-        this.onHoloFlicker = onHoloFlicker;
-    }
-
-    @Override
-    protected void onStart(long now) {
-        nextFlicker = now + nextFlickerMs();
-    }
-
-    @Override
-    protected void onFrame(long now) {
-        if (now < nextFlicker) return;
-        nextFlicker = now + nextFlickerMs();
-        if (onHoloFlicker != null) onHoloFlicker.run();
-    }
-
-    private long nextFlickerMs() {
-        return 6000 + flickerTimes.nextInt(1001);
     }
 
     @Override

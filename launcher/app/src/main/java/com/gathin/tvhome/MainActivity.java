@@ -314,8 +314,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean resumed;
     /** The idle clock (ClockActivity) was started from Home and has not been left yet. */
     private boolean screensaver;
-    /** Star Wars' hologram flicker: the header back to full opacity 60 ms after the dip. */
-    private final Runnable holoRestore = () -> setHoloAlpha(1f);
     /** The app label behind the hero line in a world (whose text adds capitals or a prefix); unused in Clean. */
     private String heroLabel;
     /** A world's dock move (spec § 4.6): sparks, brackets and scan, the hero's flash and typing; null in Clean. */
@@ -524,9 +522,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             root.addView(worldOverlay, root.indexOfChild(sky), new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             worldScene.setListener(() -> worldOverlay.setDay(worldScene.isDay()));
-            if (worldOverlay instanceof StarWarsOverlay) {
-                ((StarWarsOverlay) worldOverlay).setHoloFlickerListener(this::holoFlicker);
-            }
         }
         // The world's dock move: its sparks and scan go over the dock and the frame, added once and reused. The frame
         // is in oledLayer, so they go right above that layer.
@@ -1307,10 +1302,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         weather.stop();   // no new request in the background
         resumed = false;
         updateWorldOverlay();
-        if (worldOverlay != null) {
-            handler.removeCallbacks(holoRestore);
-            setHoloAlpha(1f);
-        }
         stopAmbientAnimation();
         hero.animate().cancel();
         ambient.animate().cancel();
@@ -3205,19 +3196,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (worldOverlay == null) return;
         if (WorldOverlay.shouldRun(world, animations, reducedMotion, resumed, screensaver)) worldOverlay.start();
         else worldOverlay.stop();
-    }
-
-    /** Star Wars' hologram flicker: the greeting, clock and pills dip to 60 % for 60 ms, as a hologram would. */
-    private void holoFlicker() {
-        handler.removeCallbacks(holoRestore);
-        setHoloAlpha(0.6f);
-        handler.postDelayed(holoRestore, 60);
-    }
-
-    private void setHoloAlpha(float alpha) {
-        // leftBlock holds the greeting, clock and date; topButtons the pills.
-        clockBlock.setAlpha(alpha);
-        findViewById(R.id.topButtons).setAlpha(alpha);
     }
 
     private void playPetalShower() {
