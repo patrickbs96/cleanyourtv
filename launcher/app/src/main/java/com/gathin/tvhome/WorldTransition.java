@@ -254,6 +254,8 @@ final class WorldTransition {
     private void firstFrame() {
         if (!entering || startedAt >= 0) return;
         startedAt = SystemClock.uptimeMillis();
+        // The clock runs now, so the half ends on its own; a slow first frame must not cut it short.
+        handler.removeCallbacks(enterTimeout);
         if (overlay != null) overlay.ignite(startedAt);
         handler.postDelayed(tick, FRAME_MS);
     }
