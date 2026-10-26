@@ -92,16 +92,20 @@ final class OccasionMotionsA {
     }
 
     /**
-     * New Year: the mockup's three fireworks (PAINT.newyear) over the skyline, each every 3.2 s with its own offset: a
-     * spark rises for {@link #RISE} s and bursts into a ring of 28 sparks and an inner ring of 14 that spread, sink a
+     * New Year: the mockup's three fireworks (PAINT.newyear) over the skyline, taking turns: one burst every
+     * {@link #SPACING} s, at the next of the three places, so each place bursts every {@link #PERIOD} s and the sky is
+     * still between two bursts (spec § 4.5, calm). A spark rises for {@link #RISE} s and bursts into a ring of 28 sparks and an inner ring of 14 that spread, sink a
      * little and fade within {@link #BURST} s, under a faint glow of their colour. Short and small (at most
      * {@link #R_MAX} of the width across), so a burst never lights up the screen; right of the header, above the dock.
      */
     static final class Fireworks implements LookMotion {
         static final float[] X = {0.48f, 0.66f, 0.84f}, Y = {0.22f, 0.30f, 0.26f};
-        /** The mockup's period and offsets (t + off) % 3.2, in seconds. */
-        static final double PERIOD = 3.2;
-        static final double[] OFFSET = {0, 1.3, 2.4};
+        /**
+         * One burst every SPACING seconds (the mockup's 3.2 s), the places in turn: each place's cycle is three times as
+         * long, shifted by one SPACING per place ((t + offset) % PERIOD), so place 0 bursts at 0 s, 1 at 3.2 s, 2 at 6.4 s.
+         */
+        static final double SPACING = 3.2, PERIOD = 3 * SPACING;
+        static final double[] OFFSET = {0, 2 * SPACING, SPACING};
         /** How long a spark rises and a burst lasts, in seconds; and from how far below its burst a spark rises. */
         static final double RISE = 0.35, BURST = 1.1;
         static final float RISE_FROM = 0.18f;
@@ -133,6 +137,11 @@ final class OccasionMotionsA {
         static double age(double t, int i) {
             double a = (t + OFFSET[i]) % PERIOD;
             return a < 0 ? a + PERIOD : a;
+        }
+
+        /** Whether firework i is rising or bursting at t. */
+        static boolean active(double t, int i) {
+            return age(t, i) < RISE + BURST;
         }
 
         /** How far a burst has spread at u (0..1 of its time): fast at first, easing out. */

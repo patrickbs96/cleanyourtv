@@ -45,12 +45,18 @@ public class OccasionMotionsATest {
         assertEquals(4, OccasionMotionsA.Meadow.CLOUDS);
     }
 
-    /** Each firework every 3.2 s, rising and bursting in under 1.5 s, so most of the time the sky is still. */
+    /**
+     * One burst every 3.2 s, the three places in turn (each every 9.6 s); a burst rises and fades in under 1.5 s, so
+     * the sky is still between two bursts.
+     */
     @Test public void fireworksAreShortAndComeEveryFewSeconds() {
-        assertEquals(3.2, OccasionMotionsA.Fireworks.PERIOD, 1e-9);
+        assertEquals(3.2, OccasionMotionsA.Fireworks.SPACING, 1e-9);
+        assertEquals(9.6, OccasionMotionsA.Fireworks.PERIOD, 1e-9);
         assertTrue(OccasionMotionsA.Fireworks.RISE + OccasionMotionsA.Fireworks.BURST <= 1.5);
-        assertEquals(0.0, OccasionMotionsA.Fireworks.age(3.2, 0), 1e-9);
-        assertEquals(1.3, OccasionMotionsA.Fireworks.age(0, 1), 1e-9);
+        // Place 0 starts at 0 s, place 1 at 3.2 s, place 2 at 6.4 s (a tenth of a second in, clear of the wrap).
+        assertEquals(0.1, OccasionMotionsA.Fireworks.age(9.7, 0), 1e-9);
+        assertEquals(0.1, OccasionMotionsA.Fireworks.age(3.3, 1), 1e-9);
+        assertEquals(0.1, OccasionMotionsA.Fireworks.age(6.5, 2), 1e-9);
         assertEquals(0f, OccasionMotionsA.Fireworks.spread(0f), 1e-6f);
         assertEquals(1f, OccasionMotionsA.Fireworks.spread(1f), 1e-6f);
         assertEquals(1f, OccasionMotionsA.Fireworks.fade(0f), 1e-6f);
@@ -58,6 +64,37 @@ public class OccasionMotionsATest {
         assertTrue(OccasionMotionsA.Fireworks.spread(0.3f) > 0.5f);
         // Small: a burst's glow spans at most an eighth of the width.
         assertTrue(2 * OccasionMotionsA.Fireworks.R_MAX * OccasionMotionsA.Fireworks.GLOW <= 0.135f);
+    }
+
+    /**
+     * Spec § 4.5, calm: never two bursts at once, and in every 3.2 s stretch the sky is still for more than a second
+     * (the union of the three places' active windows leaves still time in each cycle).
+     */
+    @Test public void fireworksTakeTurnsWithStillSkyBetween() {
+        double step = 0.01, spacing = OccasionMotionsA.Fireworks.SPACING;
+        for (int cycle = 0; cycle < 30; cycle++) {
+            double start = 1000 + cycle * spacing, still = 0;
+            int bursts = 0;
+            for (double t = start; t < start + spacing - 1e-9; t += step) {
+                int active = 0;
+                for (int i = 0; i < OccasionMotionsA.Fireworks.X.length; i++) {
+                    if (OccasionMotionsA.Fireworks.active(t, i)) active++;
+                }
+                assertTrue("two bursts at once at " + t, active <= 1);
+                if (active == 0) still += step;
+                bursts += active;
+            }
+            assertTrue("still time in cycle " + cycle + ": " + still, still > 1.0);
+            assertTrue(bursts > 0);
+        }
+        // Over one full round all three places burst once.
+        for (int i = 0; i < OccasionMotionsA.Fireworks.X.length; i++) {
+            boolean seen = false;
+            for (double t = 0; t < OccasionMotionsA.Fireworks.PERIOD; t += 0.05) {
+                seen |= OccasionMotionsA.Fireworks.active(t, i);
+            }
+            assertTrue("place " + i, seen);
+        }
     }
 
     /** Spec § 3: nothing moves behind the dock or over the greeting and clock on the top left. */
