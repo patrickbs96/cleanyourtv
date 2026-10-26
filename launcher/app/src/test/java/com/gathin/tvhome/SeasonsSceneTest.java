@@ -63,10 +63,14 @@ public class SeasonsSceneTest {
         assertFalse(WorldScene.needsReload(d1, Look.ADVENT, d1.plusDays(1), Look.ADVENT, true, true));
     }
 
-    /** OLED rule: bright looks are dimmed by 55 % at night, on the scene only; dark looks and the day are not. */
+    /**
+     * OLED rule: bright looks without their own night picture are dimmed by 55 % at night, on the scene only; dark
+     * looks, the day, and spring (bright, but with a painted night picture) are not.
+     */
     @Test public void brightLooksDimAtNight() {
         assertEquals(0.55f, WorldScene.dimFor(Look.EASTER, false), 1e-6f);
-        assertEquals(0.55f, WorldScene.dimFor(Look.SPRING, false), 1e-6f);
+        assertEquals(0f, WorldScene.dimFor(Look.SPRING, false), 1e-6f);
+        assertEquals(0f, WorldScene.dimFor(Look.SPRING, true), 1e-6f);
         assertEquals(0.55f, WorldScene.dimFor(Look.VALENTINE, false), 1e-6f);
         assertEquals(0f, WorldScene.dimFor(Look.EASTER, true), 1e-6f);
         assertEquals(0f, WorldScene.dimFor(Look.WINTER, false), 1e-6f);

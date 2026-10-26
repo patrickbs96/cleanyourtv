@@ -25,7 +25,8 @@ import java.util.function.ToIntFunction;
  * <p>Jahreskreis (Seasons) shows the day's {@link Look} instead (setLook): its picture is found by name
  * ({@link #drawableName}), a day and a night one for the seasons, one for every other look, and a look without a
  * picture keeps the world's plain colour. A new look (midnight, a test date) fades in like a mood change; bright looks
- * are dimmed by {@link #NIGHT_DIM} at night with a colour filter on the scene's views only (OLED rule, spec § 4.8).
+ * without a night picture of their own (Easter, Mother's Day …) are dimmed by {@link #NIGHT_DIM} at night with a colour
+ * filter on the scene's views only (OLED rule, spec § 4.8); a season's night picture is painted dark already.
  */
 final class WorldScene {
     /** forceMood's choices: the sun decides, or always day, or always night (the hidden test switch, Task 11). */
@@ -220,9 +221,12 @@ final class WorldScene {
         return shownDay != day ? MOOD : KEEP;
     }
 
-    /** How much a look's picture is darkened: {@link #NIGHT_DIM} for a bright look at night, otherwise none. */
+    /**
+     * How much a look's picture is darkened: {@link #NIGHT_DIM} at night for a bright look without its own night
+     * picture, otherwise none. Spring is bright but has a painted night picture, which is not darkened again.
+     */
     static float dimFor(Look look, boolean day) {
-        return look != null && look.bright && !day ? NIGHT_DIM : 0f;
+        return look != null && look.bright && !look.hasNight && !day ? NIGHT_DIM : 0f;
     }
 
     /** Seasons only: darkens the scene view for this look and mood, or clears it; the other worlds stay untouched. */

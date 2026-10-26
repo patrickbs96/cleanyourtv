@@ -30,7 +30,7 @@ enum Look {
     final String id;
     /** Whether the look has a day and a night version; only the four seasons do. */
     final boolean hasNight;
-    /** A bright look the scene dims at night (OLED rule). */
+    /** A bright look: the scene dims it at night (OLED rule) unless it has its own night picture (hasNight). */
     final boolean bright;
     /** Accent colour (0xAARRGGBB) for focus and highlights. */
     final int accent;

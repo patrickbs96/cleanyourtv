@@ -32,7 +32,8 @@ hyperspace streaks, twinkling) are drawn live by the world's overlay, not baked 
 
 ## Rebuilding the pictures
 
-Run the three commands above from the repo root, then rebuild the APK (`launcher/build-and-install.sh`); the
+Run the commands above from the repo root (the `for` loop draws everything; the line for some of Jahreskreis' looks
+is only for redrawing those), then rebuild the APK (`launcher/build-and-install.sh`); the
 pictures are resources, so a theme push does not change them. Each script uses fixed seeds, so an unchanged script
 writes the same bytes again:
 
@@ -55,8 +56,9 @@ Rules for a changed or new picture:
   leaves), not in the picture.
 - **Jahreskreis** (spec § 3): what matters stands right of the app name, directly above the dock (its top edge at
   y 766 of 1080), never behind it and never in the header on the top left (greeting, clock, date, weather). Hills are
-  drawn per pixel column, so they meet the right edge without a seam. Night versions stay dark (OLED rule); a bright
-  look (spring) is dimmed once more at night by the scene (`WorldScene.NIGHT_DIM`).
+  drawn per pixel column, so they meet the right edge without a seam. Night versions are painted dark (OLED rule) and
+  shown as they are; only bright looks without a night picture of their own (Easter, Mother's Day …) are dimmed at
+  night by the scene (`WorldScene.NIGHT_DIM`).
 
 ## Using the worlds on the TV
 

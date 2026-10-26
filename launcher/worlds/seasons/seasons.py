@@ -187,7 +187,7 @@ def spring(day, rng):
         img = c.vgradient([(0, "#1D3452"), (.25, "#3E6489"), (.48, "#668AA6"), (.62, "#71898F")])
         c.radial(img, 70, 60, 80, [(0, "#C8D6C8", .08), (1, "#C8D6C8", 0)], ry=30, mode="add")
     else:
-        # painted as a night already; the scene dims a bright look at night once more (WorldScene.NIGHT_DIM)
+        # painted dark as a night already; the scene shows it undimmed (WorldScene.dimFor)
         img = c.vgradient([(0, "#060B16"), (.45, "#13243A"), (.64, "#24394A")])
         c.stars(img, sky_stars(rng, 26, 44, (0.18, 0.38)), "#E8EEFF",
                 glow=0.12)
