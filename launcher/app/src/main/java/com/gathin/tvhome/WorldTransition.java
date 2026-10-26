@@ -35,8 +35,9 @@ import java.util.Random;
  * </ul>
  *
  * <p>With reduced motion or animations off it is a hard cut: {@link #leave} runs the switch at once and the new Home
- * plays nothing. A colour key while either half plays is ignored; leaving Home during the leave half switches at once
- * ({@link #onPause}). The timeline is pure and runs in JVM tests; the overlay ({@link Fx}) is built like
+ * plays nothing. A colour key while either half plays is ignored; leaving Home during the leave half switches right
+ * after the pause ({@link #onPause}); an enter half whose first frame never comes ends after {@link #enterTimeoutMs}.
+ * The timeline is pure and runs in JVM tests; the overlay ({@link Fx}) is built like
  * LaunchFxView: no focus, nothing allocated per frame, 30 fps, whole view invalidated for the under 0.9 s it plays.
  */
 final class WorldTransition {
@@ -54,6 +55,8 @@ final class WorldTransition {
     static final long REACTOR_KICK_MS = 250;
     /** A lit candle's flare over the cover lasts this long at most. */
     static final long FLARE_MS = 240;
+    /** The enter half's grace past its length (enterTimeoutMs), as WorldLaunchMotion's timeout has one. */
+    static final long ENTER_GRACE_MS = 300;
 
     // ---- timeline (pure) -----------------------------------------------------------------------------
 
@@ -118,13 +121,22 @@ final class WorldTransition {
         return WorldLaunchMotion.ease(WorldLaunchMotion.clamp((t - cut) / (float) enterMs(target)));
     }
 
-    /** Star Wars' scene: the old one zooms in to 1.25 (ease-in), the new one settles from 1.12 to 1 (ease-out). */
-    static float sceneZoom(World target, long t) {
+    /**
+     * Star Wars' scene: the old one zooms in to 1.25 (ease-in), the new one settles from 1.12 to 1 (ease-out). The cut
+     * belongs to the half that draws it: the old Home ends on 1.25, the new one starts on 1.12 (it used to start one
+     * frame on 1.25 and jump).
+     */
+    static float sceneZoom(World target, long t, boolean enterHalf) {
         if (target != World.STARWARS) return 1f;
         long cut = leaveMs(target);
-        if (t <= cut) return 1f + 0.25f * WorldLaunchMotion.easeIn(WorldLaunchMotion.clamp(t / (float) cut));
+        if (!enterHalf) return 1f + 0.25f * WorldLaunchMotion.easeIn(WorldLaunchMotion.clamp(t / (float) cut));
         float p = WorldLaunchMotion.clamp((t - cut) / (float) enterMs(target));
         return 1f + 0.12f * (1f - WorldLaunchMotion.easeOut(p));
+    }
+
+    /** The enter half ends at the latest this long after it began, should its overlay never draw a first frame. */
+    static long enterTimeoutMs(World target) {
+        return enterMs(target) + ENTER_GRACE_MS;
     }
 
     /** When the candle of this rank lights, in ms into the enter half. */
@@ -165,6 +177,10 @@ final class WorldTransition {
     @Nullable private final WorldOverlay overlay;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable tick = this::tick;
+    /** Ends an enter half whose clock never started (no first frame drawn), so isBusy() does not stick. */
+    private final Runnable enterTimeout = this::enterTimedOut;
+    /** The leave half's switch when Home is left: posted from onPause, so recreate() never runs inside it. */
+    private final Runnable deferredEnd = this::switchAfterPause;
     @Nullable private Fx fx;
     private World target = World.CLEAN;
     private boolean leaving, entering, kicked;
@@ -217,7 +233,8 @@ final class WorldTransition {
         kicked = false;
         if (overlay != null) overlay.holdLights();
         play(current, leaveMs(current), leaveMs(current) + enterMs(current));
-        scene.setZoom(sceneZoom(current, from));
+        scene.setZoom(sceneZoom(current, from, true));
+        handler.postDelayed(enterTimeout, enterTimeoutMs(current));
     }
 
     private void play(World w, long from, long to) {
@@ -245,7 +262,7 @@ final class WorldTransition {
         if (!isBusy() || startedAt < 0) return;
         long t = Math.min(to, from + SystemClock.uptimeMillis() - startedAt);
         if (fx != null) fx.setTime(t);
-        if (target == World.STARWARS) scene.setZoom(sceneZoom(target, t));
+        if (target == World.STARWARS) scene.setZoom(sceneZoom(target, t, entering));
         if (entering && !kicked && target == World.MARVEL && t - from >= REACTOR_KICK_MS) {
             kicked = true;
             if (overlay != null) overlay.pulse(WorldOverlay.REACTOR_KICK);
@@ -256,6 +273,8 @@ final class WorldTransition {
 
     private void end() {
         handler.removeCallbacks(tick);
+        handler.removeCallbacks(enterTimeout);
+        root.removeCallbacks(deferredEnd);
         if (leaving) {
             // The cover stays as it is until the old Home is gone: the new one starts from the same cover.
             leaving = false;
@@ -275,16 +294,33 @@ final class WorldTransition {
     }
 
     /**
-     * Home left while a half plays: the leave half switches at once (the key was taken, the world changes), the enter
-     * half ends where it would have, the new skin in place.
+     * Home left while a half plays: the leave half switches right after this pause (the key was taken, the world
+     * changes; recreate() from inside onPause is posted to root instead), the enter half ends at once where it would
+     * have, the new skin in place.
      */
     void onPause() {
-        if (isBusy()) end();
+        if (leaving) {
+            handler.removeCallbacks(tick);
+            root.removeCallbacks(deferredEnd);
+            root.post(deferredEnd);
+        } else if (entering) {
+            end();
+        }
+    }
+
+    private void enterTimedOut() {
+        if (entering) end();
+    }
+
+    private void switchAfterPause() {
+        if (leaving) end();
     }
 
     /** The activity goes: nothing more runs, not even a waiting switch. */
     void cancel() {
         handler.removeCallbacks(tick);
+        handler.removeCallbacks(enterTimeout);
+        root.removeCallbacks(deferredEnd);
         leaving = false;
         entering = false;
         then = null;

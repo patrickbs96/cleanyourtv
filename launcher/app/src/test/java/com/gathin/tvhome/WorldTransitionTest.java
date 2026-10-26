@@ -58,6 +58,26 @@ public class WorldTransitionTest {
         assertTrue(WorldTransition.igniteAtMs(9) < WorldTransition.enterMs(World.HOGWARTS));
     }
 
+    /** Star Wars: the old Home ends on 1.25, the new one starts on 1.12 at the cut, not one frame on 1.25. */
+    @Test public void starWarsZoomBelongsToTheHalfThatDrawsTheCut() {
+        long cut = WorldTransition.leaveMs(World.STARWARS), end = cut + WorldTransition.enterMs(World.STARWARS);
+        assertEquals(1f, WorldTransition.sceneZoom(World.STARWARS, 0, false), 1e-4f);
+        assertEquals(1.25f, WorldTransition.sceneZoom(World.STARWARS, cut, false), 1e-4f);
+        assertEquals(1.12f, WorldTransition.sceneZoom(World.STARWARS, cut, true), 1e-4f);
+        // The enter half's first tick is close to where it started: no jump.
+        assertEquals(1.12f, WorldTransition.sceneZoom(World.STARWARS, cut + WorldTransition.FRAME_MS, true), 0.03f);
+        assertEquals(1f, WorldTransition.sceneZoom(World.STARWARS, end, true), 1e-4f);
+        assertEquals(1f, WorldTransition.sceneZoom(World.HOGWARTS, cut, true), 1e-6f);
+    }
+
+    /** An enter half whose overlay never draws ends anyway, 300 ms after its length, so colour keys work again. */
+    @Test public void theEnterHalfTimesOut() {
+        for (World w : World.values()) {
+            assertEquals(WorldTransition.enterMs(w) + 300, WorldTransition.enterTimeoutMs(w));
+            assertTrue(WorldTransition.enterTimeoutMs(w) > WorldTransition.enterMs(w));
+        }
+    }
+
     /** Marvel's HUD boots top to bottom in the enter half: the reveal line runs from the top edge to the bottom. */
     @Test public void marvelRevealsTopToBottom() {
         long cut = WorldTransition.leaveMs(World.MARVEL), end = cut + WorldTransition.enterMs(World.MARVEL);
