@@ -111,6 +111,15 @@ public class KeyBindingsTest {
         assertFalse(KeyBindings.learnable(KeyEvent.KEYCODE_UNKNOWN, 0));   // nothing to tell it apart by
     }
 
+    @Test public void theCaughtPressIsKnownByItsDownTime() {
+        KeyBindings.catchPress(0, 695, 1000);
+        assertTrue(KeyBindings.caughtPress(0, 695, 1000));    // its repeated DOWNs and its release
+        assertFalse(KeyBindings.caughtPress(0, 695, 2000));   // a later press of the same button is not swallowed
+        assertFalse(KeyBindings.caughtPress(0, 779, 1000));
+        KeyBindings.releaseCaught();
+        assertFalse(KeyBindings.caughtPress(0, 695, 1000));
+    }
+
     @Test public void learningEndsAfterFifteenSeconds() {
         assertTrue(KeyBindings.learningAt(1000, 1000 + KeyBindings.LEARN_MS - 1));
         assertFalse(KeyBindings.learningAt(1000, 1000 + KeyBindings.LEARN_MS));

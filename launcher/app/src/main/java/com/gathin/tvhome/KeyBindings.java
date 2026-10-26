@@ -181,7 +181,26 @@ final class KeyBindings {
     private static Learner learner;
     private static int caughtKeycode = -1;
     private static int caughtScancode = -1;
+    private static long caughtDownTime;
     private static Handler main;
+
+    /** Learn mode caught this press (button and downTime); its other events are swallowed. */
+    static void catchPress(int keycode, int scancode, long downTime) {
+        caughtKeycode = keycode;
+        caughtScancode = scancode;
+        caughtDownTime = downTime;
+    }
+
+    /** Whether an event belongs to the caught press: the same button and the same downTime. */
+    static boolean caughtPress(int keycode, int scancode, long downTime) {
+        return caughtKeycode >= 0 && keycode == caughtKeycode && scancode == caughtScancode
+                && downTime == caughtDownTime;
+    }
+
+    /** The caught press's release came: nothing more is swallowed. */
+    static void releaseCaught() {
+        caughtKeycode = -1;
+    }
 
     /** Learn mode for LEARN_MS, until a press is caught or stopLearning. Main thread. */
     static void startLearning(Learner waiting) {
@@ -199,8 +218,10 @@ final class KeyBindings {
      * is swallowed, its release too. Other keys pass, so the arrows and Back still work on the page. True: consumed.
      */
     static boolean learn(KeyEvent event) {
-        if (caughtKeycode >= 0 && event.getKeyCode() == caughtKeycode && event.getScanCode() == caughtScancode) {
-            if (event.getAction() == KeyEvent.ACTION_UP) caughtKeycode = caughtScancode = -1;
+        if (caughtPress(event.getKeyCode(), event.getScanCode(), event.getDownTime())) {
+            // Every event of the caught press is swallowed, repeated DOWNs too, and its release ends it. A press whose
+            // release never comes does not swallow the next one: that has another downTime.
+            if (event.getAction() == KeyEvent.ACTION_UP) releaseCaught();
             return true;
         }
         Learner waiting = learner;
@@ -210,8 +231,7 @@ final class KeyBindings {
         }
         int keycode = event.getKeyCode();
         int scancode = event.getScanCode();
-        caughtKeycode = keycode;
-        caughtScancode = scancode;
+        catchPress(keycode, scancode, event.getDownTime());
         stopLearning();
         if (main == null) main = new Handler(Looper.getMainLooper());
         main.post(() -> waiting.learned(keycode, scancode));

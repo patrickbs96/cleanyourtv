@@ -135,7 +135,10 @@ public final class KeyBindingsActivity extends Activity implements KeyBindings.L
                 return true;
             }
             if (code == KeyEvent.KEYCODE_DPAD_CENTER || code == KeyEvent.KEYCODE_ENTER) {
+                // OK can't be learned, and it must not click the row and end learn mode either: it keeps waiting.
                 Toast.makeText(this, R.string.key_learn_never, Toast.LENGTH_SHORT).show();
+                swallowUp = code;
+                return true;
             }
         }
         return super.dispatchKeyEvent(event);

@@ -242,11 +242,134 @@ final class RemoteKeys {
         }
     }
 
+    /** What Presses decides for one event of a key with a "double:" entry; Keys carries it out. */
+    static final class Step {
+        /** Swallow the event (true) or pass it on to the system (false: Home's first press, a foreign release). */
+        final boolean consume;
+        /** The target to run now, or null. */
+        final String run;
+        /** Drop the held tap of this key: the second press came in time. */
+        final boolean cancel;
+        /** Run another key's held tap now, before this one is held: this press ended that pair. */
+        final boolean flush;
+        /** Hold this press's tap back for DOUBLE_MS (then Presses.ran). */
+        final boolean holdTap;
+
+        Step(boolean consume, String run, boolean cancel, boolean flush, boolean holdTap) {
+            this.consume = consume;
+            this.run = run;
+            this.cancel = cancel;
+            this.flush = flush;
+            this.holdTap = holdTap;
+        }
+
+        static final Step PASS = new Step(false, null, false, false, false);
+        static final Step SWALLOW = new Step(true, null, false, false, false);
+    }
+
+    /**
+     * The decisions for keys with a "double:" entry, without Android: Keys feeds it each event's action, times and
+     * repeat count and does what the Step says. A press is known by its downTime: some IR and Bluetooth drivers send
+     * a held button as several identical DOWNs with the same downTime, which the accessibility filter sees before
+     * Android's repeat detection, so a DOWN with the running press's downTime (or a repeat count) is that same press,
+     * never a second tap. Home is never swallowed except for the press that is its double tap.
+     */
+    static final class Presses {
+        private final DoubleTap taps = new DoubleTap(DOUBLE_MS);
+        /** The press that is down: its id and downTime; pressId 0 when none. */
+        private int pressId;
+        private long pressDownTime;
+        /** The press that is a double tap, so its repeats and its release are its own; secondId 0 when none. */
+        private int secondId;
+        private long secondDownTime;
+        /** The id whose tap is held back; 0 when none. */
+        private int pendingId;
+
+        Step onEvent(int id, int action, long downTime, long eventTime, int repeatCount, boolean canceled,
+                     String app, String holdApp, String doubleApp) {
+            boolean home = id == KeyEvent.KEYCODE_HOME;
+            boolean samePress = pressId == id && pressDownTime == downTime;
+            boolean secondPress = secondId == id && secondDownTime == downTime;
+            if (action == KeyEvent.ACTION_DOWN) {
+                if (repeatCount > 0 || samePress) {
+                    // The button is held: no new tap. Home's first press belongs to the system, its repeats too.
+                    return home && !secondPress ? Step.PASS : Step.SWALLOW;
+                }
+                pressId = id;
+                pressDownTime = downTime;
+                secondId = 0;
+                int tap = taps.onTap(id, eventTime);
+                if (tap == DoubleTap.SECOND) {
+                    secondId = id;
+                    secondDownTime = downTime;
+                    boolean cancel = pendingId == id;
+                    if (cancel) pendingId = 0;
+                    return new Step(true, null, cancel, false, false);
+                }
+                return tap == DoubleTap.PASS ? Step.PASS : Step.SWALLOW;
+            }
+            if (action != KeyEvent.ACTION_UP) return home && !secondPress ? Step.PASS : Step.SWALLOW;
+            if (!samePress && !secondPress) {
+                // The release of a press this never saw go down (it went on to the system): it goes on too.
+                return Step.PASS;
+            }
+            pressId = 0;
+            if (secondPress) {
+                secondId = 0;
+                return new Step(true, canceled ? null : doubleApp, false, false, false);
+            }
+            if (home) {
+                taps.release(id, eventTime);
+                return Step.PASS;
+            }
+            if (canceled) {
+                taps.forget(id);
+                return Step.SWALLOW;
+            }
+            if (eventTime - downTime >= HOLD_MS && holdApp != null) {
+                taps.forget(id);
+                return new Step(true, holdApp, false, false, false);
+            }
+            taps.release(id, eventTime);
+            // No tap entry: the tap does nothing (the key is still swallowed, it has a double tap).
+            return new Step(true, null, false, pendingId != 0, true);
+        }
+
+        /** Keys held this id's tap back. */
+        void held(int id) {
+            pendingId = id;
+        }
+
+        /** The held tap of this id ran (its window passed, or a flush): a late second press starts over. */
+        void ran(int id) {
+            if (pendingId == id) pendingId = 0;
+            taps.forget(id);
+        }
+
+        /** The id whose tap is held back, 0 when none. */
+        int pending() {
+            return pendingId;
+        }
+
+        /** A press of a key without a "double:" entry: a pair in progress ends (its held tap still runs). */
+        void otherKey() {
+            taps.reset();
+        }
+
+        void reset() {
+            taps.reset();
+            pressId = 0;
+            secondId = 0;
+            pendingId = 0;
+        }
+    }
+
     /**
      * One service's app_keys (config.xml or a theme, then the on-TV bindings of KeyBindings), with the double-tap
      * state. A key with a "double:" entry holds its tap back for DOUBLE_MS after the release and runs it then, unless
      * a second press comes first, which runs the "double:" entry instead; its "hold:" entry still runs on the
-     * release of a long press, without waiting. Every other key runs as before. Main thread only.
+     * release of a long press, without waiting. Every other key runs as before. The decisions are Presses'; this
+     * only runs targets and the timer. Main thread only.
      */
     static final class Keys {
         private Map<Integer, String> apps = Collections.emptyMap();
@@ -255,12 +378,10 @@ final class RemoteKeys {
         private Map<Integer, String> holdScans = Collections.emptyMap();
         private Map<Integer, String> doubleApps = Collections.emptyMap();
         private Map<Integer, String> doubleScans = Collections.emptyMap();
-        private final DoubleTap taps = new DoubleTap(DOUBLE_MS);
+        private final Presses presses = new Presses();
         private final Handler handler = new Handler(Looper.getMainLooper());
         /** The held tap, waiting out the window; null when none. */
         private Runnable pending;
-        /** The id whose second press is down, so its release runs the double tap; 0 when none. */
-        private int secondDown;
 
         void load(List<String> entries) {
             drop();
@@ -276,15 +397,14 @@ final class RemoteKeys {
         void drop() {
             if (pending != null) handler.removeCallbacks(pending);
             pending = null;
-            secondDown = 0;
-            taps.reset();
+            presses.reset();
         }
 
         /** Every key goes past here first: a press of a key without a "double:" entry ends a pair in progress. */
         void note(KeyEvent event) {
             if (event.getAction() != KeyEvent.ACTION_DOWN) return;
             if (doubleScans.containsKey(event.getScanCode()) || doubleApps.containsKey(event.getKeyCode())) return;
-            taps.reset();
+            presses.otherKey();
         }
 
         /** A scancode entry; it is more specific than any keycode, so the services ask this first. */
@@ -300,59 +420,28 @@ final class RemoteKeys {
 
         private boolean handle(Context ctx, KeyEvent event, int id, String app, String holdApp, String doubleApp) {
             if (doubleApp == null) return RemoteKeys.handle(ctx, event, app, holdApp);
-            long now = event.getEventTime();
-            if (event.getAction() == KeyEvent.ACTION_DOWN) {
-                if (secondDown == id) return true;   // a repeat of the second press
-                int tap = taps.onTap(id, now);
-                if (tap == DoubleTap.SECOND) {
-                    cancelPending();
-                    secondDown = id;
-                    return true;
-                }
-                return tap != DoubleTap.PASS;   // FIRST waits for the release; Home goes on to the system
-            }
-            if (event.getAction() != KeyEvent.ACTION_UP) return id != KeyEvent.KEYCODE_HOME;
-            if (secondDown == id) {
-                secondDown = 0;
-                if (!event.isCanceled()) launch(ctx, doubleApp);
-                return true;
-            }
-            if (id == KeyEvent.KEYCODE_HOME) {
-                taps.release(id, now);
-                return false;
-            }
-            if (event.isCanceled()) {
-                taps.forget(id);
-                return true;
-            }
-            if (now - event.getDownTime() >= HOLD_MS && holdApp != null) {
-                taps.forget(id);
-                launch(ctx, holdApp);
-                return true;
-            }
-            taps.release(id, now);
-            // Another key's held tap: this press ended its pair, so it runs now rather than being lost.
-            if (pending != null) {
-                Runnable other = pending;
-                cancelPending();
-                other.run();
-            }
-            // No tap entry: the tap does nothing (the key is still swallowed, it has a double tap).
-            pending = () -> {
+            Step step = presses.onEvent(id, event.getAction(), event.getDownTime(), event.getEventTime(),
+                    event.getRepeatCount(), event.isCanceled(), app, holdApp, doubleApp);
+            if (step.cancel || step.flush) {
+                Runnable held = pending;
+                if (held != null) handler.removeCallbacks(held);
                 pending = null;
-                taps.forget(id);
-                launch(ctx, app);
-            };
-            handler.postDelayed(pending, DOUBLE_MS);
-            return true;
-        }
-
-        private void cancelPending() {
-            if (pending == null) return;
-            handler.removeCallbacks(pending);
-            pending = null;
+                if (step.flush && held != null) held.run();
+            }
+            if (step.run != null) launch(ctx, step.run);
+            if (step.holdTap) {
+                pending = () -> {
+                    pending = null;
+                    presses.ran(id);
+                    launch(ctx, app);
+                };
+                presses.held(id);
+                handler.postDelayed(pending, DOUBLE_MS);
+            }
+            return step.consume;
         }
     }
+
 
     /**
      * Consumes a key mapped by either list. On release it opens the hold app after HOLD_MS, otherwise the normal
