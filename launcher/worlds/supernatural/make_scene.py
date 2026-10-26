@@ -51,7 +51,7 @@ LETTERING_FONT = FONTS / "courier_prime_bold.ttf"     # Courier Prime (OFL), the
 SIGN_FONT = FONTS / "oswald_bold.ttf"                 # Oswald (OFL), a narrow face for the motel's neon
 
 # ---- named numbers, in units (192 x 108); SupernaturalScene.java holds the same -----------------------------------
-PILLS = (128.0, 23.0, 192.0, 34.0)       # the pills' zone on the top right (PersonalMotions.PILLS): nothing under it
+PILLS = (128.0, 11.0, 192.0, 23.0)       # the pills' zone on the top right (PersonalMotions.PILLS): nothing under it
 HORIZON = 56.2                           # the mockup's .52
 HILLS = (0.02, 0.02, 0.7, 0.015, 2.3, 40.0)   # the hills' ridge (hills_line); the flash lights only the sky above it
 # The lettering "SUPERNATURAL" over the motel: x, y, width, height. Its height is 6 % of the screen (spec § 4.4: the
@@ -80,13 +80,13 @@ DOOR_MARK_R = 0.95
 # The sign on its pole: the board (x, y, width, height), the pole's x and foot; the neon "MOTEL" and "VACANCY" as
 # rectangles (x, y, width, height), MOTEL's letters' centres and half widths as their ink is painted (the overlay lets
 # one of them fail; motel_letter_spans() measures them from the drawn mask, main() and the tests check these).
-SIGN = (107.0, 10.4, 24.0, 11.2)
+SIGN = (102.6, 10.4, 24.0, 11.2)
 SIGN_POLE = (121.0, 59.6)
 SIGN_POLE_HALF = 0.45                    # the pole's half width
-NEON_MOTEL = (109.0, 11.6, 20.0, 5.4)
-NEON_MOTEL_X = (112.8, 116.975, 120.275, 123.275, 126.175)
+NEON_MOTEL = (104.6, 11.6, 20.0, 5.4)
+NEON_MOTEL_X = (108.4, 112.575, 115.875, 118.875, 121.775)
 NEON_MOTEL_HALF = (1.9, 1.575, 1.375, 1.175, 1.175)
-NEON_VACANCY = (111.0, 17.6, 16.0, 2.8)
+NEON_VACANCY = (106.6, 17.6, 16.0, 2.8)
 # The sun on the horizon by day and the rays of light fanning up from it: angles in radians from straight up,
 # negative to the left; each ray's half width in radians and its length in units.
 SUN = (67.2, 54.0, 6.5)

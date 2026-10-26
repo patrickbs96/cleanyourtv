@@ -46,14 +46,14 @@ final class SupernaturalScene {
     static final float DOOR_MARK_R = 0.95f;
 
     /** The motel's sign board (SIGN) and its neon: "MOTEL" (NEON_MOTEL) and "VACANCY" (NEON_VACANCY). */
-    static final float[] SIGN = {107.0f, 10.4f, 24.0f, 11.2f};
-    static final float[] NEON_MOTEL = {109.0f, 11.6f, 20.0f, 5.4f};
-    static final float[] NEON_VACANCY = {111.0f, 17.6f, 16.0f, 2.8f};
+    static final float[] SIGN = {102.6f, 10.4f, 24.0f, 11.2f};
+    static final float[] NEON_MOTEL = {104.6f, 11.6f, 20.0f, 5.4f};
+    static final float[] NEON_VACANCY = {106.6f, 17.6f, 16.0f, 2.8f};
     /**
      * The centres of MOTEL's five letters across (NEON_MOTEL_X) and their ink's half widths (NEON_MOTEL_HALF), as
      * painted (make_scene.py motel_letter_spans): the overlay lets one of them fail. The ink runs down NEON_MOTEL.
      */
-    static final float[] NEON_MOTEL_X = {112.8f, 116.975f, 120.275f, 123.275f, 126.175f};
+    static final float[] NEON_MOTEL_X = {108.4f, 112.575f, 115.875f, 118.875f, 121.775f};
     static final float[] NEON_MOTEL_HALF = {1.9f, 1.575f, 1.375f, 1.175f, 1.175f};
     /** The sign's pole (SIGN_POLE): its x and its foot, and its half width (SIGN_POLE_HALF). */
     static final float[] SIGN_POLE = {121.0f, 59.6f};

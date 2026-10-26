@@ -62,7 +62,7 @@ final class SupernaturalOverlay extends WorldOverlay {
     private static final float RAIN_SLANT = 0.22f, DROP_LEN = 2.8f;
     /** The bolts (three, one per flash in turn), each up to BOLT_SEGS segments, all between the header and the sign. */
     private static final int BOLTS = 3, BOLT_SEGS = 14;
-    private static final float[] BOLT_X = {84f, 92f, 100f};
+    private static final float[] BOLT_X = {82f, 89f, 96f};
     /** The day's dust in the low sun (a box in units) and the heat bands make_scene.py paints over the road. */
     private static final int MOTES = 28;
     private static final float DUST_L = 10f, DUST_T = 28f, DUST_W = 130f, DUST_H = 34f;
@@ -670,7 +670,7 @@ final class SupernaturalOverlay extends WorldOverlay {
         float branchX = 0f, branchY = 0f;
         int steps = BOLT_SEGS - 3;
         for (int i = 0; i < steps; i++) {
-            float nx = Math.max(78f, Math.min(105f, x + (r.nextFloat() - 0.5f) * 4.4f));
+            float nx = Math.max(78f, Math.min(99f, x + (r.nextFloat() - 0.5f) * 4.4f));
             float ny = y + 4.0f + r.nextFloat() * 1.6f;
             out[n * 4] = x;
             out[n * 4 + 1] = y;

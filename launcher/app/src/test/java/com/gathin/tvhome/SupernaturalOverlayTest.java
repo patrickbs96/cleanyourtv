@@ -143,7 +143,7 @@ public class SupernaturalOverlayTest {
     @Test public void flashLightsOnlyTheSky() {
         float[][] dark = {
                 {150f, 50f}, {118f, 43.6f}, {187f, 50f}, {176f, 47f},    // the motel's wall, the roof's overhangs
-                {119f, 15f}, {108f, 21f}, {130.5f, 11f},                  // the sign board
+                {119f, 15f}, {108f, 21f}, {126f, 11f},                    // the sign board
                 {121f, 30f}, {121f, 45f},                                  // its pole
                 {40f, 55.9f}, {10f, 55f}, {100f, 56f},                    // the hills and the land at the horizon
                 {150f, 25f}, {42f, 25f}};                                   // inside the wings
