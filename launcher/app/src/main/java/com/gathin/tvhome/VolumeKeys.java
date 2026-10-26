@@ -79,7 +79,10 @@ final class VolumeKeys {
         step = new Runnable() {
             @Override
             public void run() {
-                audio.adjustVolume(direction, AudioManager.FLAG_SHOW_UI);
+                // Handed back (repeat_volume_keys) the stream is named: the Philips firmware ignores the suggested
+                // stream from a service (adjustVolume moved nothing there), the media stream it takes.
+                if (swallow) audio.adjustVolume(direction, AudioManager.FLAG_SHOW_UI);
+                else audio.adjustStreamVolume(AudioManager.STREAM_MUSIC, direction, AudioManager.FLAG_SHOW_UI);
                 handler.postDelayed(this, REPEAT_INTERVAL_MS);
             }
         };
