@@ -501,6 +501,11 @@ def ground(img, day, rng):
     # the shoulder's dust along the road's right edge
     c.blend(img, c.shape(lambda p: p.poly([(96.0, 108), (101.0, 108), (121.8, hz + 0.5), (121.0, hz + 0.5)]), blur=0.3)
             * 0.35, "#8A6A44" if day else "#1A1C21")
+
+
+def telegraph(img, day):
+    """The poles and their wires, in front of the ground: at night drawn after the glowing cracks, which run behind
+    the nearer poles."""
     c.blend(img, c.shape(wires, blur=0.02) * 0.8, "#2A1A10" if day else "#050608")
     c.blend(img, c.shape(poles, blur=0.03), "#24160C" if day else "#050608")
 
@@ -574,6 +579,7 @@ def day_scene(rng):
     c.radial(img, SUN[0], SUN[1], 12, [(0, "#FFF0C8", .45), (1, "#FFF0C8", 0)], mode="add")
     sky = finish(img.copy(), True)
     ground(img, True, rng)
+    telegraph(img, True)
     motel(img, True, rng)
     warding(img, True, np.random.default_rng(SEED + 53))
     sign(img, True)
@@ -593,6 +599,7 @@ def night_scene(rng):
     sky = finish(img.copy(), False)
     ground(img, False, rng)
     hell_glow(img)
+    telegraph(img, False)
     motel(img, False, rng)
     warding(img, False, np.random.default_rng(SEED + 53))
     sign(img, False)
