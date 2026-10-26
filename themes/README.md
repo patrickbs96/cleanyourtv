@@ -205,6 +205,7 @@ picture lands as `world_logos/world_logo_<id>.png` beside the theme files, so pu
 so the logo shows at once. It has to be a PNG of at most 2 MB (a transparent background suits the dark
 scenes best); the script refuses anything else before it sends a byte, and the launcher draws its own
 lettering whenever the file is missing or unreadable. Whether the file is there is the on/off switch.
+Keep the picture near the size it is shown at (about 1500×130 px): the TV decodes it every time Home starts.
 
 ## Reduced motion
 

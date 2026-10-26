@@ -232,6 +232,21 @@ class WorldLogoPushTest(unittest.TestCase):
                 self.assertEqual(self.shell_commands(), [], "nothing may reach the TV")
         self.assertFalse(self.logos.exists())
 
+    def test_logo_flag_takes_one_world_id(self):
+        # Two ids joined by a space are both in the list, but the TV shell would split them in rm/cp/content.
+        (self.base / "ok.png").write_bytes(PNG)
+        for args in (("--logo", "clean seasons", "ok.png"), ("--logo", "clean seasons", "--remove")):
+            with self.subTest(args=args):
+                result = self.run_theme(*args)
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertIn("unknown world", result.stderr)
+                commands = " | ".join(self.shell_commands())
+                for word in ("rm ", "cp ", "content "):
+                    self.assertNotIn(word, commands)
+                self.assertEqual(self.shell_commands(), [], "nothing may reach the TV")
+                self.assertEqual(self.provider_calls(), [])
+        self.assertFalse(self.logos.exists())
+
 
 class WorldLogoScriptsTest(unittest.TestCase):
     """Text checks that need no shell: the world list, the Windows twin and the docs."""

@@ -86,6 +86,9 @@ WORLDS="clean seasons hogwarts marvel starwars supernatural"
 if [ "${1:-}" = --logo ]; then
   WORLD="${2:-}"
   [ -n "$WORLD" ] && [ -n "$LOGO_ARG" ] || { echo "usage: theme.sh --logo <world> <picture.png> | --logo <world> --remove" >&2; exit 1; }
+  # One id, lower-case letters only: "clean seasons" would match the list below and then split into two names in
+  # the TV shell's rm/cp/content commands, so --remove could delete a second file in its working directory.
+  [[ "$WORLD" =~ ^[a-z]+$ ]] || { echo "unknown world: $WORLD (one of: $WORLDS)" >&2; exit 1; }
   case " $WORLDS " in
     *" $WORLD "*) ;;
     *) echo "unknown world: $WORLD (one of: $WORLDS)" >&2; exit 1 ;;
