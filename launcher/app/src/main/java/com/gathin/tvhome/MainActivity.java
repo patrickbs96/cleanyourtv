@@ -320,9 +320,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private BalloonBowView balloonBow;
     /** Seasons' anniversary crawl while it rolls (over everything on Home), else null. */
     private CrawlView crawl;
-    /** The key whose press ended the crawl: its repeats and release are eaten too; NO_KEY when none. */
-    private int crawlEndKey = NO_KEY;
-    private static final int NO_KEY = -1;
+    /** Which keys end the crawl and which are eaten (only a fresh press ends it; that whole press is eaten). */
+    private final CrawlKeys crawlKeys = new CrawlKeys();
     /** Between onResume and onPause, for WorldOverlay.shouldRun. */
     private boolean resumed;
     /** The idle clock (ClockActivity) was started from Home and has not been left yet. */
@@ -1334,7 +1333,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         super.onPause();
         // Nothing of the crawl goes on behind another app; the day stays done.
         stopCrawl();
-        crawlEndKey = NO_KEY;
+        crawlKeys.reset();
         root.removeCallbacks(showIdleClock);
         endReorder();   // Home or another app while reordering keeps the order so far
         wallpaperPlayer.stop();
@@ -3317,6 +3316,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         root.addView(crawl, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         updateWorldOverlay();
+        crawlKeys.started(SystemClock.uptimeMillis());
         crawl.play(text, this::onCrawlEnded);
     }
 
@@ -3335,25 +3335,23 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     /**
-     * Keys while the crawl rolls: any key ends it and is eaten, Back, OK, the D-pad, digits and colour keys alike,
-     * and so are that press's repeats and release, so nothing of it reaches Home. Keys a key service takes first
+     * Keys while the crawl rolls (CrawlKeys): any fresh press ends it, Back, OK, the D-pad, digits and colour keys
+     * alike, and that whole press is eaten, so nothing of it reaches Home. What is left of a press from before the
+     * crawl (the release of the Back that closed an app) is eaten without ending it. Keys a key service takes first
      * (bound keys, Home, Settings) never come here; they leave Home or send a new intent, and that ends it too.
      */
     private boolean crawlKey(KeyEvent event) {
-        int code = event.getKeyCode();
-        if (crawl != null && crawl.isPlaying()) {
-            // A release here belongs to a press from before the crawl: nothing more of it to eat.
-            crawlEndKey = event.getAction() == KeyEvent.ACTION_UP ? NO_KEY : code;
-            stopCrawl();
-            return true;
+        boolean playing = crawl != null && crawl.isPlaying();
+        switch (crawlKeys.on(playing, event.getKeyCode(), event.getAction(), event.getRepeatCount(),
+                event.getDownTime())) {
+            case END:
+                stopCrawl();
+                return true;
+            case EAT:
+                return true;
+            default:
+                return false;
         }
-        if (crawlEndKey == NO_KEY) return false;
-        if (code != crawlEndKey) {
-            crawlEndKey = NO_KEY;
-            return false;
-        }
-        if (event.getAction() == KeyEvent.ACTION_UP) crawlEndKey = NO_KEY;
-        return true;
     }
 
     private void playPetalShower() {
