@@ -11,8 +11,8 @@ import java.util.List;
 /**
  * The household's personal days and Jahreskreis' own choices, kept in the launcher's SharedPreferences {@link #PREFS}
  * like the key bindings (spec § 4.7): the entries one {@link PersonalDay#encode()} line each under {@link #DAYS}, the
- * Mother's Day and Father's Day switches (off by default), the anniversary crawl text (the string default until it
- * is changed) and the test date. Nothing of it is in the repo; it lives only on the TV and in its backup.
+ * Mother's Day and Father's Day switches (off by default), the anniversary crawl text and greeting (each the string
+ * default until it is changed) and the test date. Nothing of it is in the repo; it lives only on the TV and in its backup.
  *
  * The test date ({@link #FORCE_DATE}, set by SeasonsActivity's force_date extra over adb) holds while this process
  * lives, as WorldScene.FORCE_KEY does: Home's recreates keep it, and a new process (force-stop, reboot) is back on
@@ -25,6 +25,8 @@ final class PersonalDays {
     static final String MOTHERS_DAY = "mothers_day";
     static final String FATHERS_DAY = "fathers_day";
     static final String CRAWL_TEXT = "crawl_text";
+    /** The anniversary's greeting with its {years} and {names}; the string default until it is changed. */
+    static final String ANNIVERSARY_GREETING = "anniversary_greeting";
     /** The day the anniversary crawl last started (OncePerDay), so it rolls once a day. */
     static final String CRAWL_LAST = "crawl_last";
     /** The day the personal days' confetti last played in the other worlds (OncePerDay, ConfettiBurstView). */
@@ -75,16 +77,37 @@ final class PersonalDays {
 
     /** The crawl text with its {names}, {years} and {episode}; {@code defaultText} (seasons_crawl_default) until set. */
     static String crawlText(SharedPreferences prefs, String defaultText) {
-        String text = prefs.getString(CRAWL_TEXT, null);
-        return text == null || text.trim().isEmpty() ? defaultText : text;
+        return text(prefs, CRAWL_TEXT, defaultText);
     }
 
     /** Saves the crawl text; an empty one or the default itself removes it, so a new default reaches the TV. */
     static void saveCrawlText(SharedPreferences prefs, String text, String defaultText) {
+        saveText(prefs, CRAWL_TEXT, text, defaultText);
+    }
+
+    /**
+     * The anniversary's greeting with its {years} and {names} (PersonalGreeting, CrawlView.fill);
+     * {@code defaultText} (seasons_anniversary_greeting_default) until set.
+     */
+    static String anniversaryGreeting(SharedPreferences prefs, String defaultText) {
+        return text(prefs, ANNIVERSARY_GREETING, defaultText);
+    }
+
+    /** Saves the anniversary's greeting as the crawl text: empty or the default itself removes it. */
+    static void saveAnniversaryGreeting(SharedPreferences prefs, String text, String defaultText) {
+        saveText(prefs, ANNIVERSARY_GREETING, text, defaultText);
+    }
+
+    private static String text(SharedPreferences prefs, String key, String defaultText) {
+        String text = prefs.getString(key, null);
+        return text == null || text.trim().isEmpty() ? defaultText : text;
+    }
+
+    private static void saveText(SharedPreferences prefs, String key, String text, String defaultText) {
         if (text == null || text.trim().isEmpty() || text.equals(defaultText)) {
-            prefs.edit().remove(CRAWL_TEXT).commit();
+            prefs.edit().remove(key).commit();
         } else {
-            prefs.edit().putString(CRAWL_TEXT, text).commit();
+            prefs.edit().putString(key, text).commit();
         }
     }
 

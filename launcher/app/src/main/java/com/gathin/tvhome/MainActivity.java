@@ -3103,7 +3103,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // A world's greeting words win over a festival's, as its skin does.
         String festiveGreeting = festive && world.isClean() ? festival.greetingText(getResources()) : "";
         // A personal day's greeting wins over both, in every world (Jahreskreis § 4.8); "" on every other day.
-        String personal = PersonalGreeting.text(getResources(), world, personalToday, worldDay());
+        String personal = PersonalGreeting.text(getResources(),
+                getSharedPreferences(PersonalDays.PREFS, MODE_PRIVATE), world, personalToday, worldDay());
         if (!personal.isEmpty()) {
             String text = PersonalGreeting.pick(personal, festiveGreeting, "");
             // In capitals already in the worlds, for the reason given below.

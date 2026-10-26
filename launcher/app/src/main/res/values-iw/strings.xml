@@ -173,13 +173,14 @@
     <string name="seasons_crawl">טקסט הפתיחה</string>
     <string name="seasons_crawl_hint">מוצג ביום השנה. {names}, {years} ו-{episode} מתמלאים; ריק מחזיר את טקסט ברירת המחדל.</string>
     <string name="seasons_crawl_default">לא לפני זמן רב, בעיר קרובה מאוד …\n\nפרק {episode}\n{names}\n\n{years} שנים אחר כך …</string>
+    <string name="seasons_anniversary_greeting">ברכה ביום השנה</string>
+    <string name="seasons_anniversary_greeting_hint">מוצגת ביום השנה במקום הברכה. {years} ו-{names} מתמלאים; ריק מחזיר את ברירת המחדל.</string>
+    <string name="seasons_anniversary_greeting_default">{years} שנים · {names}</string>
     <string name="seasons_mothers_day">יום האם: %1$s</string>
     <string name="seasons_fathers_day">יום האב: %1$s</string>
     <string name="seasons_greeting_happy_birthday">יום הולדת שמח, %1$s</string>
     <string name="seasons_greeting_birthday">מזל טוב, %1$s</string>
-    <string name="seasons_greeting_fourth">Happy 4th · %1$s</string>
     <string name="seasons_greeting_anniversary_one">שנה אחת · %1$s</string>
-    <string name="seasons_greeting_anniversary">%1$d שנים · %2$s</string>
     <string name="seasons_greeting_wedding_one">שנה לנישואין</string>
     <string name="seasons_greeting_wedding">%1$d שנות נישואין</string>
     <string name="world_scene">סצנה</string>

@@ -17,20 +17,22 @@ import org.junit.Test;
  */
 public class PersonalGreetingTest {
 
+    /** The German and English default anniversary greetings (seasons_anniversary_greeting_default). */
+    private static final String DE_ANNIVERSARY = "{years} Jahre · {names}";
+    private static final String EN_ANNIVERSARY = "{years} years · {names}";
+
     /** The German and English templates, as in values-de and values. */
     private static final PersonalGreeting.Templates DE = new PersonalGreeting.Templates(
-            "Happy Birthday, %1$s", "Alles Gute, %1$s", "Happy 4th · %1$s",
-            "1 Jahr · %1$s", "%1$d Jahre · %2$s", "1. Hochzeitstag", "%1$d. Hochzeitstag");
+            "Happy Birthday, %1$s", "Alles Gute, %1$s",
+            "1 Jahr · %1$s", DE_ANNIVERSARY, "1. Hochzeitstag", "%1$d. Hochzeitstag");
     private static final PersonalGreeting.Templates EN = new PersonalGreeting.Templates(
-            "Happy Birthday, %1$s", "Happy birthday, %1$s", "Happy 4th · %1$s",
-            "1 year · %1$s", "%1$d years · %2$s", "1 year married", "%1$d years married");
+            "Happy Birthday, %1$s", "Happy birthday, %1$s",
+            "1 year · %1$s", EN_ANNIVERSARY, "1 year married", "%1$d years married");
 
     private static final PersonalDay ALEX_BIRTHDAY = PersonalDay.decode("birthday;3;14;1990;Alex");
     private static final PersonalDay ROBIN_BIRTHDAY = PersonalDay.decode("birthday;3;14;1992;Robin");
     private static final PersonalDay ANNIVERSARY = PersonalDay.decode("anniversary;3;14;2019;Alex & Robin");
     private static final PersonalDay WEDDING = PersonalDay.decode("wedding;8;19;2027;Alex & Robin");
-    /** A placeholder anniversary on 4 May, for the date's pun. */
-    private static final PersonalDay FOURTH = PersonalDay.decode("anniversary;5;4;2015;Alex & Robin");
 
     private static SeasonsToday on(int y, int m, int d, PersonalDay... days) {
         return SeasonsToday.resolve(LocalDate.of(y, m, d), Arrays.asList(days), false, false);
@@ -83,11 +85,55 @@ public class PersonalGreetingTest {
     }
 
     @Test
-    public void anniversaryOnTheFourthOfMayIsHappy4th() {
-        SeasonsToday t = on(2026, 5, 4, FOURTH);
-        assertEquals("Happy 4th · Alex & Robin", PersonalGreeting.text(DE, World.CLEAN, t, true));
-        assertEquals("Happy 4th · Alex & Robin", PersonalGreeting.text(EN, World.SEASONS, t, true));
-        assertEquals("Lumos · Happy 4th · Alex & Robin", PersonalGreeting.text(DE, World.HOGWARTS, t, true));
+    public void anniversaryTakesTheDefaultTemplate() {
+        SeasonsToday t = on(2027, 3, 14, ANNIVERSARY);
+        assertEquals("8 Jahre · Alex & Robin", PersonalGreeting.text(DE, World.CLEAN, t, true));
+        assertEquals("8 years · Alex & Robin", PersonalGreeting.text(EN, World.SEASONS, t, true));
+        // In the themed worlds after their word, as before.
+        assertEquals("Lumos · 8 Jahre · Alex & Robin", PersonalGreeting.text(DE, World.HOGWARTS, t, true));
+    }
+
+    @Test
+    public void anniversaryTakesTheTemplateFromThePrefs() {
+        FakePrefs prefs = new FakePrefs();
+        PersonalDays.saveAnniversaryGreeting(prefs, "Happy {years}th · {names}", DE_ANNIVERSARY);
+        PersonalGreeting.Templates own = DE.withAnniversary(PersonalDays.anniversaryGreeting(prefs, DE_ANNIVERSARY));
+        SeasonsToday t = on(2027, 3, 14, ANNIVERSARY);
+        assertEquals("Happy 8th · Alex & Robin", PersonalGreeting.text(own, World.CLEAN, t, true));
+        assertEquals("Nox · Happy 8th · Alex & Robin", PersonalGreeting.text(own, World.HOGWARTS, t, false));
+        // An own template is taken as written, also in the first year (no "1 Jahr" of the default).
+        assertEquals("Happy 1th · Alex & Robin",
+                PersonalGreeting.text(own, World.CLEAN, on(2020, 3, 14, ANNIVERSARY), true));
+        // Further entries of the day still follow with " · ".
+        assertEquals("Happy Birthday, Alex · Happy 8th · Alex & Robin",
+                PersonalGreeting.text(own, World.CLEAN, on(2027, 3, 14, ANNIVERSARY, ALEX_BIRTHDAY), true));
+    }
+
+    @Test
+    public void anEmptyPrefGivesTheDefaultTemplate() {
+        FakePrefs prefs = new FakePrefs();
+        assertEquals(DE_ANNIVERSARY, PersonalDays.anniversaryGreeting(prefs, DE_ANNIVERSARY));
+        PersonalDays.saveAnniversaryGreeting(prefs, "Own {names}", DE_ANNIVERSARY);
+        assertTrue(prefs.contains(PersonalDays.ANNIVERSARY_GREETING));
+        PersonalDays.saveAnniversaryGreeting(prefs, "   ", DE_ANNIVERSARY);
+        assertFalse(prefs.contains(PersonalDays.ANNIVERSARY_GREETING));
+        PersonalDays.saveAnniversaryGreeting(prefs, "Own {names}", DE_ANNIVERSARY);
+        PersonalDays.saveAnniversaryGreeting(prefs, DE_ANNIVERSARY, DE_ANNIVERSARY);
+        assertFalse(prefs.contains(PersonalDays.ANNIVERSARY_GREETING));
+        prefs.edit().putString(PersonalDays.ANNIVERSARY_GREETING, "").commit();
+        PersonalGreeting.Templates s = DE.withAnniversary(PersonalDays.anniversaryGreeting(prefs, DE_ANNIVERSARY));
+        assertEquals("8 Jahre · Alex & Robin",
+                PersonalGreeting.text(s, World.CLEAN, on(2027, 3, 14, ANNIVERSARY), true));
+        // The default keeps its own first year.
+        assertEquals("1 Jahr · Alex & Robin",
+                PersonalGreeting.text(s, World.CLEAN, on(2020, 3, 14, ANNIVERSARY), true));
+    }
+
+    @Test
+    public void anUnknownPlaceholderStays() {
+        PersonalGreeting.Templates own = DE.withAnniversary("{years} · {names} {heart}");
+        assertEquals("8 · Alex & Robin {heart}",
+                PersonalGreeting.text(own, World.CLEAN, on(2027, 3, 14, ANNIVERSARY), true));
     }
 
     @Test

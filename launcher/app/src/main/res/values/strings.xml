@@ -181,16 +181,19 @@
     <string name="seasons_crawl_hint">Rolls on an anniversary. {names}, {years} and {episode} are filled in; empty brings back the default text.</string>
     <!-- The anniversary crawl's default (Jahreskreis Task 9); {episode}, {names} and {years} are filled in. -->
     <string name="seasons_crawl_default">Not so long ago, in a town quite close by …\n\nEpisode {episode}\n{names}\n\n{years} years later …</string>
+    <string name="seasons_anniversary_greeting">Anniversary greeting</string>
+    <string name="seasons_anniversary_greeting_hint">Shown on an anniversary in place of the greeting. {years} and {names} are filled in; empty brings back the default.</string>
+    <!-- The anniversary greeting's default (PersonalGreeting, PersonalDays.anniversaryGreeting); {years} and {names}
+         are filled in. -->
+    <string name="seasons_anniversary_greeting_default">{years} years · {names}</string>
     <string name="seasons_mothers_day">Mother\'s Day: %1$s</string>
     <string name="seasons_fathers_day">Father\'s Day: %1$s</string>
     <!-- The personal days' greeting in every world (Jahreskreis Task 10, PersonalGreeting); %1$s the names. Clean and
          Seasons say happy_birthday, the themed worlds birthday after their own word ("Lumos · …"). -->
     <string name="seasons_greeting_happy_birthday">Happy Birthday, %1$s</string>
     <string name="seasons_greeting_birthday">Happy birthday, %1$s</string>
-    <!-- An anniversary entered on 4 May: a pun on the date. -->
-    <string name="seasons_greeting_fourth">Happy 4th · %1$s</string>
+    <!-- The default anniversary greeting's first year (seasons_anniversary_greeting_default from the second on). -->
     <string name="seasons_greeting_anniversary_one">1 year · %1$s</string>
-    <string name="seasons_greeting_anniversary">%1$d years · %2$s</string>
     <string name="seasons_greeting_wedding_one">1 year married</string>
     <string name="seasons_greeting_wedding">%1$d years married</string>
     <!-- Hidden test switch (long OK on the World row): the scene's day or night picture, until the launcher restarts. -->

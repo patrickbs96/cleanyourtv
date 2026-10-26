@@ -33,7 +33,7 @@ import java.util.Locale;
 
 /**
  * Seasons (Launcher settings; Jahreskreis spec § 4.7): the household's personal days, the anniversary crawl text and
- * the Mother's Day and Father's Day switches, all in PersonalDays.PREFS. Laid out like KeyBindingsActivity: Add an
+ * greeting, and the Mother's Day and Father's Day switches, all in PersonalDays.PREFS. Laid out like KeyBindingsActivity: Add an
  * entry on top, then one row per entry (kind icon, names, kind, date, start year); OK on a row changes it, and its
  * Remove asks first with the focus on Cancel. The kind is a choice, the names come from the keyboard, day, month and
  * start year from NumberPickers without it.
@@ -67,6 +67,7 @@ public final class SeasonsActivity extends Activity {
         addChoice = findViewById(R.id.addChoice);
         addChoice.setOnClickListener(v -> edit(-1));
         findViewById(R.id.crawlChoice).setOnClickListener(v -> editCrawl());
+        findViewById(R.id.anniversaryGreetingChoice).setOnClickListener(v -> editAnniversaryGreeting());
         mothersDayChoice = findViewById(R.id.mothersDayChoice);
         mothersDayChoice.setOnClickListener(v -> toggle(PersonalDays.MOTHERS_DAY));
         fathersDayChoice = findViewById(R.id.fathersDayChoice);
@@ -279,6 +280,30 @@ public final class SeasonsActivity extends Activity {
                 .setView(frame)
                 .setPositiveButton(R.string.seasons_save, (d, which) -> {
                     PersonalDays.saveCrawlText(prefs, field.getText().toString(), defaultText);
+                    changed();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+        field.requestFocus();
+    }
+
+    /** The anniversary's greeting, one line from the keyboard; empty or the default itself brings back the default. */
+    private void editAnniversaryGreeting() {
+        String defaultText = getString(R.string.seasons_anniversary_greeting_default);
+        EditText field = new EditText(this);
+        field.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        field.setSingleLine(true);
+        field.setText(PersonalDays.anniversaryGreeting(prefs, defaultText));
+        LinearLayout frame = new LinearLayout(this);
+        frame.setPaddingRelative(dp(24), dp(8), dp(24), 0);
+        frame.addView(field, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.seasons_anniversary_greeting)
+                .setMessage(R.string.seasons_anniversary_greeting_hint)
+                .setView(frame)
+                .setPositiveButton(R.string.seasons_save, (d, which) -> {
+                    PersonalDays.saveAnniversaryGreeting(prefs, field.getText().toString(), defaultText);
                     changed();
                 })
                 .setNegativeButton(android.R.string.cancel, null)

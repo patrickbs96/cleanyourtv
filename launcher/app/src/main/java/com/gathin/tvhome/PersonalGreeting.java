@@ -1,5 +1,6 @@
 package com.gathin.tvhome;
 
+import android.content.SharedPreferences;
 import android.content.res.Resources;
 
 import java.util.LinkedHashSet;
@@ -9,10 +10,11 @@ import java.util.Set;
 /**
  * The personal days' greeting in every world (Jahreskreis spec § 4.3, § 4.6): "Happy Birthday, {names}" in Clean and
  * Seasons, the world's own words around "Alles Gute, {names}" in Hogwarts, Marvel and Star Wars ("Lumos · Alles Gute,
- * Alex"); an anniversary counts its years ("7 Jahre · {names}", "Happy 4th · {names}" when it falls on 4 May), a wedding
- * day its wedding years ("5. Hochzeitstag"). Further entries of the same day follow with " · ". Empty without an entry,
- * so Home takes exactly its usual greeting ({@link #pick}). Only plain values here, so it runs in JVM tests; the
- * templates come from the strings ({@link #templates}).
+ * Alex"); an anniversary takes the household's greeting template ({@link PersonalDays#anniversaryGreeting}, by
+ * default "{years} Jahre · {names}", changed on the TV), a wedding day counts its wedding years ("5. Hochzeitstag").
+ * Further entries of the same day follow with " · ". Empty without an entry, so Home takes exactly its usual greeting
+ * ({@link #pick}). Only plain values here, so it runs in JVM tests; the templates come from the strings and the
+ * prefs ({@link #templates}).
  */
 final class PersonalGreeting {
 
@@ -24,42 +26,51 @@ final class PersonalGreeting {
         final String happyBirthday;
         /** The themed worlds, after their word: "Alles Gute, %1$s". */
         final String birthday;
-        /** An anniversary on 4 May: "Happy 4th · %1$s". */
-        final String fourth;
-        /** "1 Jahr · %1$s" and "%1$d Jahre · %2$s". */
+        /** The default's first year, "1 Jahr · %1$s"; null with an own template, which is taken as written. */
         final String anniversaryOne;
+        /** The anniversary's template with {years} and {names} (CrawlView.fill): "{years} Jahre · {names}". */
         final String anniversary;
         /** "1. Hochzeitstag" and "%1$d. Hochzeitstag". */
         final String weddingOne;
         final String wedding;
 
-        Templates(String happyBirthday, String birthday, String fourth, String anniversaryOne, String anniversary,
+        Templates(String happyBirthday, String birthday, String anniversaryOne, String anniversary,
                   String weddingOne, String wedding) {
             this.happyBirthday = happyBirthday;
             this.birthday = birthday;
-            this.fourth = fourth;
             this.anniversaryOne = anniversaryOne;
             this.anniversary = anniversary;
             this.weddingOne = weddingOne;
             this.wedding = wedding;
+        }
+
+        /**
+         * The same with the anniversary's template {@code chosen} (PersonalDays.anniversaryGreeting); the default
+         * itself keeps its first year's wording, an own one is used for every year.
+         */
+        Templates withAnniversary(String chosen) {
+            if (chosen == null || chosen.equals(anniversary)) return this;
+            return new Templates(happyBirthday, birthday, null, chosen, weddingOne, wedding);
         }
     }
 
     private PersonalGreeting() {
     }
 
-    static Templates templates(Resources r) {
+    /** The strings of the app's language, the anniversary's template from {@code prefs} (PersonalDays.PREFS). */
+    static Templates templates(Resources r, SharedPreferences prefs) {
+        String standard = r.getString(R.string.seasons_anniversary_greeting_default);
         return new Templates(r.getString(R.string.seasons_greeting_happy_birthday),
-                r.getString(R.string.seasons_greeting_birthday), r.getString(R.string.seasons_greeting_fourth),
-                r.getString(R.string.seasons_greeting_anniversary_one),
-                r.getString(R.string.seasons_greeting_anniversary),
-                r.getString(R.string.seasons_greeting_wedding_one), r.getString(R.string.seasons_greeting_wedding));
+                r.getString(R.string.seasons_greeting_birthday),
+                r.getString(R.string.seasons_greeting_anniversary_one), standard,
+                r.getString(R.string.seasons_greeting_wedding_one), r.getString(R.string.seasons_greeting_wedding))
+                .withAnniversary(PersonalDays.anniversaryGreeting(prefs, standard));
     }
 
     /** The greeting for today's entries in world {@code w}; {@code day} picks Hogwarts' Lumos or Nox. */
-    static String text(Resources r, World w, SeasonsToday t, boolean day) {
+    static String text(Resources r, SharedPreferences prefs, World w, SeasonsToday t, boolean day) {
         if (t == null || t.personal.isEmpty()) return "";
-        return text(templates(r), w, t, day);
+        return text(templates(r, prefs), w, t, day);
     }
 
     /** The same from the templates: "" without an entry today. */
@@ -90,12 +101,11 @@ final class PersonalGreeting {
     }
 
     private static String anniversary(Templates s, PersonalDay p, SeasonsToday t) {
-        // The date's pun, for any anniversary entered on 4 May.
-        if (p.month == 5 && p.day == 4) return format(s.fourth, p.names);
         int years = p.years(t.date);
         if (years < 1) return p.names;   // the start year itself: nothing to count yet
-        if (years == 1) return format(s.anniversaryOne, p.names);
-        return String.format(Locale.ROOT, s.anniversary, years, p.names);
+        if (years == 1 && s.anniversaryOne != null) return format(s.anniversaryOne, p.names);
+        // The crawl's filling: {years} and {names} (also {episode}); any other {...} stays as written.
+        return CrawlView.fill(s.anniversary, p.names, years);
     }
 
     private static String wedding(Templates s, int years) {

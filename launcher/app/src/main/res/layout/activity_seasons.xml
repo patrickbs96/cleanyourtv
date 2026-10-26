@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Seasons (SeasonsActivity, Jahreskreis spec § 4.7): Add an entry on top, then the personal days (made in code under
-     dayList), the anniversary crawl text and the Mother's Day and Father's Day switches. -->
+     dayList), the anniversary crawl text, the anniversary greeting and the Mother's Day and Father's Day switches. -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -54,6 +54,20 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="7dp"
             android:text="@string/seasons_crawl_hint"
+            android:textColor="#FFACB8C1"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/anniversaryGreetingChoice"
+            style="@style/SettingsRow"
+            android:layout_marginTop="10dp"
+            android:text="@string/seasons_anniversary_greeting" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="7dp"
+            android:text="@string/seasons_anniversary_greeting_hint"
             android:textColor="#FFACB8C1"
             android:textSize="14sp" />
 

@@ -96,13 +96,14 @@
     <string name="seasons_crawl">Vorspann-Text</string>
     <string name="seasons_crawl_hint">Läuft am Jahrestag. {names}, {years} und {episode} werden eingesetzt; leer bringt den Standardtext zurück.</string>
     <string name="seasons_crawl_default">Vor nicht allzu langer Zeit, in einer Stadt ganz in der Nähe …\n\nEpisode {episode}\n{names}\n\n{years} Jahre später …</string>
+    <string name="seasons_anniversary_greeting">Gruß am Jahrestag</string>
+    <string name="seasons_anniversary_greeting_hint">Steht am Jahrestag an Stelle der Begrüßung. {years} und {names} werden eingesetzt; leer bringt den Standardtext zurück.</string>
+    <string name="seasons_anniversary_greeting_default">{years} Jahre · {names}</string>
     <string name="seasons_mothers_day">Muttertag: %1$s</string>
     <string name="seasons_fathers_day">Vatertag: %1$s</string>
     <string name="seasons_greeting_happy_birthday">Happy Birthday, %1$s</string>
     <string name="seasons_greeting_birthday">Alles Gute, %1$s</string>
-    <string name="seasons_greeting_fourth">Happy 4th · %1$s</string>
     <string name="seasons_greeting_anniversary_one">1 Jahr · %1$s</string>
-    <string name="seasons_greeting_anniversary">%1$d Jahre · %2$s</string>
     <string name="seasons_greeting_wedding_one">1. Hochzeitstag</string>
     <string name="seasons_greeting_wedding">%1$d. Hochzeitstag</string>
     <string name="world_scene">Szene</string>
