@@ -391,6 +391,33 @@ final class Config {
         return ctx.getExternalFilesDir(null);
     }
 
+    /**
+     * Latitude and longitude for the sun's times and the weather line, as text: a theme's "latitude" and
+     * "longitude" (number or text) win over config.xml's. The repository keeps a neutral place in config.xml, so a
+     * household's own place lives only in the theme on its TV. Read without load()'s side effects.
+     */
+    static String[] location(Context ctx) {
+        Resources res = ctx.getResources();
+        String lat = res.getString(R.string.latitude).trim();
+        String lon = res.getString(R.string.longitude).trim();
+        File dir = dir(ctx);
+        boolean mounted = Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState());
+        JSONObject json = mounted && dir != null ? read(new File(dir, FILE_NAME))
+                : read(new File(ctx.getFilesDir(), FILE_NAME));
+        if (json != null) {
+            lat = coordinateText(json, "latitude", lat);
+            lon = coordinateText(json, "longitude", lon);
+        }
+        return new String[] {lat, lon};
+    }
+
+    private static String coordinateText(JSONObject o, String key, String fallback) {
+        Object v = o.opt(key);
+        if (v instanceof Number) return v.toString();
+        if (v instanceof String) return ((String) v).trim();
+        return fallback;
+    }
+
     static Config load(Context ctx) {
         Resources res = ctx.getResources();
         List<String> dock = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.dock_apps)));

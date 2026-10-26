@@ -97,14 +97,15 @@ class SkyPlaceSection(unittest.TestCase):
         self.assertIn("launcher/app/src/main/res/values/config.xml", self.section,
                       "the page has to name the file a reader edits, not only its file name")
 
-    def test_the_two_resources_exist_and_are_empty_by_default(self):
-        for name in ("latitude", "longitude"):
+    def test_the_two_resources_hold_the_forks_neutral_place(self):
+        # This fork keeps Berlin in config.xml; a household's own place comes from its theme (docs/sky.md).
+        for name, value in (("latitude", "52.52"), ("longitude", "13.41")):
             m = re.search(r'<string name="%s"([^>]*)>([^<]*)</string>' % name, self.config_xml)
             if m is None:
                 self.fail(f"config.xml has no {name} string resource")
             self.assertIn('translatable="false"', m.group(1), f"{name} is a number, not a translation")
-            self.assertEqual(m.group(2), "",
-                             f"{name} is no longer empty by default; the page's fallback may be stale")
+            self.assertEqual(m.group(2), value, f"{name} is no longer the neutral place the page names")
+            self.assertIn(value, self.section, f"the page should name the neutral {name}, {value}")
 
     def test_the_fixed_day_it_quotes_is_the_one_sky_java_draws(self):
         times = reference_times(self.java)
@@ -113,21 +114,21 @@ class SkyPlaceSection(unittest.TestCase):
         self.assertIn(times["REF_SUNSET"], self.section,
                       f"the page should give the reference sunset, {times['REF_SUNSET']}")
 
-    def test_skyview_is_what_reads_them(self):
+    def test_config_location_is_what_reads_them(self):
         view = SKY_VIEW_JAVA.read_text(encoding="utf-8")
+        config_java = CONFIG_JAVA.read_text(encoding="utf-8")
+        self.assertIn("Config.location", view, "SkyView no longer asks Config.location: the page points at the wrong knob")
         for name in ("latitude", "longitude"):
-            self.assertIn(f"R.string.{name}", view,
-                          f"SkyView no longer reads R.string.{name}: the page points at the wrong knob")
+            self.assertIn(f"R.string.{name}", config_java, f"Config no longer falls back to R.string.{name}")
 
-    def test_it_says_a_theme_cannot_set_the_place(self):
+    def test_it_says_a_theme_can_set_the_place(self):
         self.assertIn("theme", self.section.lower())
         table = keys_table(THEMES_DOC.read_text(encoding="utf-8"))
-        self.assertNotIn("latitude", table, "latitude is a theme key now: the page has to say so")
-        self.assertNotIn("longitude", table, "longitude is a theme key now: the page has to say so")
+        self.assertIn("latitude", table, "a theme can set latitude: the Keys table has to name it")
+        self.assertIn("longitude", table, "a theme can set longitude: the Keys table has to name it")
         config_java = CONFIG_JAVA.read_text(encoding="utf-8")
         for name in ("latitude", "longitude"):
-            self.assertNotIn(f'"{name}"', config_java,
-                             f"Config.java reads a {name} key now: a theme can set the place after all")
+            self.assertIn(f'"{name}"', config_java, f"Config.java no longer reads a {name} key from a theme")
 
     def test_it_names_the_days_that_fall_back(self):
         for needle in ("polar night", "midnight sun"):

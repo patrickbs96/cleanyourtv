@@ -27,6 +27,8 @@ fits the rules; keys from before the rule sit on its wanted list until a screens
 | `columns` | <img src="../themes/six-columns/screenshot.jpg" width="320" alt="columns on a TV"> |
 | `glass_style` | <img src="switches/glass_style.jpg" width="320" alt="glass_style halo on a TV"> |
 | `sky_intensity` | <img src="sky-sunset.jpg" width="320" alt="sky_intensity on a TV"> |
+| `latitude` | <img src="sky-sunset.jpg" width="320" alt="the sky's sunset glow, timed by latitude and longitude"> |
+| `longitude` | <img src="sky-sunset.jpg" width="320" alt="the sky's sunset glow, timed by latitude and longitude"> |
 | `wallpaper_rotation_minutes` | <img src="../themes/scenes/screenshot.jpg" width="320" alt="wallpaper_rotation_minutes on a TV"> |
 | `festival` | <img src="../themes/dussehra/screenshot.jpg" width="320" alt="festival on a TV"> |
 | `settings_key_panel` | <img src="quick-settings-panel.jpg" width="320" alt="settings_key_panel on a TV"> |

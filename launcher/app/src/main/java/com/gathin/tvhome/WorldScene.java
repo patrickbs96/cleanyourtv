@@ -52,8 +52,9 @@ final class WorldScene {
     WorldScene(Context context, FrameLayout root, World w) {
         this.root = root;
         this.world = w;
-        latitude = context.getString(R.string.latitude);
-        longitude = context.getString(R.string.longitude);
+        String[] place = Config.location(context);
+        latitude = place[0];
+        longitude = place[1];
         forced = forcedMood(context.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE));
         if (w.isClean()) {
             bottom = null;

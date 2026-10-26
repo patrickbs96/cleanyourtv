@@ -51,9 +51,11 @@ Two days keep that fixed day instead: one with no sunrise or sunset at all (pola
 midnight sun), and one whose sunset the arithmetic puts past midnight, as in Reykjavik in June.
 Nothing is guessed from the time zone: it only decides which clock the minutes are counted on.
 
-**A theme cannot set this.** `sky_intensity` comes from a theme's `config.json`, but the place is a
-launcher build setting — `SkyView` reads those two string resources and `Config` never looks for them
-in a theme. A theme that wants the right sun says so in its own README, with the two lines above.
+**A theme can set it too** (this fork). `"latitude"` and `"longitude"` in a theme's `config.json`, as
+numbers or text, win over the two lines in `config.xml`; `Config.location` reads them for the sky, the
+worlds' day and night, the wallpaper moods and the weather line alike. This fork keeps Berlin
+(52.52, 13.41) in `config.xml` as a neutral place, so a household's own place lives only in the theme
+on its TV and never in the repository.
 
 ## Cost
 

@@ -398,7 +398,8 @@
     <!-- Where the TV is, in decimal degrees, so the sky's sunrise and sunset glows follow the real sun
          (computed on the TV, no network). Empty: a fixed temperate day, sunset glow around 19:00.
          Vilnius: 54.69 and 25.28. With weather on, the same place, rounded to two decimals, is what the weather
-         line asks Open-Meteo for. -->
+         line asks Open-Meteo for. This fork keeps Berlin here as a neutral place; a household sets its own with
+         "latitude": 51.5, "longitude": 7.0 in its theme's config.json on the TV, so it never lands in the repository. -->
     <string name="latitude" translatable="false">52.52</string>
     <string name="longitude" translatable="false">13.41</string>
     <!-- Weather line under the date ("12° · Cloudy", spec § 4.10c): the launcher's only network access, one HTTPS GET

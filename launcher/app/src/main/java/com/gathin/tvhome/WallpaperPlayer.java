@@ -73,8 +73,9 @@ final class WallpaperPlayer {
         order = config.wallpaperOrder;
         preferences = context.getSharedPreferences("wallpaper_rotation", Context.MODE_PRIVATE);
         moods = config.wallpaperMoods;
-        latitude = moods.isEmpty() ? "" : context.getString(R.string.latitude);
-        longitude = moods.isEmpty() ? "" : context.getString(R.string.longitude);
+        String[] place = moods.isEmpty() ? new String[] {"", ""} : Config.location(context);
+        latitude = place[0];
+        longitude = place[1];
         // Playback state belongs to one collection. Changing the collection starts from its first
         // picture instead of resuming a filename that belonged to the previous one.
         String collection = collectionKey(files);

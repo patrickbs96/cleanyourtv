@@ -613,8 +613,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // scanlines reach it, and oledLayer moves it). After the shamsi resize: the worlds give it the date's size.
         TextView weatherLine = findViewById(R.id.weather);
         WorldTypography.applyWeather(world, findViewById(R.id.date), weatherLine);
-        weather = new Weather(this, weatherLine, getString(R.string.latitude), getString(R.string.longitude),
-                cfg.weather);
+        String[] place = Config.location(this);
+        weather = new Weather(this, weatherLine, place[0], place[1], cfg.weather);
         vpnApp = cfg.vpnApp;
         moduleCards = cfg.moduleCards;
         hiddenApps = new HashSet<>(cfg.hiddenApps);

@@ -15,10 +15,9 @@ config.xml has a row. It does not ask the table to stop carrying theme-only keys
 or `wallpaper_rotation_minutes`, which no config.xml resource backs - those are the keys a theme sets
 and the table is their only home.
 
-`latitude` and `longitude` are the two exceptions, with their reason in EXEMPT: they are config.xml
-lines a build sets, docs/sky.md documents them, and tests/test_sky_place_note.py requires the Keys
-table to keep naming neither (a theme cannot move the sun). A test here keeps that exemption honest by
-checking both are still read from config.xml by SkyView.java.
+EXEMPT holds config.xml keys a theme cannot set, with the page that documents each. In this fork it is
+empty: `latitude` and `longitude` used to be its two entries, and since a theme can set the place
+(docs/sky.md) the Keys table names them like every other key.
 
 Run from the repository root: python3 -m unittest discover -s tests -v
 """
@@ -51,8 +50,7 @@ QUERIES_PACKAGE = re.compile(r'<package\s+android:name="([^"]+)"')
 # The keys read from config.xml on purpose that the table must not list, each with the page that
 # documents it instead.
 EXEMPT = {
-    "latitude": "docs/sky.md: the sky's place, a build setting no theme can move",
-    "longitude": "docs/sky.md: the sky's place, a build setting no theme can move",
+    # Empty in this fork: latitude and longitude are theme keys now (docs/sky.md), so the table names them.
 }
 
 
@@ -107,11 +105,13 @@ def read_from_config(config, java_sources):
     return {name for name in names if name in config}
 
 
-def missing_rows(table_text, config_text, java_sources):
-    """The config.xml keys the launcher reads that no row of the Keys table names, EXEMPT aside."""
+def missing_rows(table_text, config_text, java_sources, exempt=None):
+    """The config.xml keys the launcher reads that no row of the Keys table names, the exempt ones aside
+    (EXEMPT unless a test passes its own)."""
+    exempt = EXEMPT if exempt is None else exempt
     read = read_from_config(config_keys(config_text), java_sources)
     rows = table_keys(table_text)
-    return sorted(name for name in read if name not in rows and name not in EXEMPT)
+    return sorted(name for name in read if name not in rows and name not in exempt)
 
 
 def row_for(table_text, key):
@@ -239,6 +239,8 @@ class CheckerTest(unittest.TestCase):
 
     JAVA = ("R.array.settings_fallback_components; R.bool.dock_row; R.integer.columns; "
             "R.string.latitude; R.string.not_in_config; R.drawable.ic_settings;")
+    # The checker's own exemption, so these cases keep working whatever the repository's EXEMPT holds.
+    EXEMPT_SAMPLE = {"latitude": "a build setting in this sample"}
 
     def table(self, *rows):
         return "## Keys\n\n" + self.HEADER + "\n".join(rows) + "\n\n## Wallpapers\n"
@@ -246,27 +248,27 @@ class CheckerTest(unittest.TestCase):
     def test_a_key_without_a_row_is_reported(self):
         table = self.table("| `dock_row` | bool | the dock as a row |",
                            "| `columns` | 1 to 8 | tiles per row |")
-        self.assertEqual(missing_rows(table, self.CONFIG, [self.JAVA]),
+        self.assertEqual(missing_rows(table, self.CONFIG, [self.JAVA], self.EXEMPT_SAMPLE),
                          ["settings_fallback_components"])
 
     def test_a_key_with_a_row_is_quiet(self):
         table = self.table("| `dock_row` | bool | the dock as a row |",
                            "| `columns` | 1 to 8 | tiles per row |",
                            "| `settings_fallback_components` | list, `config.xml` only | vendor screens |")
-        self.assertEqual(missing_rows(table, self.CONFIG, [self.JAVA]), [])
+        self.assertEqual(missing_rows(table, self.CONFIG, [self.JAVA], self.EXEMPT_SAMPLE), [])
 
     def test_an_exempt_key_is_not_required(self):
         table = self.table("| `dock_row` | bool | the dock as a row |",
                            "| `columns` | 1 to 8 | tiles per row |",
                            "| `settings_fallback_components` | list, `config.xml` only | vendor screens |")
-        self.assertIn("latitude", EXEMPT)
-        self.assertEqual(missing_rows(table, self.CONFIG, [self.JAVA]), [])
+        self.assertIn("latitude", self.EXEMPT_SAMPLE)
+        self.assertEqual(missing_rows(table, self.CONFIG, [self.JAVA], self.EXEMPT_SAMPLE), [])
 
     def test_a_key_nothing_reads_is_not_required(self):
         # config.xml carries keys for the next release too; only what the Java side reads is owed a row.
         table = self.table("| `dock_row` | bool | the dock as a row |",
                            "| `settings_fallback_components` | list, `config.xml` only | vendor screens |")
-        self.assertEqual(missing_rows(table, self.CONFIG, [self.JAVA]), ["columns"])
+        self.assertEqual(missing_rows(table, self.CONFIG, [self.JAVA], self.EXEMPT_SAMPLE), ["columns"])
 
     def test_a_resource_outside_config_xml_is_not_a_key(self):
         # R.string.ic_settings is a drawable and R.string.not_in_config is a strings.xml resource.
@@ -279,7 +281,7 @@ class CheckerTest(unittest.TestCase):
         # table has to report every key as missing, not read as "nothing to check".
         body = "## Wallpapers\n\n| `dock_row` | bool | not this table |\n"
         self.assertEqual(table_keys(body), {})
-        self.assertEqual(missing_rows(body, self.CONFIG, [self.JAVA]),
+        self.assertEqual(missing_rows(body, self.CONFIG, [self.JAVA], self.EXEMPT_SAMPLE),
                          ["columns", "dock_row", "settings_fallback_components"])
 
     def test_the_section_stops_at_the_next_heading(self):

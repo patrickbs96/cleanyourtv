@@ -69,11 +69,15 @@ public class SkyView extends View {
         if (intensity > 0) render(true);
     }
 
+    /** Config.location(), read on the first render. */
+    @Nullable private String[] location;
+
     /** Today's sunrise and sunset at the configured place, or null without one (fixed reference day). */
     @Nullable
     private int[] sunTimes() {
-        String lat = getContext().getString(R.string.latitude);
-        String lon = getContext().getString(R.string.longitude);
+        if (location == null) location = Config.location(getContext());   // once per view; Home rebuilds on a theme push
+        String lat = location[0];
+        String lon = location[1];
         if (lat.isEmpty() || lon.isEmpty()) return null;
         try {
             return Sun.riseAndSet(LocalDate.now(), Double.parseDouble(lat), Double.parseDouble(lon),
