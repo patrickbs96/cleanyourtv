@@ -121,7 +121,8 @@ final class WorldTypography {
                 // come from the glyph cache when tipped back, so every frame anything moved (the overlay's 30 fps)
                 // blurred the name anew (Task 12 fix 1: 100 % janky, 95th 29 ms; without the shadow 13 ms). In a
                 // layer the name and its glow are drawn flat once per text change, and the tilt only maps that
-                // texture. The layer has the view's bounds, the same clip as hero (clipChildren) gives it now.
+                // texture. The layer clips the glow to the name's own bounds; on the TV no edge of it shows cut
+                // (screenshots before and after, Task 12 fix 1).
                 heroName.setLayerType(View.LAYER_TYPE_HARDWARE, null);
                 heroName.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
                     v.setPivotX(0f);
@@ -155,21 +156,31 @@ final class WorldTypography {
      * The worlds close the column's line gaps (the date's 6dp line spacing, the weather's 4dp top margin) and put the
      * room they free above the column instead: the column keeps its height, so the header and the dock stay where
      * they are, and its lines settle down beside the clock. The padding follows the date's line count (one or two).
+     * Only while the weather line shows: before the first reading and with weather off it is gone, and the column
+     * keeps the layout's spacing and padding.
      */
     private static void tightenDateColumn(TextView date, TextView weather) {
         if (!(date.getParent() instanceof View)) return;
         View column = (View) date.getParent();
         float extra = date.getLineSpacingExtra();
-        date.setLineSpacing(0f, date.getLineSpacingMultiplier());
+        float multiplier = date.getLineSpacingMultiplier();
         ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) weather.getLayoutParams();
         int margin = lp.topMargin;
-        lp.topMargin = 0;
-        weather.setLayoutParams(lp);
-        // Posted: a layout change listener runs inside the layout pass, where a new layout would be deferred anyway.
-        date.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> column.post(() -> {
+        int padding = column.getPaddingTop();
+        // The column relays out when the weather line comes or goes. Posted: a layout change listener runs inside the
+        // layout pass, where a new layout would be deferred anyway; each run changes only what differs, so it settles.
+        column.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> column.post(() -> {
+            boolean tight = weather.getVisibility() != View.GONE;
+            float spacing = tight ? 0f : extra;
+            if (date.getLineSpacingExtra() != spacing) date.setLineSpacing(spacing, multiplier);
+            int gap = tight ? 0 : margin;
+            if (lp.topMargin != gap) {
+                lp.topMargin = gap;
+                weather.setLayoutParams(lp);
+            }
             Layout layout = date.getLayout();
             int lines = layout != null ? layout.getLineCount() : 1;
-            int top = Math.round(extra * Math.max(0, lines - 1)) + margin;
+            int top = padding + (tight ? Math.round(extra * Math.max(0, lines - 1)) + margin : 0);
             if (column.getPaddingTop() != top) {
                 column.setPadding(column.getPaddingLeft(), top, column.getPaddingRight(), column.getPaddingBottom());
             }
