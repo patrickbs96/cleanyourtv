@@ -86,6 +86,11 @@ abstract class WorldOverlay extends View {
         invalidate();
     }
 
+    /** Whether it draws its day set (as the scene shows it), else its night set. */
+    boolean isDay() {
+        return day;
+    }
+
     void start() {
         if (running) return;
         running = true;

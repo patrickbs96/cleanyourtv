@@ -57,12 +57,13 @@ public class WorldTest {
         assertEquals("", World.CLEAN.greetingSuffix(true));
     }
     /**
-     * Until its transition arrives (Task 8) Supernatural takes the neutral paths everywhere a world branches: its own
-     * pictures (Task 3), its own overlay (Task 4), its own pills, dock and frame (Task 5), its flicker (Task 6: it
-     * jumps, so no spring and no wait of its own) and its headlights at an app start (Task 7, the tile itself stays),
-     * but a plain fade in; never another world's skin.
+     * Supernatural's whole skin is its own wherever a world branches: its pictures (Task 3), its overlay (Task 4), its
+     * pills, dock and frame (Task 5), its flicker (Task 6: it jumps, so no spring and no wait of its own), its
+     * headlights at an app start (Task 7) and its flash or rays into the world (Task 8). What it leaves as Clean does
+     * is chosen, not missing: the network icon, the hero's label, the tile at an app start, no scene zoom and no scan
+     * edge in the transition; never another world's skin.
      */
-    @Test public void supernaturalFallsBackToNeutralPaths() {
+    @Test public void supernaturalHasItsOwnSkinWhereverAWorldBranches() {
         World w = World.SUPERNATURAL;
         assertEquals(R.drawable.world_supernatural_day, WorldScene.resFor(w, true));
         assertEquals(R.drawable.world_supernatural_night, WorldScene.resFor(w, false));
@@ -74,7 +75,10 @@ public class WorldTest {
         assertTrue(WorldLaunchMotion.shouldPlay(w, true, false));
         assertEquals(1f, WorldLaunchMotion.sceneZoom(w, 500), 0f);
         assertEquals(1f, WorldLaunchMotion.tileAlpha(w, 500), 0f);
-        assertEquals(WorldTransition.peak(World.CLEAN), WorldTransition.peak(w), 0f);
+        assertEquals(WorldTransition.SUPERNATURAL_PEAK, WorldTransition.peak(w), 0f);
+        assertTrue(WorldTransition.peak(w) < WorldTransition.peak(World.CLEAN));
+        assertTrue(WorldTransition.flashFor(w, WorldTransition.leaveMs(w) + 100) > 0f);
+        assertTrue(WorldTransition.raysFor(w, WorldTransition.leaveMs(w) + 100) > 0f);
         assertEquals(0f, WorldTransition.revealLine(w, 400), 0f);
         assertEquals(1f, WorldTransition.sceneZoom(w, 400, true), 0f);
         assertEquals(0xFF0B0D10, WorldTransition.coverColor(w));

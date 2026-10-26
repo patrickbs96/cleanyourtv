@@ -299,19 +299,12 @@ final class SupernaturalOverlay extends WorldOverlay {
 
     private void drawDay(Canvas c, long now) {
         double t = now / 1000.0;
-        float sx = ux(SupernaturalScene.SUN[0]), sy = uy(SupernaturalScene.SUN[1]);
-        float len = SupernaturalScene.RAY_LEN * unit, half = SupernaturalScene.RAY_HALF;
         for (int i = 0; i < SupernaturalScene.RAYS.length; i++) {
             // The painted rays stay; over them each breathes a little and sways by a hundredth of a radian or two.
             float a = SupernaturalScene.RAYS[i] + 0.02f * (float) Math.sin(t * 0.2 + i);
             float breath = 0.5f + 0.5f * (float) Math.sin(t * 0.7 + i * 1.3);
             ray.setAlpha((int) (255 * 0.05f * breath));
-            rayPath.reset();
-            rayPath.moveTo(sx, sy);
-            rayPath.lineTo(sx + (float) Math.sin(a - half) * len, sy - (float) Math.cos(a - half) * len);
-            rayPath.lineTo(sx + (float) Math.sin(a + half) * len, sy - (float) Math.cos(a + half) * len);
-            rayPath.close();
-            c.drawPath(rayPath, ray);
+            ray(c, a);
         }
         for (int k = 0; k < HEAT_BANDS; k++) {
             float shift = 0.35f * (float) Math.sin(t * 3 + k);
@@ -368,27 +361,7 @@ final class SupernaturalOverlay extends WorldOverlay {
             oval(c, vacancyOff, r[0] + r[2] / 2f, r[1] + r[3] / 2f, VACANCY_RX, VACANCY_RY);
         }
         float flash = lightning(since, SEED);
-        if (flash > 0f) {
-            skyFlash.setAlpha((int) (255 * skyFlashAlpha(since, SEED, true)));
-            c.drawPath(litSky, skyFlash);
-            int b = Math.floorMod(lightningSlot(since), BOLTS);
-            // Far away behind the wings, the hills, the motel and the sign: it shows only where the sky is lit.
-            c.save();
-            c.clipPath(litSky);
-            boltGlow.setAlpha((int) (255 * 0.3f * flash));
-            c.drawLines(boltPx[b], 0, boltSegs[b] * 4, boltGlow);
-            boltCore.setAlpha((int) (255 * flash));
-            c.drawLines(boltPx[b], 0, boltSegs[b] * 4, boltCore);
-            c.restore();
-            sigilGlow.setAlpha((int) (255 * 0.7f * flash));
-            float[] ward = SupernaturalScene.WARD;
-            oval(c, sigilGlow, ward[0], ward[1], ward[2] * 1.7f, ward[2] * 1.7f);
-            sigilGlow.setAlpha((int) (255 * 0.6f * flash));
-            for (float[] mark : SupernaturalScene.DOOR_MARKS) {
-                oval(c, sigilGlow, mark[0], mark[1], SupernaturalScene.DOOR_MARK_R * 2.8f,
-                        SupernaturalScene.DOOR_MARK_R * 2.8f);
-            }
-        }
+        if (flash > 0f) drawFlash(c, flash, Math.floorMod(lightningSlot(since), BOLTS));
         float bottom = PersonalMotions.DOCK_Y, span = bottom + DROP_LEN;
         for (int i = 0; i < DROPS; i++) {
             // Falling at its own speed, from the clock itself so it never jumps; drifting left as it falls.
@@ -403,6 +376,58 @@ final class SupernaturalOverlay extends WorldOverlay {
             rain[k + 3] = uy(y1);
         }
         c.drawLines(rain, rainPaint);
+    }
+
+    /**
+     * One flash at strength {@code flash} (0 to 1) onto {@code c}: the sky brightened by {@link #SKY_FLASH} at most,
+     * with the wings' shadow left out of it, bolt {@code b} (of {@link #BOLTS}) where the sky is lit, and the sigils
+     * lighting up. The overlay's own flashes and the transition into the world (WorldTransition, over its cover) draw
+     * it. Only at night and once laid out; otherwise nothing.
+     */
+    void drawFlash(Canvas c, float flash, int b) {
+        if (day || getWidth() == 0 || flash <= 0f) return;
+        float f = Math.min(1f, flash);
+        b = Math.floorMod(b, BOLTS);
+        skyFlash.setAlpha((int) (255 * SKY_FLASH * f));
+        c.drawPath(litSky, skyFlash);
+        // Far away behind the wings, the hills, the motel and the sign: it shows only where the sky is lit.
+        c.save();
+        c.clipPath(litSky);
+        boltGlow.setAlpha((int) (255 * 0.3f * f));
+        c.drawLines(boltPx[b], 0, boltSegs[b] * 4, boltGlow);
+        boltCore.setAlpha((int) (255 * f));
+        c.drawLines(boltPx[b], 0, boltSegs[b] * 4, boltCore);
+        c.restore();
+        sigilGlow.setAlpha((int) (255 * 0.7f * f));
+        float[] ward = SupernaturalScene.WARD;
+        oval(c, sigilGlow, ward[0], ward[1], ward[2] * 1.7f, ward[2] * 1.7f);
+        sigilGlow.setAlpha((int) (255 * 0.6f * f));
+        for (float[] mark : SupernaturalScene.DOOR_MARKS) {
+            oval(c, sigilGlow, mark[0], mark[1], SupernaturalScene.DOOR_MARK_R * 2.8f,
+                    SupernaturalScene.DOOR_MARK_R * 2.8f);
+        }
+    }
+
+    /**
+     * The sun's rays at their painted angles at this alpha onto {@code c}: the transition into the world by day
+     * (WorldTransition, over its cover) lets them flare up. Only by day and once laid out; otherwise nothing.
+     */
+    void drawRays(Canvas c, float alpha) {
+        if (!day || getWidth() == 0 || alpha <= 0f) return;
+        ray.setAlpha((int) (255 * Math.min(1f, alpha)));
+        for (float a : SupernaturalScene.RAYS) ray(c, a);
+    }
+
+    /** One ray from the sun at {@code angle} (radians from straight up) with the ray paint as it is set. */
+    private void ray(Canvas c, float angle) {
+        float sx = ux(SupernaturalScene.SUN[0]), sy = uy(SupernaturalScene.SUN[1]);
+        float len = SupernaturalScene.RAY_LEN * unit, half = SupernaturalScene.RAY_HALF;
+        rayPath.reset();
+        rayPath.moveTo(sx, sy);
+        rayPath.lineTo(sx + (float) Math.sin(angle - half) * len, sy - (float) Math.cos(angle - half) * len);
+        rayPath.lineTo(sx + (float) Math.sin(angle + half) * len, sy - (float) Math.cos(angle + half) * len);
+        rayPath.close();
+        c.drawPath(rayPath, ray);
     }
 
     /** A paint with a radial shader of radius 1 drawn as an ellipse round (x, y) with these half axes, in units. */

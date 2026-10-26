@@ -33,6 +33,10 @@ import java.util.Random;
  * 500 ms behind a blue scan edge (corners and pills first, the dock bar last), the reactor kicking once on the way.</li>
  * <li>Star Wars: a hyperspace jump in, like the app start but 700 ms and without the white: streaks from the middle,
  * the old scene zooms in and darkens (400 ms), the new one settles back to its size as the streaks pass (300 ms).</li>
+ * <li>Supernatural (its own spec § 4.3, § 4.5): the old scene darkens in 300 ms; then, as the new scene comes up in
+ * 500 ms, at night one flash lights its sky (at most 40 %, only the sky, never the screen white) with a bolt and the
+ * shadow of the wings, by day the sun's rays flare up and fade into the overlay's own. Day or night is the new Home's
+ * overlay's (SupernaturalOverlay draws both, so they are its own flash and rays).</li>
  * </ul>
  *
  * <p>With reduced motion or animations off it is a hard cut: {@link #leave} runs the switch at once and the new Home
@@ -51,7 +55,13 @@ final class WorldTransition {
      * How dark the cover gets at the cut: Clean and Seasons go to black, the themed worlds only dim (no hard black
      * between them).
      */
-    static final float CLEAN_PEAK = 1f, HOGWARTS_PEAK = 0.85f, MARVEL_PEAK = 0.9f, STARWARS_PEAK = 0.6f;
+    static final float CLEAN_PEAK = 1f, HOGWARTS_PEAK = 0.85f, MARVEL_PEAK = 0.9f, STARWARS_PEAK = 0.6f,
+            SUPERNATURAL_PEAK = 0.85f;
+    /** Supernatural at night: the flash (SupernaturalOverlay.flash, 360 ms) starts this far into the enter half. */
+    static final long SN_FLASH_DELAY_MS = 30;
+    /** Supernatural by day: the rays flare up to this alpha in SN_RAYS_UP_MS, then fade by the half's end. */
+    static final float SN_RAYS_PEAK = 0.45f;
+    static final long SN_RAYS_UP_MS = 180;
     /** Star Wars: 70 streaks, each 400 ms long, starting within the first 300 ms of the 700. */
     static final int STREAKS = 70;
     static final long STREAK_MS = 400, STREAK_SPREAD_MS = 300;
@@ -67,7 +77,8 @@ final class WorldTransition {
     /** The first half, played by the old Home before recreate(). */
     static long leaveMs(World target) {
         switch (target) {
-            case HOGWARTS: return 300;
+            case HOGWARTS:
+            case SUPERNATURAL: return 300;
             case STARWARS: return 400;
             default: return 250;   // Clean, Seasons and Marvel
         }
@@ -77,7 +88,8 @@ final class WorldTransition {
     static long enterMs(World target) {
         switch (target) {
             case HOGWARTS: return 600;
-            case MARVEL: return 500;
+            case MARVEL:
+            case SUPERNATURAL: return 500;
             case STARWARS: return 300;
             case SEASONS: return 350;
             default: return 250;
@@ -106,8 +118,30 @@ final class WorldTransition {
             case HOGWARTS: return HOGWARTS_PEAK;
             case MARVEL: return MARVEL_PEAK;
             case STARWARS: return STARWARS_PEAK;
+            case SUPERNATURAL: return SUPERNATURAL_PEAK;
             default: return CLEAN_PEAK;
         }
+    }
+
+    /**
+     * Supernatural's flash at night at {@code t} ms of the whole timeline, 0 to 1 (the overlay's flash, which lights
+     * only the sky, at most {@link SupernaturalOverlay#SKY_FLASH}): one, early in the enter half. 0 for the others.
+     */
+    static float flashFor(World target, long t) {
+        if (target != World.SUPERNATURAL) return 0f;
+        return SupernaturalOverlay.flash(t - leaveMs(target) - SN_FLASH_DELAY_MS);
+    }
+
+    /**
+     * Supernatural's rays by day at {@code t} ms of the whole timeline, their alpha: up to {@link #SN_RAYS_PEAK} early
+     * in the enter half, gone by its end, where the overlay's own faint rays go on. 0 for the others.
+     */
+    static float raysFor(World target, long t) {
+        if (target != World.SUPERNATURAL) return 0f;
+        long d = t - leaveMs(target), len = enterMs(target);
+        if (d <= 0 || d >= len) return 0f;
+        if (d < SN_RAYS_UP_MS) return SN_RAYS_PEAK * WorldLaunchMotion.ease(d / (float) SN_RAYS_UP_MS);
+        return SN_RAYS_PEAK * (1f - WorldLaunchMotion.ease((d - SN_RAYS_UP_MS) / (float) (len - SN_RAYS_UP_MS)));
     }
 
     /** The cover's colour: black for Clean and Seasons (a fade through black), the world's own dark one otherwise. */
@@ -253,7 +287,8 @@ final class WorldTransition {
         this.to = to;
         startedAt = -1;
         if (fx == null) fx = new Fx(root.getContext(), this);
-        fx.prepare(w, from, overlay instanceof HogwartsOverlay ? (HogwartsOverlay) overlay : null);
+        fx.prepare(w, from, overlay instanceof HogwartsOverlay ? (HogwartsOverlay) overlay : null,
+                overlay instanceof SupernaturalOverlay ? (SupernaturalOverlay) overlay : null);
         if (fx.getParent() == null) {
             root.addView(fx, new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -340,7 +375,10 @@ final class WorldTransition {
 
     // ---- overlay -------------------------------------------------------------------------------------
 
-    /** Draws the cover, Marvel's scan edge, Star Wars' streaks and Hogwarts' candle flares at the time it is given. */
+    /**
+     * Draws the cover, Marvel's scan edge, Star Wars' streaks, Hogwarts' candle flares and Supernatural's flash or rays
+     * at the time it is given.
+     */
     static final class Fx extends View {
         private final WorldTransition owner;
         private final Paint cover = new Paint();
@@ -356,6 +394,8 @@ final class WorldTransition {
         private final float density;
         private World world = World.CLEAN;
         @Nullable private HogwartsOverlay candles;
+        /** Supernatural's overlay in the enter half: it draws its own flash or rays over the cover, as the day is. */
+        @Nullable private SupernaturalOverlay sky;
         private long time = -1;
 
         Fx(Context context, WorldTransition owner) {
@@ -386,9 +426,10 @@ final class WorldTransition {
             }
         }
 
-        void prepare(World w, long t, @Nullable HogwartsOverlay candles) {
+        void prepare(World w, long t, @Nullable HogwartsOverlay candles, @Nullable SupernaturalOverlay sky) {
             world = w;
             this.candles = candles;
+            this.sky = sky;
             // A themed world covers with its own dark colour, Clean and Seasons with black.
             cover.setColor(coverColor(w));
             time = t;
@@ -420,6 +461,16 @@ final class WorldTransition {
             if (line > 0f && line < h) drawScanEdge(c, w, line, 1f - revealLine(world, t));
             if (world == World.STARWARS) drawStreaks(c, t, w, h);
             if (world == World.HOGWARTS && candles != null) drawFlares(c, t - leaveMs(world));
+            if (world == World.SUPERNATURAL && sky != null) {
+                // Over the cover, so the flash (or the rays) is the first thing of the new scene that shows.
+                if (sky.isDay()) {
+                    float r = raysFor(world, t);
+                    if (r > 0f) sky.drawRays(c, r);
+                } else {
+                    float f = flashFor(world, t);
+                    if (f > 0f) sky.drawFlash(c, f, 0);
+                }
+            }
         }
 
         /** Marvel's boot: the bright edge, a glow above it and fading scanlines in the band just drawn. */

@@ -20,6 +20,49 @@ public class WorldTransitionTest {
         assertEquals(300, WorldTransition.leaveMs(World.HOGWARTS)); assertEquals(600, WorldTransition.enterMs(World.HOGWARTS));
         assertEquals(250, WorldTransition.leaveMs(World.MARVEL)); assertEquals(500, WorldTransition.enterMs(World.MARVEL));
         assertEquals(400, WorldTransition.leaveMs(World.STARWARS)); assertEquals(300, WorldTransition.enterMs(World.STARWARS));
+        assertEquals(300, WorldTransition.leaveMs(World.SUPERNATURAL)); assertEquals(500, WorldTransition.enterMs(World.SUPERNATURAL));
+    }
+
+    /**
+     * Supernatural (spec § 4.3, § 4.5): at night one flash with the wings' shadow, by day the sun's rays flaring up,
+     * both in the new Home's half after the old scene has darkened; nothing left of either when the scene stands.
+     */
+    @Test public void supernaturalFlashesAtNightAndFlaresItsRaysByDay() {
+        World w = World.SUPERNATURAL;
+        long cut = WorldTransition.leaveMs(w), end = cut + WorldTransition.enterMs(w);
+        assertTrue(end <= 900);
+        float flashMax = 0f, raysMax = 0f;
+        for (long t = 0; t <= end; t += 5) {
+            float f = WorldTransition.flashFor(w, t), r = WorldTransition.raysFor(w, t);
+            if (t <= cut) {
+                assertEquals("flash before the cut at " + t, 0f, f, 0f);
+                assertEquals("rays before the cut at " + t, 0f, r, 0f);
+            }
+            assertTrue(f >= 0f && f <= 1f);
+            assertTrue(r >= 0f && r <= WorldTransition.SN_RAYS_PEAK);
+            flashMax = Math.max(flashMax, f);
+            raysMax = Math.max(raysMax, r);
+        }
+        assertTrue(flashMax > 0.9f);
+        assertEquals(WorldTransition.SN_RAYS_PEAK, raysMax, 0.02f);
+        assertEquals(0f, WorldTransition.flashFor(w, end), 0f);
+        assertEquals(0f, WorldTransition.raysFor(w, end), 0f);
+        // Never the screen white (spec § 2): the flash lights only the sky, at most 40 %, the rays at most half.
+        assertTrue(SupernaturalOverlay.SKY_FLASH * flashMax <= 0.40f + 1e-6f);
+        assertTrue(WorldTransition.SN_RAYS_PEAK <= 0.5f);
+        // A themed world's dim cover in its own night colour, no hard black; no scan edge, no zoom.
+        assertEquals(World.SUPERNATURAL.backgroundColor, WorldTransition.coverColor(w));
+        assertEquals(WorldTransition.SUPERNATURAL_PEAK, WorldTransition.coverAlpha(w, cut), 1e-4f);
+        assertEquals(0f, WorldTransition.revealLine(w, cut + 100), 0f);
+        assertEquals(1f, WorldTransition.sceneZoom(w, cut + 100, true), 0f);
+        // The other worlds draw neither.
+        for (World o : World.values()) {
+            if (o == w) continue;
+            assertEquals(0f, WorldTransition.flashFor(o, cut + 100), 0f);
+            assertEquals(0f, WorldTransition.raysFor(o, cut + 100), 0f);
+        }
+        assertTrue(WorldTransition.flashFor(w, cut + 100) > 0f);
+        assertTrue(WorldTransition.raysFor(w, cut + 100) > 0f);
     }
 
     @Test public void seasonsTransitionStaysShort() { assertTrue(WorldTransition.leaveMs(World.SEASONS) + WorldTransition.enterMs(World.SEASONS) <= 900); }
@@ -55,7 +98,7 @@ public class WorldTransitionTest {
     /** Only Clean (and Seasons, seasonsFadesThroughBlack) goes all the way to black (spec § 4.8); the themed worlds dim. */
     @Test public void onlyCleanGoesFullyBlack() {
         assertEquals(1f, WorldTransition.coverAlpha(World.CLEAN, WorldTransition.leaveMs(World.CLEAN)), 1e-4f);
-        for (World w : new World[]{World.HOGWARTS, World.MARVEL, World.STARWARS}) {
+        for (World w : new World[]{World.HOGWARTS, World.MARVEL, World.STARWARS, World.SUPERNATURAL}) {
             for (long t = 0; t <= WorldTransition.leaveMs(w) + WorldTransition.enterMs(w); t += 10) {
                 assertTrue(w + " at " + t, WorldTransition.coverAlpha(w, t) < 0.95f);
             }
