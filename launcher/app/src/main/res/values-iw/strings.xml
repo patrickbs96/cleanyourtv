@@ -151,7 +151,7 @@
     <string name="world_hogwarts">Hogwarts</string>
     <string name="world_marvel">Marvel</string>
     <string name="world_starwars">Star Wars</string>
-    <string name="world_hint">מקשי הצבע בשלט מחליפים ישירות</string>
+    <string name="world_hint">מקשי הצבע או 1 עד 4 בשלט מחליפים ישירות</string>
     <string name="world_scene">סצנה</string>
     <string name="world_scene_auto">אוטומטי (לפי השמש)</string>
     <string name="world_scene_day">יום</string>

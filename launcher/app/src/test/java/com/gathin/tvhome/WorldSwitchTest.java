@@ -14,6 +14,8 @@ public class WorldSwitchTest {
     @Test public void sameWorldIsNoop() { assertNull(up(KeyEvent.KEYCODE_PROG_RED, World.MARVEL, false)); }
     @Test public void otherColourSwitches() { assertSame(World.HOGWARTS, up(KeyEvent.KEYCODE_PROG_YELLOW, World.CLEAN, false)); }
     @Test public void greenGoesBackToClean() { assertSame(World.CLEAN, up(KeyEvent.KEYCODE_PROG_GREEN, World.STARWARS, false)); }
+    @Test public void fourSwitchesToStarWars() { assertSame(World.STARWARS, up(KeyEvent.KEYCODE_4, World.CLEAN, false)); }
+    @Test public void popupBlocksADigitToo() { assertNull(up(KeyEvent.KEYCODE_2, World.CLEAN, true)); }
     @Test public void popupBlocksSwitch() { assertNull(up(KeyEvent.KEYCODE_PROG_YELLOW, World.CLEAN, true)); }
     @Test public void downEventIsIgnored() {
         assertNull(WorldSwitch.target(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_PROG_BLUE, 0, World.CLEAN, false));

@@ -18,6 +18,15 @@ public class WorldTest {
         assertSame(World.STARWARS, World.forKeyCode(KeyEvent.KEYCODE_PROG_BLUE));
         assertNull(World.forKeyCode(KeyEvent.KEYCODE_DPAD_CENTER));
     }
+    @Test public void digitsOneToFourPickTheWorldsInMenuOrder() {
+        assertSame(World.CLEAN, World.forKeyCode(KeyEvent.KEYCODE_1));
+        assertSame(World.HOGWARTS, World.forKeyCode(KeyEvent.KEYCODE_2));
+        assertSame(World.MARVEL, World.forKeyCode(KeyEvent.KEYCODE_3));
+        assertSame(World.STARWARS, World.forKeyCode(KeyEvent.KEYCODE_4));
+        assertNull(World.forKeyCode(KeyEvent.KEYCODE_0));
+        assertNull(World.forKeyCode(KeyEvent.KEYCODE_5));   // free for a fifth world
+        assertNull(World.forKeyCode(KeyEvent.KEYCODE_9));
+    }
     @Test public void scanCodesMapLikeKeys() { assertSame(World.MARVEL, World.forScanCode(398)); assertSame(World.CLEAN, World.forScanCode(399)); assertSame(World.HOGWARTS, World.forScanCode(400)); assertSame(World.STARWARS, World.forScanCode(401)); assertNull(World.forScanCode(1)); }
     @Test public void hogwartsGreetsLumosByDayNoxByNight() { assertEquals("Lumos", World.HOGWARTS.greetingPrefix(true)); assertEquals("Nox", World.HOGWARTS.greetingPrefix(false)); assertEquals("", World.CLEAN.greetingPrefix(true)); assertEquals("Äußerer Rand", World.STARWARS.greetingSuffix()); }
     @Test public void onlyCleanKeepsTextPills() { assertFalse(World.CLEAN.forcesIconOnlyPills()); assertTrue(World.MARVEL.forcesIconOnlyPills()); }

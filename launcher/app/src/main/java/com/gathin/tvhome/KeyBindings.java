@@ -193,12 +193,11 @@ final class KeyBindings {
     }
 
     /**
-     * Buttons Home already gives a job, so a binding would cover it: the colour buttons switch the worlds
-     * (World.forKey), and Settings opens the settings in HomeKeyService before any keycode binding is asked.
+     * Buttons Home already gives a job, so a binding would cover it: the colour buttons and 1 to 4 switch the worlds
+     * (World.forKeyCode), and Settings opens the settings in HomeKeyService before any keycode binding is asked.
      */
     static boolean taken(int keycode) {
-        return keycode == KeyEvent.KEYCODE_SETTINGS
-                || (keycode >= KeyEvent.KEYCODE_PROG_RED && keycode <= KeyEvent.KEYCODE_PROG_BLUE);
+        return keycode == KeyEvent.KEYCODE_SETTINGS || World.forKeyCode(keycode) != null;
     }
 
     /**

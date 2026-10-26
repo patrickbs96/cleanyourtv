@@ -65,14 +65,21 @@ enum World {
         prefs.edit().putString(PREF_KEY, id).commit();
     }
 
-    /** The world a colour key picks, or null for any other key. */
+    /**
+     * The world a colour key or a digit picks, or null for any other key. The digits follow this enum's order
+     * (1 Clean, 2 Hogwarts, 3 Marvel, 4 Star Wars), so a world added at the end takes the next one, up to 9.
+     * They are the clean way to Star Wars on the Philips: its firmware also opens the TV help on blue.
+     */
     static World forKeyCode(int keyCode) {
         switch (keyCode) {
             case KeyEvent.KEYCODE_PROG_GREEN: return CLEAN;
             case KeyEvent.KEYCODE_PROG_YELLOW: return HOGWARTS;
             case KeyEvent.KEYCODE_PROG_RED: return MARVEL;
             case KeyEvent.KEYCODE_PROG_BLUE: return STARWARS;
-            default: return null;
+            default:
+                int digit = keyCode - KeyEvent.KEYCODE_1;   // KEYCODE_1 to KEYCODE_9 are consecutive
+                World[] all = values();
+                return digit >= 0 && digit < Math.min(9, all.length) ? all[digit] : null;
         }
     }
 
