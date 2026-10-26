@@ -38,17 +38,24 @@ final class MiddleEarthOverlay extends WorldOverlay {
     /** The eye's pulse: its strength between EYE_MIN and 1 over one breath; EYE_REST while nothing moves. */
     static final long EYE_PULSE_MS = 2700;
     static final float EYE_MIN = 0.7f, EYE_REST = 0.85f;
-    /** The eye's glow, half axes in units: below the pills (y 34) and inside the crown's width. */
-    static final float EYE_GLOW_RX = 6.5f, EYE_GLOW_RY = 4.8f;
-    /** Smoke: how far a puff rises and drifts right over its life (units), its radius at the end, its life. */
-    static final float SMOKE_RISE = 8.5f, SMOKE_DRIFT = 4f, SMOKE_R_MIN = 1.0f, SMOKE_R_MAX = 2.6f;
+    /**
+     * The eye's glow, half axes in units: the mockup's 0.07 of the width round the eye. Its top (y 25.6) stays just
+     * below the pills (PersonalMotions.PILLS, bottom y 23), its left (x 132.6) right of the logo's free area.
+     */
+    static final float EYE_GLOW_RX = 0.07f * MiddleEarthScene.UNITS_W, EYE_GLOW_RY = EYE_GLOW_RX;
+    /**
+     * Smoke: how far a puff rises and drifts right over its life (units), its radius at the end, its life. The chimney
+     * (x 171) stands under the pills (x 128 to 192), so the smoke ends one unit below them, at y 24 (the mockup's
+     * 0.2 of the height would reach y 21).
+     */
+    static final float SMOKE_RISE = 19f, SMOKE_DRIFT = 4f, SMOKE_R_MIN = 1.0f, SMOKE_R_MAX = 2.6f;
     static final long SMOKE_LIFE_MS = 12500;
     private static final int PUFFS = 10;
     /** Mist: the puffs' half axes in units; MORNING and DAY have their bands (MiddleEarthScene.MIST_*). */
     static final float MIST_RX_MORNING = 26f, MIST_RX_DAY = 32f, MIST_RY = 4.5f;
     private static final int MIST_MORNING_PUFFS = 6, MIST_DAY_PUFFS = 8;
     /** The crater's glow: an ellipse round (CRATER x, CRATER_GLOW_Y), its top below the header. */
-    static final float CRATER_GLOW_Y = 40.5f, CRATER_GLOW_RX = 12f, CRATER_GLOW_RY = 6f;
+    static final float CRATER_GLOW_Y = MiddleEarthScene.CRATER[1] + 0.5f, CRATER_GLOW_RX = 12f, CRATER_GLOW_RY = 6f;
     /** Sparks rise from the crater's rim this far (units), no higher than the header's bottom, and fade out. */
     static final float EMBER_RISE = MiddleEarthScene.CRATER[1] - MiddleEarthScene.HEADER[3] - 0.3f;
     static final long EMBER_LIFE_MS = 4200;

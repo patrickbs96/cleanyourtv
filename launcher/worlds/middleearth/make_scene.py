@@ -49,7 +49,7 @@ TAU = 2 * np.pi
 
 # ---- named numbers, in units (192 x 108); MiddleEarthScene.java holds the same ------------------------------------
 DOCK = 76.6                              # the dock's top edge (y 766 of 1080): the company walks on it
-PILLS = (128.0, 23.0, 192.0, 34.0)       # the pills' zone (PersonalMotions.PILLS): left, top, right, bottom
+PILLS = (128.0, 11.0, 192.0, 23.0)       # the pills' zone (PersonalMotions.PILLS): left, top, right, bottom
 HEADER = (0.0, 0.0, 76.0, 34.0)          # greeting, clock, date and weather on the top left: left, top, right, bottom
                                          # (the crater's sparks stop below its bottom)
 # The logo picture (spec § 4.4): centred at x 57 %, y 11 %, at most 18 % wide and 8 % high, as x, y, width, height;

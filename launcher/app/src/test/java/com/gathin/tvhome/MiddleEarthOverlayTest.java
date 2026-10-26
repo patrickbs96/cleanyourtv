@@ -71,12 +71,21 @@ public class MiddleEarthOverlayTest {
         assertTrue(WorldOverlay.shouldRun(World.MIDDLE_EARTH, true, false, true, false));
     }
 
-    /** The eye's glow, the smoke and the sparks stay below the pills and the header (they end at y 34). */
+    /**
+     * The eye's glow and the smoke stay below the pills (PILLS, bottom y 23), the sparks and the crater's glow below
+     * the header (HEADER, bottom y 34).
+     */
     @Test public void glowsSmokeAndSparksKeepClearOfHeaderAndPills() {
         float[] eye = MiddleEarthScene.EYE;
         assertTrue(eye[1] - MiddleEarthOverlay.EYE_GLOW_RY >= PILLS[3]);
+        // Both stand under the pills' width, so their height is what keeps them clear; and right of the logo's area.
+        assertTrue(eye[0] - MiddleEarthOverlay.EYE_GLOW_RX < PILLS[2] && eye[0] + MiddleEarthOverlay.EYE_GLOW_RX > PILLS[0]);
+        float[] free = MiddleEarthScene.LOGO_FREE;
+        assertTrue(eye[0] - MiddleEarthOverlay.EYE_GLOW_RX >= free[0] + free[2]);
         float[] chimney = MiddleEarthScene.CHIMNEY_TOP;
+        assertTrue(chimney[0] > PILLS[0] && chimney[0] < PILLS[2]);
         assertTrue(chimney[1] - MiddleEarthOverlay.SMOKE_RISE - MiddleEarthOverlay.SMOKE_R_MAX >= PILLS[3]);
+        assertTrue(chimney[0] - 2f - MiddleEarthOverlay.SMOKE_R_MAX >= free[0] + free[2]);
         float[] crater = MiddleEarthScene.CRATER;
         float[] header = MiddleEarthScene.HEADER;
         assertTrue(MiddleEarthOverlay.EMBER_RISE > 3f);
@@ -94,10 +103,11 @@ public class MiddleEarthOverlayTest {
 
     /** Ash falls everywhere above the dock but in the header, where the greeting, clock and date stand. */
     @Test public void ashKeepsOutOfTheHeader() {
-        assertTrue(MiddleEarthOverlay.inHeader(10f, 10f));
-        assertTrue(MiddleEarthOverlay.inHeader(75f, 33f));
-        assertFalse(MiddleEarthOverlay.inHeader(80f, 10f));
-        assertFalse(MiddleEarthOverlay.inHeader(10f, 40f));
+        float[] h = MiddleEarthScene.HEADER;
+        assertTrue(MiddleEarthOverlay.inHeader(h[0] + 10f, h[1] + 10f));
+        assertTrue(MiddleEarthOverlay.inHeader(h[2] - 1f, h[3] - 1f));
+        assertFalse(MiddleEarthOverlay.inHeader(h[2] + 4f, h[1] + 10f));
+        assertFalse(MiddleEarthOverlay.inHeader(h[0] + 10f, h[3] + 6f));
     }
 
     /**
