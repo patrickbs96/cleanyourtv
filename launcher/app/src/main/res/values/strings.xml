@@ -187,6 +187,8 @@
     <string name="key_learn_waiting">Press the button now…</string>
     <string name="key_learn_never">Arrows, OK, Back, Home, Power and volume can\'t be bound</string>
     <string name="key_learn_timeout">No button pressed</string>
+    <!-- The colour buttons switch the worlds, the Settings button opens the settings: they can't be learned. -->
+    <string name="key_learn_taken">This button is already taken (worlds/settings)</string>
     <!-- %1$s the name the button was learned under. -->
     <string name="key_learn_known">Already learned: %1$s</string>
     <string name="key_service_off">The remote helper is off, so the bindings do nothing yet</string>
@@ -201,6 +203,10 @@
     <string name="key_slot_tap">Tap</string>
     <string name="key_slot_double">Double tap</string>
     <string name="key_slot_hold">Hold</string>
+    <!-- An empty tap while the button has a double tap or a hold: a tap then does nothing at all. -->
+    <string name="key_tap_silent">Nothing (button silent)</string>
+    <!-- Asked right after a double tap or hold is set while the tap is empty. %1$s the button's name. -->
+    <string name="key_tap_ask">%1$s · Set the tap?</string>
     <string name="target_nothing">Nothing</string>
     <string name="target_inputs">Sources menu</string>
     <string name="target_close_apps">Close all apps</string>

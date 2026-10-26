@@ -117,6 +117,13 @@ public final class KeyBindingsActivity extends Activity implements KeyBindings.L
         });
     }
 
+    /** A colour button or Settings in learn mode, by a key service or by this page: they keep their job. */
+    @Override
+    public void taken() {
+        if (!learning) return;
+        Toast.makeText(this, R.string.key_learn_taken, Toast.LENGTH_SHORT).show();
+    }
+
     /**
      * Learn mode without a key service: the press reaches this page instead, so it is caught here (bindings need the
      * service to work, the hint says so). With a service on, the services take the learnable presses first.
@@ -132,6 +139,12 @@ public final class KeyBindingsActivity extends Activity implements KeyBindings.L
             if (code == KeyEvent.KEYCODE_BACK) {
                 stopLearning();
                 swallowUp = code;
+                return true;
+            }
+            if (KeyBindings.taken(code)) {
+                // It keeps switching the worlds or opening the settings; learn mode keeps waiting.
+                swallowUp = code;
+                taken();
                 return true;
             }
             if (KeyBindings.learnable(code, event.getScanCode())) {
@@ -197,14 +210,31 @@ public final class KeyBindingsActivity extends Activity implements KeyBindings.L
 
     private void slotRow(KeyBindings.Key key, String slot, int rowText, int slotName) {
         String tag = slot + "." + key.n;
-        TextView row = row(tag, getString(rowText, AppPickerDialog.label(this, KeyBindings.get(prefs, key.n, slot))),
-                10, true);
+        // An empty tap next to a double tap or a hold no longer passes the press on: the key is silent, and says so.
+        String label = KeyBindings.TAP.equals(slot) && KeyBindings.silentTap(prefs, key.n)
+                ? getString(R.string.key_tap_silent)
+                : AppPickerDialog.label(this, KeyBindings.get(prefs, key.n, slot));
+        TextView row = row(tag, getString(rowText, label), 10, true);
         row.setOnClickListener(v -> AppPickerDialog.show(this, key.name + " · " + getString(slotName),
                 KeyBindings.get(prefs, key.n, slot), target -> {
                     KeyBindings.set(prefs, key.n, slot, target);
                     changed();
                     rebuild(tag);
+                    if (!KeyBindings.TAP.equals(slot) && KeyBindings.silentTap(prefs, key.n)) askTap(key);
                 }));
+    }
+
+    /**
+     * A double tap or a hold was just set while the tap is empty: the key would go silent on a tap, so the page asks
+     * for the tap right away. Cancel keeps it silent.
+     */
+    private void askTap(KeyBindings.Key key) {
+        String tag = TAP_TAG + key.n;
+        AppPickerDialog.show(this, getString(R.string.key_tap_ask, key.name), "", target -> {
+            KeyBindings.set(prefs, key.n, KeyBindings.TAP, target);
+            changed();
+            rebuild(tag);
+        });
     }
 
     /** A settings row under the list; a slot row is set in under its button's name. */

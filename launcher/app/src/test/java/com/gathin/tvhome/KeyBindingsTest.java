@@ -127,8 +127,34 @@ public class KeyBindingsTest {
                 KeyEvent.KEYCODE_VOLUME_MUTE, KeyEvent.KEYCODE_HOME, KeyEvent.KEYCODE_POWER};
         for (int code : never) assertFalse(String.valueOf(code), KeyBindings.learnable(code, 100));
         assertTrue(KeyBindings.learnable(KeyEvent.KEYCODE_UNKNOWN, 695));
-        assertTrue(KeyBindings.learnable(KeyEvent.KEYCODE_PROG_YELLOW, 0));
+        assertTrue(KeyBindings.learnable(KeyEvent.KEYCODE_BUTTON_3, 0));
+        assertTrue(KeyBindings.learnable(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, 164));
         assertFalse(KeyBindings.learnable(KeyEvent.KEYCODE_UNKNOWN, 0));   // nothing to tell it apart by
+    }
+
+    @Test public void theColourButtonsAndSettingsAreTakenAndNeverLearned() {
+        int[] taken = {KeyEvent.KEYCODE_PROG_RED, KeyEvent.KEYCODE_PROG_GREEN, KeyEvent.KEYCODE_PROG_YELLOW,
+                KeyEvent.KEYCODE_PROG_BLUE, KeyEvent.KEYCODE_SETTINGS};
+        for (int code : taken) {
+            assertTrue(String.valueOf(code), KeyBindings.taken(code));
+            assertFalse(String.valueOf(code), KeyBindings.learnable(code, 400));
+        }
+        assertFalse(KeyBindings.taken(KeyEvent.KEYCODE_UNKNOWN));
+        assertFalse(KeyBindings.taken(KeyEvent.KEYCODE_BUTTON_3));
+        assertFalse(KeyBindings.taken(KeyEvent.KEYCODE_HOME));   // never learnable, but for another reason
+    }
+
+    @Test public void anEmptyTapIsSilentOnlyNextToADoubleTapOrAHold() {
+        FakePrefs p = new FakePrefs();
+        int n = KeyBindings.add(p, "Netflix", 0, 695);
+        assertFalse(KeyBindings.silentTap(p, n));             // nothing set: the button does what it did before
+        KeyBindings.set(p, n, "double", "inputs");
+        assertTrue(KeyBindings.silentTap(p, n));
+        KeyBindings.set(p, n, "double", "");
+        KeyBindings.set(p, n, "hold", "close_apps");
+        assertTrue(KeyBindings.silentTap(p, n));
+        KeyBindings.set(p, n, "tap", "com.netflix.ninja");
+        assertFalse(KeyBindings.silentTap(p, n));
     }
 
     @Test public void theCaughtPressIsKnownByItsDownTime() {

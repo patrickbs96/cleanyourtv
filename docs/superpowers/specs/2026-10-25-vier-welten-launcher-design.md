@@ -261,6 +261,13 @@ Launcher-Einstellungen mit Lernmodus (Taste drücken → Code gemerkt → Name v
 Doppelklick / Halten mit App-Auswahl; gespeichert in `SharedPreferences`, überlagert `config.xml`/Theme, sofort
 wirksam. Dazu „Alle Apps schließen“ (§ 4.10f).
 
+**Nachtrag (26.10., Final-Review):** Nicht lernbar sind außer Pfeilen, OK, Zurück, Home, Power und Lautstärke auch
+die Farbtasten (Weltwechsel) und `KEYCODE_SETTINGS` (öffnet in `HomeKeyService` vor jeder Belegung die
+Einstellungen); der Lernversuch zeigt „Diese Taste ist schon belegt (Welten/Einstellungen)“ und wartet weiter. Eine
+Taste mit Doppelklick oder Halten, aber leerem Einzelklick ist beim Einzelklick stumm (sie wird geschluckt): Die Seite
+zeigt dann „Nichts (Taste stumm)“ und fragt beim Setzen von Doppelklick/Halten sofort „Einzelklick belegen?“ mit der
+App-Auswahl (Abbrechen lässt sie stumm).
+
 ### 4.10f „Alle Apps schließen“ (Nachtrag 25.10., Ersatz für ein Premium-Feature des Button Mappers)
 
 Doppelklick auf die Home-Taste (erster Druck geht sofort ans System, kein Zurückhalten), eine Zeile im

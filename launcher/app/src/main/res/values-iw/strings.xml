@@ -175,6 +175,7 @@
     <string name="key_learn_waiting">לחצו עכשיו על המקש…</string>
     <string name="key_learn_never">לא ניתן למפות חצים, OK, חזרה, בית, הפעלה ועוצמת קול</string>
     <string name="key_learn_timeout">לא נלחץ מקש</string>
+    <string name="key_learn_taken">המקש הזה כבר תפוס (עולמות/הגדרות)</string>
     <string name="key_learn_known">כבר נלמד: %1$s</string>
     <string name="key_service_off">שירות המקשים כבוי, לכן המיפוי עדיין לא פועל</string>
     <string name="key_name">שם המקש</string>
@@ -186,6 +187,8 @@
     <string name="key_slot_tap">לחיצה</string>
     <string name="key_slot_double">לחיצה כפולה</string>
     <string name="key_slot_hold">החזקה</string>
+    <string name="key_tap_silent">כלום (המקש מושתק)</string>
+    <string name="key_tap_ask">%1$s · להגדיר לחיצה?</string>
     <string name="target_nothing">כלום</string>
     <string name="target_inputs">תפריט מקורות</string>
     <string name="target_close_apps">סגירת כל האפליקציות</string>

@@ -98,6 +98,7 @@
     <string name="key_learn_waiting">Drücke jetzt die Taste…</string>
     <string name="key_learn_never">Pfeile, OK, Zurück, Home, Power und Lautstärke lassen sich nicht belegen</string>
     <string name="key_learn_timeout">Keine Taste erkannt</string>
+    <string name="key_learn_taken">Diese Taste ist schon belegt (Welten/Einstellungen)</string>
     <string name="key_learn_known">Schon gelernt: %1$s</string>
     <string name="key_service_off">Der Tastendienst ist aus, die Belegungen wirken noch nicht</string>
     <string name="key_name">Name der Taste</string>
@@ -109,6 +110,8 @@
     <string name="key_slot_tap">Einzelklick</string>
     <string name="key_slot_double">Doppelklick</string>
     <string name="key_slot_hold">Halten</string>
+    <string name="key_tap_silent">Nichts (Taste stumm)</string>
+    <string name="key_tap_ask">%1$s · Einzelklick belegen?</string>
     <string name="target_nothing">Nichts</string>
     <string name="target_inputs">Quellen-Menü</string>
     <string name="target_close_apps">Alle Apps schließen</string>

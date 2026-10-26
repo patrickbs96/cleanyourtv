@@ -646,7 +646,9 @@ and a wallpaper.
   - **Key bindings** (this fork): **Learn a button**, press a remote button within 15 seconds and name it; then
     pick what its tap, double tap and hold do (an app, the Sources menu, Close all apps or Nothing), and the Home
     button's double tap. OK on a button's name renames or removes it, after a confirmation. The arrows, OK, Back,
-    Home, Power and volume can't be learned. Needs `HomeKeyService` or `InputKeyService`; the bindings are laid over
+    Home, Power and volume can't be learned, nor the colour buttons and Settings, which keep switching the worlds
+    and opening the settings. A button with a double tap or hold but no tap is silent on a tap; the page says so
+    and asks for the tap as soon as the double tap or hold is set. Needs `HomeKeyService` or `InputKeyService`; the bindings are laid over
     `app_keys`, and Follow theme and a theme push leave them alone. **Close all apps** ends the background
     processes of every installed app (`KILL_BACKGROUND_PROCESSES`) except this launcher, Live TV, Android's and
     Philips' system packages, Play Services and Store, the Assistant and Chromecast. Home's double tap does it by

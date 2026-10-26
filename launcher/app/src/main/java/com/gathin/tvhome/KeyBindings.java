@@ -187,11 +187,27 @@ final class KeyBindings {
         return entries;
     }
 
+    /** Whether a learned button's tap does nothing although it has a double tap or a hold: the key is then silent. */
+    static boolean silentTap(SharedPreferences prefs, int n) {
+        return get(prefs, n, TAP).isEmpty() && !(get(prefs, n, DOUBLE).isEmpty() && get(prefs, n, HOLD).isEmpty());
+    }
+
+    /**
+     * Buttons Home already gives a job, so a binding would cover it: the colour buttons switch the worlds
+     * (World.forKey), and Settings opens the settings in HomeKeyService before any keycode binding is asked.
+     */
+    static boolean taken(int keycode) {
+        return keycode == KeyEvent.KEYCODE_SETTINGS
+                || (keycode >= KeyEvent.KEYCODE_PROG_RED && keycode <= KeyEvent.KEYCODE_PROG_BLUE);
+    }
+
     /**
      * Whether a press can be learned. The arrows, OK, Back, Home, Power and volume never are (the remote must still
-     * work, and the volume keep its repeat), nor a press that has neither keycode nor scancode to tell it by.
+     * work, and the volume keep its repeat), nor the taken ones (colour buttons, Settings), nor a press that has
+     * neither keycode nor scancode to tell it by.
      */
     static boolean learnable(int keycode, int scancode) {
+        if (taken(keycode)) return false;
         switch (keycode) {
             case KeyEvent.KEYCODE_DPAD_UP: case KeyEvent.KEYCODE_DPAD_DOWN: case KeyEvent.KEYCODE_DPAD_LEFT:
             case KeyEvent.KEYCODE_DPAD_RIGHT: case KeyEvent.KEYCODE_DPAD_CENTER: case KeyEvent.KEYCODE_ENTER:
@@ -213,6 +229,9 @@ final class KeyBindings {
     /** Gets the press learn mode caught; on the main thread, after the key service has returned. */
     interface Learner {
         void learned(int keycode, int scancode);
+
+        /** A taken button (colour button or Settings) was pressed; learn mode keeps waiting. */
+        void taken();
     }
 
     /** Learn mode's start (uptime), 0 when off; the activity that waits; the press being caught, whose release is swallowed too. */
@@ -249,7 +268,8 @@ final class KeyBindings {
 
     /**
      * For the key services, before anything else: in learn mode the next learnable press goes to the activity and
-     * is swallowed, its release too. Other keys pass, so the arrows and Back still work on the page. True: consumed.
+     * is swallowed, its release too; a taken button (taken()) is swallowed the same way and only reported. Other keys
+     * pass, so the arrows and Back still work on the page. True: consumed.
      */
     static boolean learn(KeyEvent event) {
         if (caughtPress(event.getKeyCode(), event.getScanCode(), event.getDownTime())) {
@@ -261,14 +281,20 @@ final class KeyBindings {
         }
         Learner waiting = learner;
         if (waiting == null || !learningAt(learnStart, SystemClock.uptimeMillis())) return false;
-        if (event.getAction() != KeyEvent.ACTION_DOWN || !learnable(event.getKeyCode(), event.getScanCode())) {
-            return false;
-        }
+        if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
         int keycode = event.getKeyCode();
         int scancode = event.getScanCode();
+        if (main == null) main = new Handler(Looper.getMainLooper());
+        if (taken(keycode)) {
+            // A colour button or Settings: swallowed with its release, so it neither switches a world nor opens the
+            // settings over the page; the page says why, and learn mode keeps waiting.
+            catchPress(keycode, scancode, event.getDownTime());
+            main.post(waiting::taken);
+            return true;
+        }
+        if (!learnable(keycode, scancode)) return false;
         catchPress(keycode, scancode, event.getDownTime());
         stopLearning();
-        if (main == null) main = new Handler(Looper.getMainLooper());
         main.post(() -> waiting.learned(keycode, scancode));
         return true;
     }
