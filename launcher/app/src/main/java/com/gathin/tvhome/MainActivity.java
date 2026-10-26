@@ -531,11 +531,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         heroDots = findViewById(R.id.heroDots);
         heroArt = findViewById(R.id.heroArt);
         // The world's motion: right above the scene's two pictures, under the sky backdrop and heroArt.
-        worldOverlay = WorldOverlay.create(this, world, worldScene.isDay(), seasonsToday);
+        worldOverlay = WorldOverlay.create(this, world, worldScene.showsDay(), seasonsToday);
         if (worldOverlay != null) {
             root.addView(worldOverlay, root.indexOfChild(sky), new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-            worldScene.setListener(() -> worldOverlay.setDay(worldScene.isDay()));
+            // The overlay switches day and night with the picture, not before its decode and fade.
+            worldScene.setListener(() -> worldOverlay.setDay(worldScene.showsDay()));
         }
         // The world's dock move: its sparks and scan go over the dock and the frame, added once and reused. The frame
         // is in oledLayer, so they go right above that layer. Seasons moves and starts apps as Clean does: neither.
@@ -2942,18 +2943,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (world != World.SEASONS) return;
         LocalDate day = seasonsDay();
         SeasonsToday next = seasonsToday(day);
-        if (day.equals(seasonsDate) && seasonsToday != null && next.look == seasonsToday.look) {
-            // The same day and look; the overlay still follows a mood change the scene did not show (no picture).
-            if (worldOverlay != null) worldOverlay.setDay(worldScene.isDay());
-            return;
-        }
+        // The same day and look: nothing new. A mood change is the scene's (its minute update); the overlay follows the
+        // scene's listener, when the new picture shows (or at once where the look shows no change, WorldScene.MOOD).
+        if (day.equals(seasonsDate) && seasonsToday != null && next.look == seasonsToday.look) return;
         seasonsDate = day;
         seasonsToday = next;
         worldScene.setLook(day, next.look);
-        if (worldOverlay instanceof SeasonsOverlay) {
-            worldOverlay.setDay(worldScene.isDay());
-            ((SeasonsOverlay) worldOverlay).setToday(next);
-        }
+        if (worldOverlay instanceof SeasonsOverlay) ((SeasonsOverlay) worldOverlay).setToday(next);
         // Reorder mode keeps its own blue until it ends (endReorder puts the accent back).
         if (!reordering) glass.setAccent(worldAccent(), true);
     }

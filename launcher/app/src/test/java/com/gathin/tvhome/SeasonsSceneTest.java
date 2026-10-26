@@ -42,6 +42,21 @@ public class SeasonsSceneTest {
         assertFalse(WorldScene.needsReload(d, Look.WINTER, d, Look.WINTER, false, false));
     }
 
+    /**
+     * The overlay follows the scene: a season's mood change reloads, and the overlay switches when the new picture
+     * shows (RELOAD, the scene's listener after the fade), not a decode early; a look that shows no mood change
+     * (the same picture or a plain colour by day and night) lets it switch at once (MOOD); nothing new is KEEP.
+     */
+    @Test public void theOverlayFollowsTheScenesMood() {
+        LocalDate d = LocalDate.of(2027, 1, 10);
+        assertEquals(WorldScene.RELOAD, WorldScene.seasonsChange(d, Look.WINTER, d, Look.WINTER, true, false));
+        assertEquals(WorldScene.RELOAD, WorldScene.seasonsChange(d, Look.SPRING, d, Look.SPRING, false, true));
+        assertEquals(WorldScene.MOOD, WorldScene.seasonsChange(d, Look.HALLOWEEN, d, Look.HALLOWEEN, true, false));
+        assertEquals(WorldScene.KEEP, WorldScene.seasonsChange(d, Look.WINTER, d, Look.WINTER, true, true));
+        assertEquals(WorldScene.KEEP, WorldScene.seasonsChange(d, Look.HALLOWEEN, d, Look.HALLOWEEN, false, false));
+        assertEquals(WorldScene.RELOAD, WorldScene.seasonsChange(null, null, d, Look.WINTER, null, true));
+    }
+
     /** Advent on its next day keeps its picture (the candles are the overlay's); no decode at midnight. */
     @Test public void theSameLookOnANewDayKeepsItsPicture() {
         LocalDate d1 = LocalDate.of(2026, 12, 7);

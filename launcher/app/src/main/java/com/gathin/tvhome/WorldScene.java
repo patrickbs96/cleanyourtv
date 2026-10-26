@@ -205,6 +205,21 @@ final class WorldScene {
         return nowLook != null && (nowLook.hasNight || dimFor(nowLook, true) != dimFor(nowLook, false));
     }
 
+    /** {@link #seasonsChange}: nothing to do, only the mood moves on (the overlay follows at once), or a new picture. */
+    static final int KEEP = 0, MOOD = 1, RELOAD = 2;
+
+    /**
+     * What Seasons' scene does on an update: {@link #RELOAD} as {@link #needsReload} (the overlay then follows the mood
+     * when the new picture shows, not before its decode and fade); {@link #MOOD} when only the mood has changed and the
+     * look shows it nowhere (the same picture by day and night, or a plain colour), so the overlay follows at once;
+     * otherwise {@link #KEEP}.
+     */
+    static int seasonsChange(LocalDate shownDate, Look shownLook, LocalDate now, Look nowLook, Boolean shownDay,
+                             boolean day) {
+        if (needsReload(shownDate, shownLook, now, nowLook, shownDay, day)) return RELOAD;
+        return shownDay != day ? MOOD : KEEP;
+    }
+
     /** How much a look's picture is darkened: {@link #NIGHT_DIM} for a bright look at night, otherwise none. */
     static float dimFor(Look look, boolean day) {
         return look != null && look.bright && !day ? NIGHT_DIM : 0f;
@@ -238,6 +253,14 @@ final class WorldScene {
             sun = WallpaperMood.sun(sunDay, latitude, longitude, ZoneId.systemDefault());
         }
         return isDay(forced, now.getHour() * 60 + now.getMinute(), sun[0], sun[1]);
+    }
+
+    /**
+     * Day or night as the scene shows it now: the mood of the picture on screen (or of Seasons' plain colour), which
+     * lags {@link #isDay} by a picture's decode and fade; isDay() before anything shows. The overlay follows this.
+     */
+    boolean showsDay() {
+        return shownDay != null ? shownDay : isDay();
     }
 
     void start() {
@@ -274,7 +297,12 @@ final class WorldScene {
         if (bottom == null || !active || fading) return;
         boolean day = isDay();
         if (world == World.SEASONS) {
-            if (!needsReload(shownDate, shownLook, date, look, shownDay, day)) return;
+            int change = seasonsChange(shownDate, shownLook, date, look, shownDay, day);
+            if (change == MOOD) {
+                shownDay = day;
+                if (listener != null) listener.run();
+            }
+            if (change != RELOAD) return;
         } else if (shownDay != null && shownDay == day) {
             return;
         }
@@ -300,13 +328,15 @@ final class WorldScene {
         shownDay = day;
         shownLook = look;
         shownDate = date;
-        if (shown == null) return;
-        Bitmap old = shown;
-        shown = null;
-        bottom.setImageDrawable(null);
-        bottom.clearColorFilter();
-        root.setBackgroundColor(world.backgroundColor);
-        bottom.postDelayed(old::recycle, 500);
+        if (shown != null) {
+            Bitmap old = shown;
+            shown = null;
+            bottom.setImageDrawable(null);
+            bottom.clearColorFilter();
+            root.setBackgroundColor(world.backgroundColor);
+            bottom.postDelayed(old::recycle, 500);
+        }
+        // The mood may have changed with the look (a bright look's dimming): the overlay follows the scene.
         if (listener != null) listener.run();
     }
 

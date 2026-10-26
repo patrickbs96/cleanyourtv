@@ -10,11 +10,13 @@ characters or film imagery are used: silhouettes and gradients only.
 | `hogwarts/make_scene.py` | `world_hogwarts_night.jpg` (castle on a cliff, lake, moon), `world_hogwarts_day.jpg` (great hall, cloud ceiling, owls) |
 | `marvel/make_scene.py` | `world_marvel_night.jpg` (crimson skyline, light streak, beacon tower), `world_marvel_day.jpg` (same skyline in warm backlight) |
 | `starwars/make_scene.py` | `world_starwars_day.jpg` (twin suns over dunes, dome, vaporators), `world_starwars_night.jpg` (stars, ringed planet) |
+| `seasons/make_scene.py` | Jahreskreis' looks, found by name (`WorldScene.drawableName`): `world_seasons_<season>_day.jpg` and `_night.jpg` for winter (snowy hills, firs; by night moon and stars), spring (green hills, a cherry in blossom), summer (the sea in the evening light, a low sun; by night a moon and its path) and autumn (a forest of spires, trees in rust and amber); painted in `seasons/seasons.py` |
 
 ```
 tools/venv/Scripts/pip install pillow numpy
-for w in hogwarts marvel starwars; do tools/venv/Scripts/python launcher/worlds/$w/make_scene.py; done
-tools/venv/Scripts/python launcher/worlds/common.py    # checks all six again
+for w in hogwarts marvel starwars seasons; do tools/venv/Scripts/python launcher/worlds/$w/make_scene.py; done
+tools/venv/Scripts/python launcher/worlds/seasons/make_scene.py winter autumn   # only some of Jahreskreis' looks
+tools/venv/Scripts/python launcher/worlds/common.py    # checks them all again
 ```
 
 `common.py` holds the shared helpers: shapes in the mockup's 192 x 108 units
@@ -39,6 +41,7 @@ writes the same bytes again:
 | Hogwarts | 1903 | night 11, day 12 |
 | Marvel | 1963 | night 21, day 22 |
 | Star Wars | 1977 | day 31, night 32 |
+| Jahreskreis: winter, spring, summer, autumn | 2112, 2103, 2106, 2309 (plus fixed seeds for the cherry's crown and the autumn trees) | day 41/43/45/47, night 42/44/46/48 |
 
 Rules for a changed or new picture:
 
@@ -47,7 +50,13 @@ Rules for a changed or new picture:
   mean luminance at most 40 each. `common.py` checks it; a script that exits with 1 has a picture to fix.
 - **No logos, no characters or figures, no film imagery, no trademarked lettering**: silhouettes, gradients and
   light only. The worlds are moods, not fan art.
-- Moving things belong in the overlay (`HogwartsOverlay`, `MarvelOverlay`, `StarWarsOverlay`), not in the picture.
+- Moving things belong in the overlay (`HogwartsOverlay`, `MarvelOverlay`, `StarWarsOverlay`; Jahreskreis'
+  `SeasonsOverlay` with one `LookMotion` per look, `SeasonMotions` for the seasons' snow, blossoms, fireflies and
+  leaves), not in the picture.
+- **Jahreskreis** (spec § 3): what matters stands right of the app name, directly above the dock (its top edge at
+  y 766 of 1080), never behind it and never in the header on the top left (greeting, clock, date, weather). Hills are
+  drawn per pixel column, so they meet the right edge without a seam. Night versions stay dark (OLED rule); a bright
+  look (spring) is dimmed once more at night by the scene (`WorldScene.NIGHT_DIM`).
 
 ## Using the worlds on the TV
 

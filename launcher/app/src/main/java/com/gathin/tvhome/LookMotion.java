@@ -31,7 +31,9 @@ interface LookMotion {
 
     /** The motion for this look on this day (Advent's candles, the personal day's names); never null. */
     static LookMotion forLook(Look look, SeasonsToday today) {
-        // The looks' motions arrive with their pictures (Jahreskreis Tasks 5 to 8); until then every look is still.
-        return NONE;
+        // The four seasons' (SeasonMotions); the occasions' and personal days' arrive with their pictures (Jahreskreis
+        // Tasks 6 to 8), until then those looks are still.
+        LookMotion season = SeasonMotions.of(look);
+        return season != null ? season : NONE;
     }
 }

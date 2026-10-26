@@ -5,7 +5,8 @@ Every scene is drawn from code alone, at twice the size and scaled down for clea
 coordinates: 192 x 108 units for a 16:9 screen (vier-welten-v3.html draws its scenes in that viewBox), so a
 shape can be copied from the mockup and drawn here with the same numbers.
 
-    python launcher/worlds/common.py     # checks the six generated pictures and prints their numbers
+    python launcher/worlds/common.py     # checks every generated picture (world_*_day/night, world_seasons_*)
+                                         # and prints their numbers
 
 A scene must stay under the launcher's UI: 1920 x 1080, a JPEG of at most 300 KB, and dark where the text and the
 dock sit, that is in both top corners (15 % x 15 % each) and in the bottom third, each with a mean luminance of at
@@ -25,6 +26,7 @@ MAX_BYTES = 300 * 1024
 MAX_LUMA = 40
 OUT = Path(__file__).resolve().parent.parent / "app" / "src" / "main" / "res" / "drawable-nodpi"
 WORLDS = ("hogwarts", "marvel", "starwars")
+SEASONS = ("winter", "spring", "summer", "autumn")   # Jahreskreis' seasons, a day and a night picture each
 
 
 def rgb(hex_colour):
@@ -198,15 +200,18 @@ def export(img, name, seed=1):
 
 
 def check_all():
+    """Checks the themed worlds' six pictures, the four seasons' eight (all required) and every other
+    world_seasons_*.jpg that is there (the occasions' and personal days' looks)."""
     ok = True
-    for world in WORLDS:
-        for mood in ("day", "night"):
-            path = OUT / f"world_{world}_{mood}.jpg"
-            if not path.exists():
-                print(f"FAIL {path.name}: missing")
-                ok = False
-            else:
-                ok = check(path) and ok
+    required = [OUT / f"world_{world}_{mood}.jpg" for world in WORLDS for mood in ("day", "night")]
+    required += [OUT / f"world_seasons_{season}_{mood}.jpg" for season in SEASONS for mood in ("day", "night")]
+    others = sorted(p for p in OUT.glob("world_seasons_*.jpg") if p not in required)
+    for path in required + others:
+        if not path.exists():
+            print(f"FAIL {path.name}: missing")
+            ok = False
+        else:
+            ok = check(path) and ok
     return ok
 
 
