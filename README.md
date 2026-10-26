@@ -642,6 +642,11 @@ and a wallpaper.
     time Home comes up after the TV starts. Once per boot, so Home and Back still reach the launcher.
   - **Follow theme (reset on-TV choices)**, which clears every choice above. Pushing or resetting a theme
     clears them too.
+  - **Key bindings** (this fork): **Learn a button**, press a remote button within 15 seconds and name it; then
+    pick what its tap, double tap and hold do (an app, the Sources menu, Close all apps or Nothing), and the Home
+    button's double tap. OK on a button's name renames or removes it, after a confirmation. The arrows, OK, Back,
+    Home, Power and volume can't be learned. Needs `HomeKeyService` or `InputKeyService`; the bindings are laid over
+    `app_keys`, and Follow theme and a theme push leave them alone.
   - **Choose default home** opens Android's home picker, and **TV system settings** the TV's own settings
     page.
 - **Change the default home:** Launcher settings and the optional Default-home tile

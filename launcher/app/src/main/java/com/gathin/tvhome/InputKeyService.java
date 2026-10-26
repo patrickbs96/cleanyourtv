@@ -3,10 +3,11 @@ package com.gathin.tvhome;
 import android.accessibilityservice.AccessibilityService;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.view.KeyEvent;
 import android.view.accessibility.AccessibilityEvent;
 import java.util.Collections;
-import java.util.Map;
+import java.util.List;
 
 /**
  * Maps the remote's Input button to the system input switcher, from any app. Remotes such as the Chromecast voice
@@ -21,10 +22,12 @@ public class InputKeyService extends AccessibilityService {
     private static final String ACTION_VIEW_INPUTS = "com.android.tv.action.VIEW_INPUTS";
 
     private int[] inputKeycodes = new int[0];
-    private Map<Integer, String> appKeys = Collections.emptyMap();
-    private Map<Integer, String> appScancodes = Collections.emptyMap();
-    private Map<Integer, String> holdAppKeys = Collections.emptyMap();
-    private Map<Integer, String> holdAppScancodes = Collections.emptyMap();
+    /** app_keys with the on-TV bindings (KeyBindings) over them. */
+    private final RemoteKeys.Keys keys = new RemoteKeys.Keys();
+    private List<String> configAppKeys = Collections.emptyList();
+    /** KeyBindings.NAME, watched while bound; the listener is held here, SharedPreferences keeps it only weakly. */
+    private SharedPreferences bindings;
+    private final SharedPreferences.OnSharedPreferenceChangeListener bindingsChanged = (prefs, key) -> loadKeys();
     /** restore_key_services was on when the config was read: this helper is noted for ServiceRepair. */
     private boolean repairRecord;
     /** consume_volume_keys: Volume Up/Down go to VolumeKeys instead of on to the firmware. */
@@ -42,16 +45,23 @@ public class InputKeyService extends AccessibilityService {
         if (repairRecord) ServiceRepair.connected(this, getClass());
         inputKeycodes = config.inputKeycodes;
         consumeVolumeKeys = config.consumeVolumeKeys;
-        appKeys = RemoteKeys.parseAppKeys(config.appKeys);
-        appScancodes = RemoteKeys.parseAppScancodes(config.appKeys);
+        configAppKeys = config.appKeys;
+        if (bindings == null) {
+            bindings = getSharedPreferences(KeyBindings.NAME, MODE_PRIVATE);
+            bindings.registerOnSharedPreferenceChangeListener(bindingsChanged);
+        }
+        loadKeys();
         RemoteKeys.applyKeyFilter(this, config.keyFilter);
-        holdAppKeys = RemoteKeys.parseHoldAppKeys(config.appKeys);
-        holdAppScancodes = RemoteKeys.parseHoldAppScancodes(config.appKeys);
         // gamepad_passthrough, off by default. Only with key_filter on: off, the service never filters keys.
         if (config.gamepadPassthrough && config.keyFilter && gamepads == null) {
             gamepads = new GamepadPassthrough(this);
             gamepads.start();
         }
+    }
+
+    /** app_keys, then the on-TV bindings over them; again whenever those change. */
+    private void loadKeys() {
+        keys.load(bindings == null ? configAppKeys : KeyBindings.overlay(configAppKeys, bindings));
     }
 
     private boolean isInputKey(int keyCode) {
@@ -62,12 +72,13 @@ public class InputKeyService extends AccessibilityService {
 
     @Override
     protected boolean onKeyEvent(KeyEvent event) {
+        // Learn mode (Key bindings page): the next learnable press goes to the page instead. Never volume or Home.
+        if (KeyBindings.learn(event)) return true;
         if (consumeVolumeKeys && VolumeKeys.handle(this, event)) return true;
+        keys.note(event);
         // A scancode entry is more specific than any keycode, so it goes first.
-        if (RemoteKeys.handle(this, event, appScancodes.get(event.getScanCode()),
-                holdAppScancodes.get(event.getScanCode()))) return true;
-        if (RemoteKeys.handle(this, event, appKeys.get(event.getKeyCode()),
-                holdAppKeys.get(event.getKeyCode()))) return true;
+        if (keys.handleScancode(this, event)) return true;
+        if (keys.handleKeycode(this, event)) return true;
         if (!isInputKey(event.getKeyCode())) return false;
         if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
             try {
@@ -82,6 +93,7 @@ public class InputKeyService extends AccessibilityService {
     @Override
     public boolean onUnbind(Intent intent) {
         if (repairRecord) ServiceRepair.disconnected(this, getClass());
+        keys.drop();
         return super.onUnbind(intent);
     }
 
@@ -89,6 +101,9 @@ public class InputKeyService extends AccessibilityService {
     public void onDestroy() {
         if (gamepads != null) gamepads.stop();
         if (consumeVolumeKeys) VolumeKeys.stop();
+        keys.drop();
+        if (bindings != null) bindings.unregisterOnSharedPreferenceChangeListener(bindingsChanged);
+        bindings = null;
         super.onDestroy();
     }
 

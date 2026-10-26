@@ -169,4 +169,27 @@
     <string name="wmo_snow_showers">ממטרי שלג</string>
     <string name="wmo_thunder">סופת רעמים</string>
     <string name="wmo_unknown">—</string>
+    <string name="key_bindings">מיפוי מקשים</string>
+    <string name="key_bindings_hint">למדו מקש בשלט, ואז בחרו מה עושים לחיצה, לחיצה כפולה והחזקה</string>
+    <string name="key_learn">לימוד מקש</string>
+    <string name="key_learn_waiting">לחצו עכשיו על המקש…</string>
+    <string name="key_learn_never">לא ניתן למפות חצים, OK, חזרה, בית, הפעלה ועוצמת קול</string>
+    <string name="key_learn_timeout">לא נלחץ מקש</string>
+    <string name="key_learn_known">כבר נלמד: %1$s</string>
+    <string name="key_service_off">שירות המקשים כבוי, לכן המיפוי עדיין לא פועל</string>
+    <string name="key_name">שם המקש</string>
+    <string name="key_name_default">מקש %1$d</string>
+    <string name="key_home">מקש הבית</string>
+    <string name="key_tap">לחיצה: %1$s</string>
+    <string name="key_double">לחיצה כפולה: %1$s</string>
+    <string name="key_hold">החזקה: %1$s</string>
+    <string name="key_slot_tap">לחיצה</string>
+    <string name="key_slot_double">לחיצה כפולה</string>
+    <string name="key_slot_hold">החזקה</string>
+    <string name="target_nothing">כלום</string>
+    <string name="target_inputs">תפריט מקורות</string>
+    <string name="target_close_apps">סגירת כל האפליקציות</string>
+    <string name="key_rename">שינוי שם</string>
+    <string name="key_remove">הסרה</string>
+    <string name="key_remove_confirm">להסיר את „%1$s”? הלחיצה, הלחיצה הכפולה וההחזקה יימחקו, והמקש יחזור לפעולתו הקודמת.</string>
 </resources>

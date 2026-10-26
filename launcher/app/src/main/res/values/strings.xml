@@ -179,4 +179,33 @@
     <string name="wmo_snow_showers">Snow showers</string>
     <string name="wmo_thunder">Thunderstorm</string>
     <string name="wmo_unknown">—</string>
+    <!-- Key bindings (Launcher settings; KeyBindingsActivity, spec § 4.10d): what a remote button's tap, double tap
+         and hold do. -->
+    <string name="key_bindings">Key bindings</string>
+    <string name="key_bindings_hint">Learn a remote button, then pick what a tap, a double tap and holding it do</string>
+    <string name="key_learn">Learn a button</string>
+    <string name="key_learn_waiting">Press the button now…</string>
+    <string name="key_learn_never">Arrows, OK, Back, Home, Power and volume can\'t be bound</string>
+    <string name="key_learn_timeout">No button pressed</string>
+    <!-- %1$s the name the button was learned under. -->
+    <string name="key_learn_known">Already learned: %1$s</string>
+    <string name="key_service_off">The remote helper is off, so the bindings do nothing yet</string>
+    <string name="key_name">Name of the button</string>
+    <!-- The suggested name: %1$d the button's scancode (or keycode). -->
+    <string name="key_name_default">Button %1$d</string>
+    <string name="key_home">Home button</string>
+    <!-- %1$s an app's name, Nothing, Sources menu or Close all apps. -->
+    <string name="key_tap">Tap: %1$s</string>
+    <string name="key_double">Double tap: %1$s</string>
+    <string name="key_hold">Hold: %1$s</string>
+    <string name="key_slot_tap">Tap</string>
+    <string name="key_slot_double">Double tap</string>
+    <string name="key_slot_hold">Hold</string>
+    <string name="target_nothing">Nothing</string>
+    <string name="target_inputs">Sources menu</string>
+    <string name="target_close_apps">Close all apps</string>
+    <string name="key_rename">Rename</string>
+    <string name="key_remove">Remove</string>
+    <!-- %1$s the button's name. -->
+    <string name="key_remove_confirm">Remove “%1$s”? Its tap, double tap and hold are deleted, and the button does what it did before.</string>
 </resources>

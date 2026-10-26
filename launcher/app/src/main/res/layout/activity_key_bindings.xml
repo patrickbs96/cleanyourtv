@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Key bindings (KeyBindingsActivity, spec § 4.10d): Learn a button on top, then each learned button with its tap,
+     double tap and hold, and the Home button with its double tap. The rows under keyList are made in code. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FF101419"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="72dp"
+        android:paddingEnd="72dp"
+        android:paddingTop="38dp"
+        android:paddingBottom="38dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/key_bindings"
+            android:textColor="#FFFFFFFF"
+            android:textSize="34sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="7dp"
+            android:text="@string/key_bindings_hint"
+            android:textColor="#FFACB8C1"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/learnChoice"
+            style="@style/SettingsRow"
+            android:layout_marginTop="28dp"
+            android:text="@string/key_learn" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="7dp"
+            android:text="@string/key_learn_never"
+            android:textColor="#FFACB8C1"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/serviceOff"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="7dp"
+            android:text="@string/key_service_off"
+            android:textColor="#FFFFB86B"
+            android:textSize="14sp"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/keyList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+    </LinearLayout>
+</ScrollView>

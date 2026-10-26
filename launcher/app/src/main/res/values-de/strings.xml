@@ -92,4 +92,27 @@
     <string name="wmo_snow_showers">Schneeschauer</string>
     <string name="wmo_thunder">Gewitter</string>
     <string name="wmo_unknown">—</string>
+    <string name="key_bindings">Tastenbelegung</string>
+    <string name="key_bindings_hint">Taste der Fernbedienung lernen, dann Einzelklick, Doppelklick und Halten belegen</string>
+    <string name="key_learn">Taste lernen</string>
+    <string name="key_learn_waiting">Drücke jetzt die Taste…</string>
+    <string name="key_learn_never">Pfeile, OK, Zurück, Home, Power und Lautstärke lassen sich nicht belegen</string>
+    <string name="key_learn_timeout">Keine Taste erkannt</string>
+    <string name="key_learn_known">Schon gelernt: %1$s</string>
+    <string name="key_service_off">Der Tastendienst ist aus, die Belegungen wirken noch nicht</string>
+    <string name="key_name">Name der Taste</string>
+    <string name="key_name_default">Taste %1$d</string>
+    <string name="key_home">Home-Taste</string>
+    <string name="key_tap">Einzelklick: %1$s</string>
+    <string name="key_double">Doppelklick: %1$s</string>
+    <string name="key_hold">Halten: %1$s</string>
+    <string name="key_slot_tap">Einzelklick</string>
+    <string name="key_slot_double">Doppelklick</string>
+    <string name="key_slot_hold">Halten</string>
+    <string name="target_nothing">Nichts</string>
+    <string name="target_inputs">Quellen-Menü</string>
+    <string name="target_close_apps">Alle Apps schließen</string>
+    <string name="key_rename">Umbenennen</string>
+    <string name="key_remove">Entfernen</string>
+    <string name="key_remove_confirm">„%1$s“ entfernen? Einzelklick, Doppelklick und Halten dieser Taste werden gelöscht, und die Taste macht wieder, was sie vorher tat.</string>
 </resources>

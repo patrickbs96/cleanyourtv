@@ -8,14 +8,18 @@ import android.content.Intent;
 import android.media.AudioManager;
 import android.media.tv.TvContract;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 import android.view.KeyEvent;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.ToIntFunction;
 import java.util.regex.Pattern;
 
@@ -25,7 +29,9 @@ import java.util.regex.Pattern;
  * "KEYCODE_BUTTON_3:com.google.android.youtube.tv", or a scancode as "scan:490:com.wbd.hbomax". A "hold:"
  * prefix makes an entry the long-press action instead: "hold:KEYCODE_BUTTON_8:org.xbmc.kodi" opens Kodi when
  * that button is held for HOLD_MS, while the unprefixed entry still opens on a tap; "hold:scan:490:..." does
- * the same for a scancode. One set of maps for both services; whichever filters the key first consumes it.
+ * the same for a scancode. A "double:" prefix (fork, spec § 4.10d) makes it the double-tap action: such a key's tap
+ * waits DOUBLE_MS for a second press (Keys). One set of maps for both services; whichever filters the key first
+ * consumes it. The on-TV bindings (KeyBindings) come after the config's entries, so they win.
  * A target of "input:<input id>" switches to that TV input (an HDMI port) instead of opening an app, a target
  * of "inputs" opens the input switcher, for a remote whose source button sends a key Android does not map, and
  * one of the action words (back, home, recents, mute, sleep, screensaver, settings, wifi) does that action.
@@ -133,13 +139,219 @@ final class RemoteKeys {
 
     /** The entries with the "hold:" prefix removed, so the normal parsers can read them. */
     private static Iterable<String> holdEntries(Iterable<String> entries) {
-        List<String> holds = new ArrayList<>();
+        return prefixed(entries, "hold:");
+    }
+
+    /** keycode -> target from the "double:" entries (the double-tap action); the rest reads as in parseAppKeys. */
+    static Map<Integer, String> parseDoubleKeys(List<String> entries) {
+        return parseDoubleKeys(entries, KeyEvent::keyCodeFromString);
+    }
+
+    static Map<Integer, String> parseDoubleKeys(Iterable<String> entries, ToIntFunction<String> names) {
+        return parseAppKeys(prefixed(entries, "double:"), names);
+    }
+
+    /** scancode -> target from the "double:scan:..." entries; the rest reads as it does in parseAppScancodes. */
+    static Map<Integer, String> parseDoubleScancodes(Iterable<String> entries) {
+        return parseAppScancodes(prefixed(entries, "double:"));
+    }
+
+    /** The entries without the "double:" ones, for a reader that knows only taps and holds. */
+    static List<String> withoutDouble(List<String> entries) {
+        List<String> rest = new ArrayList<>();
+        for (String entry : entries) {
+            if (entry != null && !entry.trim().startsWith("double:")) rest.add(entry);
+        }
+        return rest;
+    }
+
+    /** The entries that start with {@code prefix}, with it removed. */
+    private static List<String> prefixed(Iterable<String> entries, String prefix) {
+        List<String> found = new ArrayList<>();
         for (String entry : entries) {
             if (entry == null) continue;
             String text = entry.trim();
-            if (text.startsWith("hold:")) holds.add(text.substring(5).trim());
+            if (text.startsWith(prefix)) found.add(text.substring(prefix.length()).trim());
         }
-        return holds;
+        return found;
+    }
+
+    /** How long after a tap's release a second press still makes it a double tap ("double:" entries). */
+    static final long DOUBLE_MS = 400;
+
+    /** DoubleTap's id for a scancode entry: negative, so it never equals a keycode (KEYCODE_HOME above all). */
+    static int scanId(int scancode) {
+        return -scancode;
+    }
+
+    /**
+     * Tells a double tap from a tap, for keys with a "double:" entry. It does not know the bindings: the service asks
+     * only about such keys (or passes the set of them), and runs every other key at once. onTap on a key's press
+     * says FIRST (hold the tap back until the window has passed), SECOND (the double tap: drop the held tap) or, for
+     * a key without a "double:" entry, NONE. KEYCODE_HOME is never held back: its first press is PASS and goes on to
+     * the system, a second one inside the window is SECOND. The window runs from the first press, or from its
+     * release once the service reports that with release().
+     */
+    static final class DoubleTap {
+        static final int NONE = 0;
+        static final int FIRST = 1;
+        static final int SECOND = 2;
+        static final int PASS = 3;
+
+        private final long windowMs;
+        private boolean armed;
+        private int lastKey;
+        private long lastMs;
+
+        DoubleTap(long windowMs) {
+            this.windowMs = windowMs;
+        }
+
+        int onTap(int key, long nowMs) {
+            if (armed && key == lastKey && nowMs - lastMs < windowMs) {
+                armed = false;
+                return SECOND;
+            }
+            armed = true;
+            lastKey = key;
+            lastMs = nowMs;
+            return key == KeyEvent.KEYCODE_HOME ? PASS : FIRST;
+        }
+
+        /** onTap for any key: NONE, and the end of a pending pair, for a key that is not in {@code doubles}. */
+        int onTap(int key, long nowMs, Set<Integer> doubles) {
+            if (!doubles.contains(key)) {
+                armed = false;
+                return NONE;
+            }
+            return onTap(key, nowMs);
+        }
+
+        /** The first press of {@code key} was released: the window now runs from here. */
+        void release(int key, long nowMs) {
+            if (armed && key == lastKey) lastMs = nowMs;
+        }
+
+        /** The held tap of {@code key} has run (or was dropped): a late second press starts over. */
+        void forget(int key) {
+            if (key == lastKey) armed = false;
+        }
+
+        void reset() {
+            armed = false;
+        }
+    }
+
+    /**
+     * One service's app_keys (config.xml or a theme, then the on-TV bindings of KeyBindings), with the double-tap
+     * state. A key with a "double:" entry holds its tap back for DOUBLE_MS after the release and runs it then, unless
+     * a second press comes first, which runs the "double:" entry instead; its "hold:" entry still runs on the
+     * release of a long press, without waiting. Every other key runs as before. Main thread only.
+     */
+    static final class Keys {
+        private Map<Integer, String> apps = Collections.emptyMap();
+        private Map<Integer, String> scans = Collections.emptyMap();
+        private Map<Integer, String> holdApps = Collections.emptyMap();
+        private Map<Integer, String> holdScans = Collections.emptyMap();
+        private Map<Integer, String> doubleApps = Collections.emptyMap();
+        private Map<Integer, String> doubleScans = Collections.emptyMap();
+        private final DoubleTap taps = new DoubleTap(DOUBLE_MS);
+        private final Handler handler = new Handler(Looper.getMainLooper());
+        /** The held tap, waiting out the window; null when none. */
+        private Runnable pending;
+        /** The id whose second press is down, so its release runs the double tap; 0 when none. */
+        private int secondDown;
+
+        void load(List<String> entries) {
+            drop();
+            apps = parseAppKeys(entries);
+            scans = parseAppScancodes(entries);
+            holdApps = parseHoldAppKeys(entries);
+            holdScans = parseHoldAppScancodes(entries);
+            doubleApps = parseDoubleKeys(entries);
+            doubleScans = parseDoubleScancodes(entries);
+        }
+
+        /** Drops a held tap and a pair in progress; on unbind and before a reload. */
+        void drop() {
+            if (pending != null) handler.removeCallbacks(pending);
+            pending = null;
+            secondDown = 0;
+            taps.reset();
+        }
+
+        /** Every key goes past here first: a press of a key without a "double:" entry ends a pair in progress. */
+        void note(KeyEvent event) {
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return;
+            if (doubleScans.containsKey(event.getScanCode()) || doubleApps.containsKey(event.getKeyCode())) return;
+            taps.reset();
+        }
+
+        /** A scancode entry; it is more specific than any keycode, so the services ask this first. */
+        boolean handleScancode(Context ctx, KeyEvent event) {
+            int scan = event.getScanCode();
+            return handle(ctx, event, scanId(scan), scans.get(scan), holdScans.get(scan), doubleScans.get(scan));
+        }
+
+        boolean handleKeycode(Context ctx, KeyEvent event) {
+            int code = event.getKeyCode();
+            return handle(ctx, event, code, apps.get(code), holdApps.get(code), doubleApps.get(code));
+        }
+
+        private boolean handle(Context ctx, KeyEvent event, int id, String app, String holdApp, String doubleApp) {
+            if (doubleApp == null) return RemoteKeys.handle(ctx, event, app, holdApp);
+            long now = event.getEventTime();
+            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                if (secondDown == id) return true;   // a repeat of the second press
+                int tap = taps.onTap(id, now);
+                if (tap == DoubleTap.SECOND) {
+                    cancelPending();
+                    secondDown = id;
+                    return true;
+                }
+                return tap != DoubleTap.PASS;   // FIRST waits for the release; Home goes on to the system
+            }
+            if (event.getAction() != KeyEvent.ACTION_UP) return id != KeyEvent.KEYCODE_HOME;
+            if (secondDown == id) {
+                secondDown = 0;
+                if (!event.isCanceled()) launch(ctx, doubleApp);
+                return true;
+            }
+            if (id == KeyEvent.KEYCODE_HOME) {
+                taps.release(id, now);
+                return false;
+            }
+            if (event.isCanceled()) {
+                taps.forget(id);
+                return true;
+            }
+            if (now - event.getDownTime() >= HOLD_MS && holdApp != null) {
+                taps.forget(id);
+                launch(ctx, holdApp);
+                return true;
+            }
+            taps.release(id, now);
+            // Another key's held tap: this press ended its pair, so it runs now rather than being lost.
+            if (pending != null) {
+                Runnable other = pending;
+                cancelPending();
+                other.run();
+            }
+            // No tap entry: the tap does nothing (the key is still swallowed, it has a double tap).
+            pending = () -> {
+                pending = null;
+                taps.forget(id);
+                launch(ctx, app);
+            };
+            handler.postDelayed(pending, DOUBLE_MS);
+            return true;
+        }
+
+        private void cancelPending() {
+            if (pending == null) return;
+            handler.removeCallbacks(pending);
+            pending = null;
+        }
     }
 
     /**

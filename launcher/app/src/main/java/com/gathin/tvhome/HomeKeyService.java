@@ -24,7 +24,7 @@ import android.widget.Toast;
 
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Map;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -53,11 +53,14 @@ public class HomeKeyService extends AccessibilityService {
     private boolean settingsPanel;
     /** consume_volume_keys: Volume Up/Down go to VolumeKeys instead of on to the firmware. */
     private boolean consumeVolumeKeys;
-    /** app_keys, the same maps InputKeyService reads, for setups that run only this service. */
-    private Map<Integer, String> appKeys = Collections.emptyMap();
-    private Map<Integer, String> appScancodes = Collections.emptyMap();
-    private Map<Integer, String> holdAppKeys = Collections.emptyMap();
-    private Map<Integer, String> holdAppScancodes = Collections.emptyMap();
+    /** app_keys with the on-TV bindings over them, the same maps InputKeyService reads, for setups that run only this service. */
+    private final RemoteKeys.Keys keys = new RemoteKeys.Keys();
+    /** The config's own app_keys, kept so a change of the on-TV bindings can be laid over them again. */
+    private List<String> configAppKeys = Collections.emptyList();
+    /** KeyBindings.NAME, listened to once the config is read; null before. */
+    private SharedPreferences bindings;
+    /** Held here: SharedPreferences keeps its listeners only weakly. */
+    private final SharedPreferences.OnSharedPreferenceChangeListener bindingsChanged = (prefs, key) -> loadKeys();
 
     /** Waits for the user to unlock when Android binds this service at boot; null once the config is read. */
     private BroadcastReceiver unlockReceiver;
@@ -135,7 +138,15 @@ public class HomeKeyService extends AccessibilityService {
         }
         if (gamepads != null) gamepads.stop();
         if (consumeVolumeKeys) VolumeKeys.stop();
+        dropKeys();
         super.onDestroy();
+    }
+
+    /** A held tap dies with the binding, and the bindings are no longer watched. */
+    private void dropKeys() {
+        keys.drop();
+        if (bindings != null) bindings.unregisterOnSharedPreferenceChangeListener(bindingsChanged);
+        bindings = null;
     }
 
     /** Some TCL boards never wake from the remote while this helper stays bound with the screen off. */
@@ -177,8 +188,13 @@ public class HomeKeyService extends AccessibilityService {
         settingsKeycodes = config.settingsKeycodes;
         settingsPanel = config.settingsKeyPanel;
         consumeVolumeKeys = config.consumeVolumeKeys;
-        appKeys = RemoteKeys.parseAppKeys(config.appKeys);
-        appScancodes = RemoteKeys.parseAppScancodes(config.appKeys);
+        configAppKeys = config.appKeys;
+        // The on-TV bindings are in credential-protected storage too, so they are read and watched only from here.
+        if (bindings == null) {
+            bindings = getSharedPreferences(KeyBindings.NAME, MODE_PRIVATE);
+            bindings.registerOnSharedPreferenceChangeListener(bindingsChanged);
+        }
+        loadKeys();
         RemoteKeys.applyKeyFilter(this, config.keyFilter);
         stockHome.clear();
         stockHomePackage = config.stockHomeRedirect;
@@ -209,13 +225,16 @@ public class HomeKeyService extends AccessibilityService {
         }
         if (!stockHome.isEmpty() || !powerOnLiveTv.isEmpty()) probeAtBoot();
         armStandbyExit();
-        holdAppKeys = RemoteKeys.parseHoldAppKeys(config.appKeys);
-        holdAppScancodes = RemoteKeys.parseHoldAppScancodes(config.appKeys);
         // gamepad_passthrough, off by default. Only with key_filter on: off, the service never filters keys.
         if (config.gamepadPassthrough && config.keyFilter && gamepads == null) {
             gamepads = new GamepadPassthrough(this);
             gamepads.start();
         }
+    }
+
+    /** app_keys, then the on-TV bindings (KeyBindings) over them; again whenever those change. */
+    private void loadKeys() {
+        keys.load(bindings == null ? configAppKeys : KeyBindings.overlay(configAppKeys, bindings));
     }
 
     private boolean isSettingsKey(KeyEvent event) {
@@ -232,10 +251,12 @@ public class HomeKeyService extends AccessibilityService {
                 && event.getKeyCode() != KeyEvent.KEYCODE_POWER && event.getKeyCode() != KeyEvent.KEYCODE_WAKEUP) {
             powerOnUntil = 0;
         }
+        // Learn mode (Key bindings page): the next learnable press goes to the page instead. Never volume or Home.
+        if (KeyBindings.learn(event)) return true;
         if (consumeVolumeKeys && VolumeKeys.handle(this, event)) return true;
+        keys.note(event);
         // A scancode entry is more specific than any keycode, so it goes first.
-        if (RemoteKeys.handle(this, event, appScancodes.get(event.getScanCode()),
-                holdAppScancodes.get(event.getScanCode()))) return true;
+        if (keys.handleScancode(this, event)) return true;
         // The stock launcher handled the remote's Settings button; with it disabled the button does nothing.
         if (isSettingsKey(event)) {
             if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
@@ -249,8 +270,8 @@ public class HomeKeyService extends AccessibilityService {
             }
             return true;
         }
-        if (RemoteKeys.handle(this, event, appKeys.get(event.getKeyCode()),
-                holdAppKeys.get(event.getKeyCode()))) return true;
+        // A Home "double:" entry never holds Home back: false here, and the press goes on as before.
+        if (keys.handleKeycode(this, event)) return true;
         if (event.getKeyCode() == KeyEvent.KEYCODE_HOME && !stockHome.isEmpty()) {
             redirectHomeKey(event);
             return false;
@@ -264,6 +285,7 @@ public class HomeKeyService extends AccessibilityService {
     @Override
     public boolean onUnbind(Intent intent) {
         if (repairRecord && !steppingOut) ServiceRepair.disconnected(this, getClass());
+        keys.drop();
         return super.onUnbind(intent);
     }
 
