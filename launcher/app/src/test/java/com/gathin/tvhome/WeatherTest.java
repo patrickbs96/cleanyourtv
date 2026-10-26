@@ -9,6 +9,22 @@ public class WeatherTest {
     @Test public void retryIsFiveMinutesAfterFailure() { assertEquals(30 * 60_000L, Weather.nextDelayMs(false)); assertEquals(5 * 60_000L, Weather.nextDelayMs(true)); }
     @Test public void wmoWords() { assertEquals("wmo_clear", WeatherWords.key(0)); assertEquals("wmo_rain", WeatherWords.key(63)); assertEquals("wmo_thunder", WeatherWords.key(99)); assertEquals("wmo_unknown", WeatherWords.key(42)); }
 
+    @Test public void everyAttemptReportsBackEvenAfterAnError() {
+        // Without the report, inFlight stayed set after an Error and the line never fetched again.
+        Weather.Reading[] got = new Weather.Reading[1];
+        int[] calls = {0};
+        Weather.attempt(() -> { throw new ExceptionInInitializerError(); }, r -> { got[0] = r; calls[0]++; });
+        assertEquals(1, calls[0]);
+        assertNull(got[0]);
+        Weather.attempt(() -> { throw new IllegalStateException(); }, r -> { got[0] = r; calls[0]++; });
+        assertEquals(2, calls[0]);
+        assertNull(got[0]);
+        Weather.Reading ok = new Weather.Reading(12, 3);
+        Weather.attempt(() -> ok, r -> { got[0] = r; calls[0]++; });
+        assertEquals(3, calls[0]);
+        assertSame(ok, got[0]);
+    }
+
     // Beyond the brief: the parser's edges and the first fetch after a start.
     @Test public void parseReadsTheCurrentBlockNotTheUnits() {
         // Open-Meteo sends current_units first, with the same field names as strings.

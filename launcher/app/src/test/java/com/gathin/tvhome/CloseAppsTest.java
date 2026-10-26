@@ -49,4 +49,11 @@ public class CloseAppsTest {
         assertFalse(CloseApps.due(10_000 + CloseApps.ONCE_MS - 1, 10_000));
         assertTrue(CloseApps.due(10_000 + CloseApps.ONCE_MS, 10_000));
     }
+
+    @Test public void anErrorInTheWorkIsCaughtNotThrown() {
+        // The worker shares the process with Home and the key services: not even an Error may escape it.
+        assertTrue(CloseApps.failure(() -> { throw new StackOverflowError(); }) instanceof StackOverflowError);
+        assertTrue(CloseApps.failure(() -> { throw new IllegalStateException(); }) instanceof IllegalStateException);
+        assertEquals(null, CloseApps.failure(() -> { }));
+    }
 }

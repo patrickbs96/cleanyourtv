@@ -87,16 +87,25 @@ final class CloseApps {
         Context app = ctx.getApplicationContext() != null ? ctx.getApplicationContext() : ctx;
         Handler main = new Handler(Looper.getMainLooper());
         main.postDelayed(() -> new Thread(() -> {
-            // This thread shares the process with Home and the key services: an uncaught exception here would end
-            // them all, so anything that goes wrong only skips the toast.
-            try {
-                run(app, candidates(app));
-            } catch (RuntimeException e) {
-                Log.w(TAG, "close all apps failed: " + e.getClass().getSimpleName());
+            // This thread shares the process with Home and the key services: anything uncaught here, an Error too,
+            // would end them all, so anything that goes wrong only skips the toast.
+            Throwable failed = failure(() -> run(app, candidates(app)));
+            if (failed != null) {
+                Log.w(TAG, "close all apps failed: " + failed.getClass().getSimpleName());
                 return;
             }
             main.post(() -> Toast.makeText(app, R.string.close_apps_done, Toast.LENGTH_LONG).show());
         }, "close-apps").start(), SETTLE_MS);
+    }
+
+    /** Runs the work; what it threw (any Throwable, an Error too), or null when it got through. */
+    static Throwable failure(Runnable work) {
+        try {
+            work.run();
+            return null;
+        } catch (Throwable t) {
+            return t;
+        }
     }
 
     /**

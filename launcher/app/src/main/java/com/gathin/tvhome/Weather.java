@@ -21,6 +21,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -125,42 +126,70 @@ final class Weather {
         inFlight = true;
         lastAttemptAt = System.currentTimeMillis();
         final String request = url;
-        Threads.WORKER.execute(() -> {
-            long started = SystemClock.elapsedRealtime();
-            int status = -1;
-            String error = null;
-            Reading reading = null;
-            HttpURLConnection c = null;
-            try {
-                c = (HttpURLConnection) new URL(request).openConnection();
-                c.setConnectTimeout(TIMEOUT_MS);
-                c.setReadTimeout(TIMEOUT_MS);
-                c.setUseCaches(false);
-                c.setInstanceFollowRedirects(false);
-                c.setRequestProperty("Accept", "application/json");
-                // A neutral name instead of Android's default "Dalvik/2.1.0 (Linux; U; Android 11; <model> Build/<id>)",
-                // which would tell Open-Meteo the TV's model and firmware build every half hour (README: nothing else).
-                c.setRequestProperty("User-Agent", USER_AGENT);
-                status = c.getResponseCode();
-                if (status == HttpURLConnection.HTTP_OK) {
-                    try (InputStream in = c.getInputStream()) {
-                        reading = parse(read(in));
-                    }
-                    if (reading == null) error = "unreadable answer";
+        final Context app = context;
+        try {
+            Threads.WORKER.execute(() -> attempt(() -> request(request),
+                    result -> Threads.MAIN.post(() -> done(app, result))));
+        } catch (RuntimeException rejected) {
+            done(app, null);   // the worker took nothing: a failure, so inFlight goes and the retry is planned
+        }
+    }
+
+    /** Something that fetches one reading; null or a throw both mean it failed. */
+    interface Request {
+        Reading get() throws Exception;
+    }
+
+    /**
+     * Runs one request on the worker and always hands its result to {@code done}: null when it failed in any way, an
+     * Error too. Without that, inFlight stayed set after an Error and the line never fetched again.
+     */
+    static void attempt(Request request, Consumer<Reading> done) {
+        Reading reading = null;
+        try {
+            reading = request.get();
+        } catch (Throwable failed) {
+            // Shares the process with Home and the key services: nothing may escape, an Error neither.
+            reading = null;
+        } finally {
+            done.accept(reading);
+        }
+    }
+
+    /** The GET itself, on the worker: the reading, or null after a logged failure. */
+    private static Reading request(String request) {
+        long started = SystemClock.elapsedRealtime();
+        int status = -1;
+        String error = null;
+        Reading reading = null;
+        HttpURLConnection c = null;
+        try {
+            c = (HttpURLConnection) new URL(request).openConnection();
+            c.setConnectTimeout(TIMEOUT_MS);
+            c.setReadTimeout(TIMEOUT_MS);
+            c.setUseCaches(false);
+            c.setInstanceFollowRedirects(false);
+            c.setRequestProperty("Accept", "application/json");
+            // A neutral name instead of Android's default "Dalvik/2.1.0 (Linux; U; Android 11; <model> Build/<id>)",
+            // which would tell Open-Meteo the TV's model and firmware build every half hour (README: nothing else).
+            c.setRequestProperty("User-Agent", USER_AGENT);
+            status = c.getResponseCode();
+            if (status == HttpURLConnection.HTTP_OK) {
+                try (InputStream in = c.getInputStream()) {
+                    reading = parse(read(in));
                 }
-            } catch (IOException | RuntimeException e) {
-                // The class only: some exception messages carry the URL, and with it the coordinates.
-                error = e.getClass().getSimpleName();
-            } finally {
-                if (c != null) c.disconnect();
+                if (reading == null) error = "unreadable answer";
             }
-            long ms = SystemClock.elapsedRealtime() - started;
-            Log.i(TAG, "fetch " + (reading != null ? "ok" : "failed") + ", HTTP " + status + ", " + ms + " ms"
-                    + (error != null ? ", " + error : ""));
-            final Reading result = reading;
-            final Context app = context;
-            Threads.MAIN.post(() -> done(app, result));
-        });
+        } catch (IOException | RuntimeException e) {
+            // The class only: some exception messages carry the URL, and with it the coordinates.
+            error = e.getClass().getSimpleName();
+        } finally {
+            if (c != null) c.disconnect();
+        }
+        long ms = SystemClock.elapsedRealtime() - started;
+        Log.i(TAG, "fetch " + (reading != null ? "ok" : "failed") + ", HTTP " + status + ", " + ms + " ms"
+                + (error != null ? ", " + error : ""));
+        return reading;
     }
 
     /** The answer, on the main thread: saved, and shown by the Weather running now, which plans the next fetch. */
