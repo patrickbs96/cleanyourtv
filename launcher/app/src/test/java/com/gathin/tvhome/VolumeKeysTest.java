@@ -37,32 +37,4 @@ public class VolumeKeysTest {
         assertFalse(VolumeKeys.changesPress(ACTION_DOWN, 1));
         assertFalse(VolumeKeys.changesPress(ACTION_DOWN, 12));
     }
-
-    @Test
-    public void consumeModeIsUnchanged() {
-        // consume_volume_keys: a tap starts the repeat, a repeated down changes nothing, the release stops it.
-        assertEquals(VolumeKeys.START, VolumeKeys.plan(ACTION_DOWN, 0, true, false));
-        assertEquals(VolumeKeys.START, VolumeKeys.plan(ACTION_DOWN, 0, true, true));
-        assertEquals(VolumeKeys.KEEP, VolumeKeys.plan(ACTION_DOWN, 3, true, true));
-        assertEquals(VolumeKeys.KEEP, VolumeKeys.plan(ACTION_DOWN, 3, true, false));
-        assertEquals(VolumeKeys.STOP, VolumeKeys.plan(ACTION_UP, 0, true, true));
-    }
-
-    @Test
-    public void repeatModeStartsOnTheTapAndStopsOnTheRelease() {
-        // repeat_volume_keys (Philips 65OLED934): the tap is handed back and our repeat is scheduled.
-        assertEquals(VolumeKeys.START, VolumeKeys.plan(ACTION_DOWN, 0, false, false));
-        // HomeKeyService and InputKeyService both see the press: the second one restarts the same repeat.
-        assertEquals(VolumeKeys.START, VolumeKeys.plan(ACTION_DOWN, 0, false, true));
-        assertEquals(VolumeKeys.STOP, VolumeKeys.plan(ACTION_UP, 0, false, true));
-        assertEquals(VolumeKeys.STOP, VolumeKeys.plan(ACTION_UP, 0, false, false));
-    }
-
-    @Test
-    public void aRealRepeatStopsOurOwn() {
-        // Firmware that does repeat: Android applies its repeats, so ours would step twice.
-        assertEquals(VolumeKeys.STOP, VolumeKeys.plan(ACTION_DOWN, 1, false, true));
-        // Once ours has stopped, the following real repeats just go through.
-        assertEquals(VolumeKeys.KEEP, VolumeKeys.plan(ACTION_DOWN, 2, false, false));
-    }
 }
