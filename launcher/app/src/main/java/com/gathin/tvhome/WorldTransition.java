@@ -37,6 +37,9 @@ import java.util.Random;
  * 500 ms, at night one flash lights its sky (at most 40 %, only the sky, never the screen white) with a bolt and the
  * shadow of the wings, by day the sun's rays flare up and fade into the overlay's own. Day or night is the new Home's
  * overlay's (SupernaturalOverlay draws both, so they are its own flash and rays).</li>
+ * <li>Middle-earth (its own spec § 4.3): a veil of mist drifts in from the left over the old scene in 400 ms, the
+ * scene dimming only a little under it, and stands dense at the cut; in the new Home's 450 ms it drifts on to the
+ * right and the landscape of the mood appears behind it, from the left. Soft billows ride its edge.</li>
  * </ul>
  *
  * <p>With reduced motion or animations off it is a hard cut: {@link #leave} runs the switch at once and the new Home
@@ -56,7 +59,13 @@ final class WorldTransition {
      * between them).
      */
     static final float CLEAN_PEAK = 1f, HOGWARTS_PEAK = 0.85f, MARVEL_PEAK = 0.9f, STARWARS_PEAK = 0.6f,
-            SUPERNATURAL_PEAK = 0.85f;
+            SUPERNATURAL_PEAK = 0.85f, MIDDLE_EARTH_PEAK = 0.3f;
+    /** Middle-earth: the mist's opacity where it is dense, its edge's width as a share of the screen's, its colour. */
+    static final float FOG_PEAK = 0.9f, FOG_EDGE = 0.4f;
+    static final int FOG_COLOR = 0xFFC9CCC3;
+    /** The billows along the mist's edge: their height on screen and their place in the edge, as shares. */
+    private static final float[] BILLOW_Y = {0.08f, 0.27f, 0.45f, 0.61f, 0.78f, 0.95f};
+    private static final float[] BILLOW_IN_EDGE = {0.35f, 0.7f, 0.25f, 0.6f, 0.4f, 0.75f};
     /** Supernatural at night: the flash (SupernaturalOverlay.flash, 360 ms) starts this far into the enter half. */
     static final long SN_FLASH_DELAY_MS = 30;
     /** Supernatural by day: the rays flare up to this alpha in SN_RAYS_UP_MS, then fade by the half's end. */
@@ -79,7 +88,8 @@ final class WorldTransition {
         switch (target) {
             case HOGWARTS:
             case SUPERNATURAL: return 300;
-            case STARWARS: return 400;
+            case STARWARS:
+            case MIDDLE_EARTH: return 400;
             default: return 250;   // Clean, Seasons and Marvel
         }
     }
@@ -88,6 +98,7 @@ final class WorldTransition {
     static long enterMs(World target) {
         switch (target) {
             case HOGWARTS: return 600;
+            case MIDDLE_EARTH: return 450;
             case MARVEL:
             case SUPERNATURAL: return 500;
             case STARWARS: return 300;
@@ -119,8 +130,50 @@ final class WorldTransition {
             case MARVEL: return MARVEL_PEAK;
             case STARWARS: return STARWARS_PEAK;
             case SUPERNATURAL: return SUPERNATURAL_PEAK;
+            case MIDDLE_EARTH: return MIDDLE_EARTH_PEAK;
             default: return CLEAN_PEAK;
         }
+    }
+
+    /** The mist's edge at {@code s} across it, 0 on its dense side to 1 on its clear side: a smoothstep from 1 to 0. */
+    static float fogEdge(float s) {
+        s = WorldLaunchMotion.clamp(s);
+        return 1f - s * s * (3f - 2f * s);
+    }
+
+    /**
+     * Where the mist's edge stands at {@code t} ms of the whole timeline, as a share of the width. In the leave half
+     * the mist is dense left of it and clears over {@link #FOG_EDGE} to its right, running in from off screen until
+     * all is dense at the cut; in the enter half it is clear left of the edge's band and dense right of it, and the
+     * edge runs on until the mist is gone.
+     */
+    static float fogFront(World target, long t, boolean enterHalf) {
+        long cut = leaveMs(target);
+        if (!enterHalf) return -FOG_EDGE + (1f + FOG_EDGE) * WorldLaunchMotion.ease(WorldLaunchMotion.clamp(t / (float) cut));
+        float p = WorldLaunchMotion.clamp((t - cut) / (float) enterMs(target));
+        return (1f + FOG_EDGE) * WorldLaunchMotion.ease(p);
+    }
+
+    /**
+     * Middle-earth's mist at {@code x} (a share of the width) at {@code t} ms of the whole timeline, its opacity, as the
+     * half that draws it ({@code enterHalf}) has it; up to {@link #FOG_PEAK}. 0 for the others.
+     */
+    static float fogAlpha(World target, float x, long t, boolean enterHalf) {
+        if (target != World.MIDDLE_EARTH) return 0f;
+        float front = fogFront(target, t, enterHalf);
+        return FOG_PEAK * (enterHalf ? fogEdge((front - x) / FOG_EDGE) : fogEdge((x - front) / FOG_EDGE));
+    }
+
+    /**
+     * How strong the billows along the mist's edge are at {@code t}: they swell and settle within each half, so they
+     * are gone at the start, at the cut (the mist stands dense) and at the end.
+     */
+    static float billowStrength(World target, long t, boolean enterHalf) {
+        if (target != World.MIDDLE_EARTH) return 0f;
+        long cut = leaveMs(target);
+        float p = enterHalf ? WorldLaunchMotion.clamp((t - cut) / (float) enterMs(target))
+                : WorldLaunchMotion.clamp(t / (float) cut);
+        return 4f * p * (1f - p);
     }
 
     /**
@@ -388,6 +441,9 @@ final class WorldTransition {
         private final Paint streak = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint flare = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint core = new Paint(Paint.ANTI_ALIAS_FLAG);
+        /** Middle-earth's mist over a unit edge: dense left of it as it comes in, dense right of it as it goes. */
+        private final Paint mistIn = new Paint(), mistOut = new Paint();
+        private final Paint billow = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final float[] cos = new float[STREAKS], sin = new float[STREAKS];
         private final long[] delay = new long[STREAKS];
         private final float[] candle = new float[3];
@@ -416,6 +472,21 @@ final class WorldTransition {
             flare.setShader(new RadialGradient(0f, 0f, 1f, new int[]{0xE6FFD27A, 0x00FFB347}, null,
                     Shader.TileMode.CLAMP));
             core.setColor(0xFFFFF6DC);
+            // The mist's edge, sampled once from fogEdge: CLAMP carries the dense end on and the clear end off.
+            int stops = 9;
+            int[] in = new int[stops], out = new int[stops];
+            float[] at = new float[stops];
+            int rgb = FOG_COLOR & 0x00FFFFFF;
+            for (int i = 0; i < stops; i++) {
+                at[i] = i / (float) (stops - 1);
+                in[i] = Math.round(255 * fogEdge(at[i])) << 24 | rgb;
+                out[i] = Math.round(255 * fogEdge(1f - at[i])) << 24 | rgb;
+            }
+            mistIn.setShader(new LinearGradient(0f, 0f, 1f, 0f, in, at, Shader.TileMode.CLAMP));
+            mistOut.setShader(new LinearGradient(0f, 0f, 1f, 0f, out, at, Shader.TileMode.CLAMP));
+            // A billow: a soft round of the same mist around the origin, radius 1.
+            billow.setShader(new RadialGradient(0f, 0f, 1f, new int[]{0xB3000000 | rgb, 0x00000000 | rgb}, null,
+                    Shader.TileMode.CLAMP));
             // The same streaks in both halves: the old Home's run into the new Home's, across recreate().
             Random seeded = new Random(0x5717L);
             for (int i = 0; i < STREAKS; i++) {
@@ -461,6 +532,7 @@ final class WorldTransition {
             if (line > 0f && line < h) drawScanEdge(c, w, line, 1f - revealLine(world, t));
             if (world == World.STARWARS) drawStreaks(c, t, w, h);
             if (world == World.HOGWARTS && candles != null) drawFlares(c, t - leaveMs(world));
+            if (world == World.MIDDLE_EARTH) drawMist(c, t, w, h, owner.entering);
             if (world == World.SUPERNATURAL && sky != null) {
                 // Over the cover, so the flash (or the rays) is the first thing of the new scene that shows.
                 if (sky.isDay()) {
@@ -507,6 +579,37 @@ final class WorldTransition {
                 float d = (10f + 890f * e) * k, len = 2f * (1f + 119f * e) * k;
                 streak.setAlpha(Math.round(255 * alpha));
                 c.drawLine(mx + cos[i] * d, my + sin[i] * d, mx + cos[i] * (d + len), my + sin[i] * (d + len), streak);
+            }
+        }
+
+        /**
+         * Middle-earth: the veil of mist as fogAlpha has it, one gradient rect drawn through the canvas transform (no
+         * shader matrix, no buffer), and the billows riding its edge.
+         */
+        private void drawMist(Canvas c, long t, int w, int h, boolean enterHalf) {
+            float front = fogFront(world, t, enterHalf);
+            float edge = FOG_EDGE * w;
+            // The unit gradient's 0 lies at the edge's dense side coming in, at its clear side going out.
+            float origin = (enterHalf ? front - FOG_EDGE : front) * w;
+            Paint veil = enterHalf ? mistOut : mistIn;
+            veil.setAlpha(Math.round(255 * FOG_PEAK));
+            c.save();
+            c.translate(origin, 0f);
+            c.scale(edge, 1f);
+            c.drawRect(-origin / edge, 0f, (w - origin) / edge, h, veil);
+            c.restore();
+            float s = billowStrength(world, t, enterHalf);
+            if (s <= 0f) return;
+            float ry = 0.2f * h, rx = 1.6f * ry, band = front - (enterHalf ? FOG_EDGE : 0f);
+            billow.setAlpha(Math.round(255 * FOG_PEAK * s));
+            for (int i = 0; i < BILLOW_Y.length; i++) {
+                float x = (band + FOG_EDGE * BILLOW_IN_EDGE[i]) * w;
+                if (x + rx < 0f || x - rx > w) continue;
+                c.save();
+                c.translate(x, BILLOW_Y[i] * h);
+                c.scale(rx, ry);
+                c.drawCircle(0f, 0f, 1f, billow);
+                c.restore();
             }
         }
 

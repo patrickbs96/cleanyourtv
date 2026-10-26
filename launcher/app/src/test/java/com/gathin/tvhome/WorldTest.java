@@ -84,13 +84,14 @@ public class WorldTest {
         }
     }
     /**
-     * Until its own transition arrives (Task 8) Middle-earth takes the neutral paths everywhere a world branches:
-     * no fixed picture (its three are found by name, WorldSceneTest.middleEarthPicturesAreThere), Clean's network
-     * icon, Clean's spring, no flicker, a plain fade in; never another world's skin. Its overlay (Task 4,
-     * MiddleEarthOverlayTest), its pills, dock and frame (Task 6) and its fire lettering at an app start (Task 7,
-     * LaunchGuardTest), which leaves the tile and the scene as they are, are its own.
+     * Middle-earth never wears another world's skin: no fixed picture (its three are found by name,
+     * WorldSceneTest.middleEarthPicturesAreThere), Clean's network icon, Clean's spring, no flicker. What it has is its
+     * own: its overlay (MiddleEarthOverlayTest), its pills, dock and frame, its fire lettering at an app start
+     * (LaunchGuardTest), which leaves the tile and the scene as they are, and its mist on the way in
+     * (WorldTransitionTest.middleEarthMistDriftsAcrossThenTheLandscapeAppears), without another world's flash, rays,
+     * scan edge or zoom.
      */
-    @Test public void middleEarthFallsBackToNeutralPaths() {
+    @Test public void middleEarthBorrowsNoOtherWorldsSkin() {
         World w = World.MIDDLE_EARTH;
         assertEquals(0, WorldScene.resFor(w, true));
         assertEquals(0, WorldScene.resFor(w, false));
@@ -105,9 +106,11 @@ public class WorldTest {
         assertEquals(1f, WorldLaunchMotion.sceneZoom(w, 500), 0f);
         assertEquals(1f, WorldLaunchMotion.tileAlpha(w, 500), 0f);
         assertEquals(1.07f, WorldLaunchMotion.tileScaleX(w, 500, 1.07f), 0f);
-        assertEquals(WorldTransition.peak(World.CLEAN), WorldTransition.peak(w), 0f);
-        assertEquals(WorldTransition.leaveMs(World.CLEAN), WorldTransition.leaveMs(w));
-        assertEquals(WorldTransition.enterMs(World.CLEAN), WorldTransition.enterMs(w));
+        assertEquals(WorldTransition.MIDDLE_EARTH_PEAK, WorldTransition.peak(w), 0f);
+        assertTrue(WorldTransition.peak(w) < WorldTransition.peak(World.CLEAN));
+        assertEquals(400, WorldTransition.leaveMs(w));
+        assertEquals(450, WorldTransition.enterMs(w));
+        assertEquals(WorldTransition.FOG_PEAK, WorldTransition.fogAlpha(w, 0.5f, WorldTransition.leaveMs(w), true), 0f);
         assertEquals(0f, WorldTransition.flashFor(w, WorldTransition.leaveMs(w) + 100), 0f);
         assertEquals(0f, WorldTransition.raysFor(w, WorldTransition.leaveMs(w) + 100), 0f);
         assertEquals(0f, WorldTransition.revealLine(w, 400), 0f);

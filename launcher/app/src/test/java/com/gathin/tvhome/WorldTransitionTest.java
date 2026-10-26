@@ -21,6 +21,73 @@ public class WorldTransitionTest {
         assertEquals(250, WorldTransition.leaveMs(World.MARVEL)); assertEquals(500, WorldTransition.enterMs(World.MARVEL));
         assertEquals(400, WorldTransition.leaveMs(World.STARWARS)); assertEquals(300, WorldTransition.enterMs(World.STARWARS));
         assertEquals(300, WorldTransition.leaveMs(World.SUPERNATURAL)); assertEquals(500, WorldTransition.enterMs(World.SUPERNATURAL));
+        assertEquals(400, WorldTransition.leaveMs(World.MIDDLE_EARTH)); assertEquals(450, WorldTransition.enterMs(World.MIDDLE_EARTH));
+    }
+
+    /**
+     * Middle-earth (its spec § 4.3): a veil of mist drifts in from the left over the old scene, stands dense at the cut,
+     * drifts on to the right in the new Home's half and leaves the landscape behind it, from the left; within 900 ms.
+     */
+    @Test public void middleEarthMistDriftsAcrossThenTheLandscapeAppears() {
+        World w = World.MIDDLE_EARTH;
+        long cut = WorldTransition.leaveMs(w), end = cut + WorldTransition.enterMs(w);
+        assertTrue(end <= 900);
+        float peak = WorldTransition.FOG_PEAK;
+        assertTrue(peak > 0.8f && peak <= 1f);
+        for (float x = 0f; x <= 1f; x += 0.05f) {
+            // Nothing at the start and the end, dense everywhere at the cut, from either half's side.
+            assertEquals("start at " + x, 0f, WorldTransition.fogAlpha(w, x, 0, false), 1e-4f);
+            assertEquals("cut, leave half, at " + x, peak, WorldTransition.fogAlpha(w, x, cut, false), 1e-4f);
+            assertEquals("cut, enter half, at " + x, peak, WorldTransition.fogAlpha(w, x, cut, true), 1e-4f);
+            assertEquals("end at " + x, 0f, WorldTransition.fogAlpha(w, x, end, true), 1e-4f);
+        }
+        // It comes from the left: early in the leave half the left is misted before the right.
+        long early = cut / 2;
+        assertTrue(WorldTransition.fogAlpha(w, 0.1f, early, false) > WorldTransition.fogAlpha(w, 0.9f, early, false));
+        // And leaves to the right: the landscape shows on the left first.
+        long mid = cut + WorldTransition.enterMs(w) / 2;
+        assertTrue(WorldTransition.fogAlpha(w, 0.1f, mid, true) < WorldTransition.fogAlpha(w, 0.9f, mid, true));
+        // At any one place the mist only thickens in the leave half and only thins in the enter half: a drift, no flicker.
+        for (float x = 0f; x <= 1f; x += 0.1f) {
+            float last = 0f;
+            for (long t = 0; t <= cut; t += 5) {
+                float f = WorldTransition.fogAlpha(w, x, t, false);
+                assertTrue(f >= last - 1e-5f && f <= peak + 1e-5f);
+                last = f;
+            }
+            for (long t = cut; t <= end; t += 5) {
+                float f = WorldTransition.fogAlpha(w, x, t, true);
+                assertTrue(f <= last + 1e-5f && f >= 0f);
+                last = f;
+            }
+        }
+        // Under the mist the scene only dims a little, in the world's own dark colour; no flash, rays, scan or zoom.
+        assertEquals(World.MIDDLE_EARTH.backgroundColor, WorldTransition.coverColor(w));
+        assertTrue(WorldTransition.peak(w) < 0.5f);
+        assertEquals(0f, WorldTransition.flashFor(w, cut + 100), 0f);
+        assertEquals(0f, WorldTransition.raysFor(w, cut + 100), 0f);
+        assertEquals(0f, WorldTransition.revealLine(w, cut + 100), 0f);
+        assertEquals(1f, WorldTransition.sceneZoom(w, cut + 100, true), 0f);
+        // The other worlds have no mist.
+        for (World o : World.values()) {
+            if (o == w) continue;
+            for (long t = 0; t <= 900; t += 50) {
+                assertEquals(o + " at " + t, 0f, WorldTransition.fogAlpha(o, 0.5f, t, t > WorldTransition.leaveMs(o)), 0f);
+            }
+        }
+    }
+
+    /** The mist's edge: a soft fall from dense to clear, smooth at both ends. */
+    @Test public void mistEdgeIsSoft() {
+        assertEquals(1f, WorldTransition.fogEdge(0f), 0f);
+        assertEquals(0f, WorldTransition.fogEdge(1f), 0f);
+        assertEquals(0.5f, WorldTransition.fogEdge(0.5f), 1e-4f);
+        assertEquals(1f, WorldTransition.fogEdge(-0.3f), 0f);
+        assertEquals(0f, WorldTransition.fogEdge(1.4f), 0f);
+        // Gentle at the ends (smoothstep): the first and last tenth change by less than a tenth.
+        assertTrue(1f - WorldTransition.fogEdge(0.1f) < 0.1f);
+        assertTrue(WorldTransition.fogEdge(0.9f) < 0.1f);
+        assertTrue(WorldTransition.FOG_EDGE > 0.2f && WorldTransition.FOG_EDGE < 0.6f);
     }
 
     /**
@@ -98,7 +165,8 @@ public class WorldTransitionTest {
     /** Only Clean (and Seasons, seasonsFadesThroughBlack) goes all the way to black (spec § 4.8); the themed worlds dim. */
     @Test public void onlyCleanGoesFullyBlack() {
         assertEquals(1f, WorldTransition.coverAlpha(World.CLEAN, WorldTransition.leaveMs(World.CLEAN)), 1e-4f);
-        for (World w : new World[]{World.HOGWARTS, World.MARVEL, World.STARWARS, World.SUPERNATURAL}) {
+        for (World w : new World[]{World.HOGWARTS, World.MARVEL, World.STARWARS, World.SUPERNATURAL,
+                World.MIDDLE_EARTH}) {
             for (long t = 0; t <= WorldTransition.leaveMs(w) + WorldTransition.enterMs(w); t += 10) {
                 assertTrue(w + " at " + t, WorldTransition.coverAlpha(w, t) < 0.95f);
             }
