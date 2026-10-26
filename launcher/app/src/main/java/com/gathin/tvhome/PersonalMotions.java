@@ -31,6 +31,17 @@ final class PersonalMotions {
     /** The header on the top left in units (greeting, clock, date, weather) and the dock's top edge. */
     static final float HEADER_RIGHT = OccasionMotionsA.HEADER_RIGHT * 192, HEADER_BOTTOM = OccasionMotionsA.HEADER_BOTTOM * 108;
     static final float DOCK_Y = SeasonMotions.DOCK * 108;
+    /**
+     * The pills on the top right (inputs, Wi-Fi, settings: activity_main.xml topButtons, 42dp high, aligned to the end
+     * and to the header's bottom), {left, top, right, bottom} in units with a margin (personal.py: PILLS). Nothing that
+     * matters lies under them: no pennant, no name.
+     */
+    static final float[] PILLS = {128f, 23f, 192f, 34f};
+
+    /** Whether the box {left, top, right, bottom} (units) overlaps the pills' zone. */
+    static boolean underPills(float[] box) {
+        return box[0] < PILLS[2] && box[2] > PILLS[0] && box[1] < PILLS[3] && box[3] > PILLS[1];
+    }
     /** A line of Outfit's height per em (ascent 1.0 and descent .2625): a label's box is its size times this. */
     static final float LINE = 1.27f;
 
@@ -127,12 +138,18 @@ final class PersonalMotions {
         static final float[] CANDLE_DX = {-9.6f, -3.264f, 3.264f, 9.6f};
         /** A flame's centre, half width and half height (the mockup's w * .004, h * .016) and its glow (w * .02). */
         static final float FLAME_Y = CAKE_Y - 19.98f, FLAME_W = 0.768f, FLAME_H = 1.728f, FLAME_GLOW = 3.84f;
-        /** The "BIRTHDAY" garland (personal.py: GARLANDS): its string from X0 to X1, Y0 at the ends, sagging SAG; a
-         * pennant hangs at most PENNANT_H below it. */
-        static final float GARLAND_X0 = 96f, GARLAND_X1 = 189.12f, GARLAND_Y0 = 18.36f, GARLAND_SAG = 11.88f;
-        static final float PENNANT_H = 1.7f * 0.022f * 192;
+        /**
+         * The two garlands as personal.py paints them (GARLANDS): per garland its string from x0 to x1 with its ends
+         * at y0 and y1, sagging sag, and its word. "HAPPY" hangs above the pills, "BIRTHDAY" runs from high on the
+         * left down under them. The name stands under the second.
+         */
+        static final float[][] GARLANDS = {{115.2f, 172.8f, 4.32f, 4.32f, 8.64f}, {92f, 188f, 24f, 35f, 9f}};
+        static final String[] WORDS = {"HAPPY", "BIRTHDAY"};
+        /** Half a pennant's width at most (the mockup's w * .022); a pennant is 1.7 times as high. */
+        static final float PENNANT_MAX = 0.022f * 192;
+        static final float PENNANT_H = 1.7f * PENNANT_MAX;
         /** The name: centred on NAME_X, its top at NAME_TOP, 6 % of the width per em, at most NAME_MAX wide (units). */
-        static final float NAME_X = 152f, NAME_TOP = 45.4f, NAME_SIZE = 0.06f * 192, NAME_MAX = 72f;
+        static final float NAME_X = 152f, NAME_TOP = 48.5f, NAME_SIZE = 0.06f * 192, NAME_MAX = 72f;
         static final int CONFETTI = 70;
         /** The confetti falls right of this fraction of the width: clear of the header. */
         static final float CONFETTI_LEFT = 0.40f;
@@ -168,8 +185,9 @@ final class PersonalMotions {
 
         /** The garland's string at x (units). */
         static float garlandY(float x) {
-            float u = (x - GARLAND_X0) / (GARLAND_X1 - GARLAND_X0);
-            return GARLAND_Y0 + 4 * GARLAND_SAG * u * (1 - u);
+            float[] g = GARLANDS[1];
+            float u = (x - g[0]) / (g[1] - g[0]);
+            return g[2] + (g[3] - g[2]) * u + 4 * g[4] * u * (1 - u);
         }
 
         /** The lowest the garland's pennants hang between x0 and x1 (units): its string plus a pennant. */
@@ -177,6 +195,39 @@ final class PersonalMotions {
             float low = 0f;
             for (int k = 0; k <= 64; k++) low = Math.max(low, garlandY(x0 + (x1 - x0) * k / 64f));
             return low + PENNANT_H;
+        }
+
+        /**
+         * Every pennant of both garlands as its bounding box {left, top, right, bottom} in units, turned with the string
+         * as personal.py paints it (pennants()): the letters lie inside.
+         */
+        static float[][] pennantBoxes() {
+            int n = 0;
+            for (String w : WORDS) n += w.length();
+            float[][] out = new float[n][];
+            int k = 0;
+            for (int g = 0; g < GARLANDS.length; g++) {
+                float[] s = GARLANDS[g];
+                int letters = WORDS[g].length();
+                float sw = Math.min((s[1] - s[0]) / letters * 0.4f, PENNANT_MAX), sh = sw * 1.7f;
+                for (int i = 0; i < letters; i++) {
+                    float u = (i + 0.5f) / letters;
+                    float x = s[0] + (s[1] - s[0]) * u, y = s[2] + (s[3] - s[2]) * u + 4 * s[4] * u * (1 - u);
+                    double a = Math.atan((s[3] - s[2] + 4 * s[4] * (1 - 2 * u)) / (s[1] - s[0]));
+                    float ca = (float) Math.cos(a), sa = (float) Math.sin(a);
+                    float[] px = {-sw, sw, 0f}, py = {0f, 0f, sh};
+                    float l = Float.MAX_VALUE, t = Float.MAX_VALUE, r = -Float.MAX_VALUE, b = -Float.MAX_VALUE;
+                    for (int c = 0; c < 3; c++) {
+                        float cx = x + px[c] * ca - py[c] * sa, cy = y + px[c] * sa + py[c] * ca;
+                        l = Math.min(l, cx);
+                        r = Math.max(r, cx);
+                        t = Math.min(t, cy);
+                        b = Math.max(b, cy);
+                    }
+                    out[k++] = new float[]{l, t, r, b};
+                }
+            }
+            return out;
         }
 
         @Override public void layout(SeasonsOverlay o, int w, int h) {
@@ -441,7 +492,7 @@ final class PersonalMotions {
         static final double SPARKLE_PERIOD = 4.0;
         static final float SPARKLE_GLOW = 0.012f * 192, SPARKLE_RAY = 1.5f;
         /** The names: centred over the arch, their top at NAMES_TOP, 4.4 % of the width per em, at most NAMES_MAX wide. */
-        static final float NAMES_X = ARCH_X, NAMES_TOP = 12.96f, NAMES_SIZE = 0.044f * 192, NAMES_MAX = 96f;
+        static final float NAMES_X = ARCH_X, NAMES_TOP = 10.5f, NAMES_SIZE = 0.044f * 192, NAMES_MAX = 96f;
         /** The petals float right of this fraction of the width: clear of the header. */
         static final float PETAL_LEFT = 0.42f;
 

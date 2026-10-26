@@ -110,9 +110,11 @@ public class PersonalMotionsTest {
                 + PersonalMotions.Birthday.FLAME_GLOW;
         assertTrue(x - half > candleRight);
         assertTrue(x + half < 192f);
-        // The garland hangs deep, its middle well below its ends.
-        float x0 = PersonalMotions.Birthday.GARLAND_X0, x1 = PersonalMotions.Birthday.GARLAND_X1;
-        assertTrue(PersonalMotions.Birthday.garlandY((x0 + x1) / 2) - PersonalMotions.Birthday.garlandY(x0) > 10f);
+        // The garland hangs deep: its middle well below the line between its ends.
+        float[] g = PersonalMotions.Birthday.GARLANDS[1];
+        assertTrue(PersonalMotions.Birthday.garlandY((g[0] + g[1]) / 2) - (g[2] + g[3]) / 2 > 8f);
+        assertEquals(g[2], PersonalMotions.Birthday.garlandY(g[0]), 1e-4f);
+        assertEquals(g[3], PersonalMotions.Birthday.garlandY(g[1]), 1e-4f);
         PersonalMotions.Birthday b = new PersonalMotions.Birthday("Alex");
         assertEquals(70, b.confettiCount());
         assertTrue(b.confettiLeftmost() * 192 > HEADER_RIGHT);
@@ -121,6 +123,29 @@ public class PersonalMotionsTest {
         assertTrue(PersonalMotions.Birthday.CAKE_X + PersonalMotions.Birthday.CANDLE_DX[0]
                 - PersonalMotions.Birthday.FLAME_GLOW > HEADER_RIGHT);
         assertTrue(SeasonMotions.FALL_END * 108 < DOCK);
+    }
+
+    /**
+     * The pills on the top right stay free: no pennant (nor the letter on it) of either garland, no birthday name and
+     * no wedding names (descenders included) lie under them, and the pennants keep out of the header too.
+     */
+    @Test public void pillsOnTheTopRightStayFree() {
+        float[][] boxes = PersonalMotions.Birthday.pennantBoxes();
+        assertEquals(13, boxes.length);
+        for (float[] b : boxes) {
+            assertFalse(java.util.Arrays.toString(b), PersonalMotions.underPills(b));
+            assertFalse(b[0] < HEADER_RIGHT && b[1] < HEADER_BOTTOM);
+            assertTrue(b[2] < 192f && b[1] > 0f);
+        }
+        float half = PersonalMotions.Birthday.NAME_MAX / 2, top = PersonalMotions.Birthday.NAME_TOP;
+        assertFalse(PersonalMotions.underPills(new float[]{PersonalMotions.Birthday.NAME_X - half, top,
+                PersonalMotions.Birthday.NAME_X + half, top + PersonalMotions.Birthday.NAME_SIZE * PersonalMotions.LINE}));
+        float wh = PersonalMotions.Wedding.NAMES_MAX / 2, wt = PersonalMotions.Wedding.NAMES_TOP;
+        assertFalse(PersonalMotions.underPills(new float[]{PersonalMotions.Wedding.NAMES_X - wh, wt,
+                PersonalMotions.Wedding.NAMES_X + wh, wt + PersonalMotions.Wedding.NAMES_SIZE * PersonalMotions.LINE}));
+        // The zone itself: right of the middle, the pills' 42dp row under the header's top.
+        assertTrue(PersonalMotions.underPills(new float[]{150f, 25f, 160f, 30f}));
+        assertFalse(PersonalMotions.underPills(new float[]{100f, 25f, 120f, 30f}));
     }
 
     /** The balloons' bow sits where the painted strings end: on the dock's top edge, only on the birthday. */

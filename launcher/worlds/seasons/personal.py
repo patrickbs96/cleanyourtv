@@ -79,8 +79,12 @@ def muted(hex_colour, k):
 
 # ---- birthday -----------------------------------------------------------------------------------------------------
 PENNANTS = ("#FF5C8A", "#FFD04A", "#5CC8FF", "#9B7BFF", "#5CF0A0")   # the mockup's five
-# The two garlands (the mockup's swag()): word, x0, x1, y0 and sag in units, its colours start at this pennant.
-GARLANDS = [("HAPPY", 115.2, 172.8, 4.32, 8.64, 0), ("BIRTHDAY", 96.0, 189.12, 18.36, 11.88, 2)]
+# The pills on the top right (inputs, Wi-Fi, settings: activity_main.xml topButtons), x0, y0, x1, y1 in units with a
+# margin; nothing that matters may lie under them (PersonalMotions.PILLS).
+PILLS = (128.0, 23.0, 192.0, 34.0)
+# The two garlands (the mockup's swag()): word, x0, x1, y at each end, sag in units, its colours start at this pennant.
+# "HAPPY" hangs above the pills; "BIRTHDAY" runs from high on the left down under them, its right end lower.
+GARLANDS = [("HAPPY", 115.2, 172.8, 4.32, 4.32, 8.64, 0), ("BIRTHDAY", 92.0, 188.0, 24.0, 35.0, 9.0, 2)]
 PENNANT_MAX = 192 * 0.022                # half a pennant's width at most (the mockup's w * .022), its height 1.7 times
 CAKE_X, CAKE_Y = 99.84, 69.12            # the mockup's .52 / .64: left of the middle, its plate just above the dock
 CAKE_HW, CAKE_TOP, CAKE_BOTTOM = 15.36, CAKE_Y - 10.8, CAKE_Y + 4.32
@@ -97,20 +101,21 @@ BALLOONS = [(62.4, 50.6, 4.03, 6.26, "#FF5C8A"), (75.84, 51.7, 3.84, 6.05, "#5CC
 TABLE = 72.0                             # the table's back edge behind the cake
 
 
-def garland_at(x0, x1, y0, sag, u):
-    """A point of a garland's string at u (0..1): the mockup's at(u) = x0 + (x1 - x0) u, y0 + 4 sag u (1 - u)."""
-    return x0 + (x1 - x0) * u, y0 + 4 * sag * u * (1 - u)
+def garland_at(x0, x1, y0, y1, sag, u):
+    """A point of a garland's string at u (0..1): the mockup's at(u) = x0 + (x1 - x0) u, y0 + 4 sag u (1 - u), its
+    ends at y0 and y1."""
+    return x0 + (x1 - x0) * u, y0 + (y1 - y0) * u + 4 * sag * u * (1 - u)
 
 
-def pennants(word, x0, x1, y0, sag):
+def pennants(word, x0, x1, y0, y1, sag):
     """Each letter's pennant: (letter, x, y, half width, height, angle), hanging from the string and turned with it."""
     n = len(word)
     sw = min((x1 - x0) / n * 0.4, PENNANT_MAX)
     out = []
     for i, ch in enumerate(word):
         u = (i + 0.5) / n
-        x, y = garland_at(x0, x1, y0, sag, u)
-        out.append((ch, x, y, sw, sw * 1.7, float(np.arctan(4 * sag * (1 - 2 * u) / (x1 - x0)))))
+        x, y = garland_at(x0, x1, y0, y1, sag, u)
+        out.append((ch, x, y, sw, sw * 1.7, float(np.arctan((y1 - y0 + 4 * sag * (1 - 2 * u)) / (x1 - x0)))))
     return out
 
 
@@ -141,10 +146,10 @@ def birthday(rng):
     img[ty:] = table[ty:]
     c.add(img, c.shape(lambda p: p.rect(0, TABLE, 192, 0.3), blur=0.15) * 0.12, "#FFA0C8")
     # the two garlands: the string, each pennant with its darker half and a soft shadow, the letter turned with it
-    for word, x0, x1, y0, sag, first in GARLANDS:
-        string = [garland_at(x0, x1, y0, sag, k / 40) for k in range(41)]
+    for word, x0, x1, y0, y1, sag, first in GARLANDS:
+        string = [garland_at(x0, x1, y0, y1, sag, k / 40) for k in range(41)]
         c.blend(img, c.shape(lambda p: line(p, string, 0.16), blur=0.03) * 0.75, "#E8DCE8")
-        flags = pennants(word, x0, x1, y0, sag)
+        flags = pennants(word, x0, x1, y0, y1, sag)
         tri = [[turn(x, y, a, px, py) for px, py in ((-sw, 0), (sw, 0), (0, sh))] for _, x, y, sw, sh, a in flags]
         c.blend(img, c.shape(lambda p: [p.poly([(px + 0.5, py + 0.8) for px, py in t]) for t in tri], blur=0.6)
                 * 0.35, "#000000")
