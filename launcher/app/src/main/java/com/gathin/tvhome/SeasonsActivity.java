@@ -12,6 +12,7 @@ import android.text.format.DateFormat;
 import android.text.style.ForegroundColorSpan;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -183,6 +184,17 @@ public final class SeasonsActivity extends Activity {
         pickers.addView(month);
         pickers.addView(year);
         form.addView(pickers);
+        // Up and down turn a picker (and with the wheel wrapping never leave it), so left and right go on: day,
+        // month, year, Save, and back; in Hebrew the row runs the other way, and so do the arrows.
+        boolean rtl = getResources().getConfiguration().getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
+        View[] order = {day, month, year};
+        for (int i = 0; i < order.length; i++) {
+            int next = i + 1 < order.length ? order[i + 1].getId() : android.R.id.button1;
+            int previous = i > 0 ? order[i - 1].getId() : View.NO_ID;
+            order[i].setNextFocusRightId(rtl ? previous : next);
+            order[i].setNextFocusLeftId(rtl ? next : previous);
+            order[i].setNextFocusForwardId(next);
+        }
         TextView yearHint = caption(R.string.seasons_year_hint);
         yearHint.setTextSize(14);
         yearHint.setTextColor(0xFFACB8C1);
@@ -196,8 +208,19 @@ public final class SeasonsActivity extends Activity {
         if (old != null) builder.setNeutralButton(R.string.seasons_remove, null);
         AlertDialog dialog = builder.create();
         dialog.setOnShowListener(d -> {
+            Button save = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            // OK on a picker is done with the date: the focus goes to Save, a second OK saves.
+            View.OnKeyListener toSave = (v, keyCode, event) -> {
+                if (keyCode != KeyEvent.KEYCODE_DPAD_CENTER && keyCode != KeyEvent.KEYCODE_ENTER
+                        && keyCode != KeyEvent.KEYCODE_NUMPAD_ENTER) return false;
+                if (event.getAction() == KeyEvent.ACTION_DOWN) save.requestFocus();
+                return true;
+            };
+            day.setOnKeyListener(toSave);
+            month.setOnKeyListener(toSave);
+            year.setOnKeyListener(toSave);
             // Save closes only with a name; the dialog stays open for one otherwise.
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            save.setOnClickListener(v -> {
                 String entered = names.getText().toString().trim();
                 if (entered.isEmpty()) {
                     Toast.makeText(this, R.string.seasons_names_missing, Toast.LENGTH_SHORT).show();
@@ -320,14 +343,21 @@ public final class SeasonsActivity extends Activity {
         return caption;
     }
 
-    /** A picker the arrows turn; its number field takes no focus, so the keyboard never opens. */
+    /**
+     * A picker the arrows turn; its number field takes no focus, so the keyboard never opens. It shows its focus as
+     * the page's rows do (settings_choice_bg), since a NumberPicker on its own shows none.
+     */
     private NumberPicker picker(int min, int max, int value) {
         NumberPicker picker = new NumberPicker(this);
+        picker.setId(View.generateViewId());
         picker.setMinValue(min);
         picker.setMaxValue(max);
         picker.setValue(Math.max(min, Math.min(max, value)));
         picker.setWrapSelectorWheel(true);
         picker.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+        picker.setFocusable(true);
+        picker.setBackgroundResource(R.drawable.settings_choice_bg);
+        picker.setPaddingRelative(dp(10), dp(4), dp(10), dp(4));
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         params.setMarginStart(dp(12));
