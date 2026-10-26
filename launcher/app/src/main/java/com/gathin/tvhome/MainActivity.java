@@ -149,6 +149,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private View oledLayer;
     /** config.xml oled_shift: the minute's few-pixel move of oledLayer and the race panel (spec § 4.10a). */
     private OledShift oledShift;
+    /** config.xml weather: the line under the date, fetched while Home is in front (spec § 4.10c). */
+    private Weather weather;
     private View ambient;
     private TextView heroName;
     /** The top shelf: heroName, plus the cinematic shelf's "Last opened" line and dock position dots. */
@@ -612,6 +614,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             lunarDate.setTextSize(11f);
             date.setPadding(0, (int) (4 * density), 0, 0);
         }
+        // Weather line under the date, inside the date column (so date_below_clock takes it along, the worlds' HUD and
+        // scanlines reach it, and oledLayer moves it). After the shamsi resize: the worlds give it the date's size.
+        TextView weatherLine = findViewById(R.id.weather);
+        WorldTypography.applyWeather(world, findViewById(R.id.date), weatherLine);
+        weather = new Weather(this, weatherLine, getString(R.string.latitude), getString(R.string.longitude),
+                cfg.weather);
         vpnApp = cfg.vpnApp;
         moduleCards = cfg.moduleCards;
         hiddenApps = new HashSet<>(cfg.hiddenApps);
@@ -1116,6 +1124,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         sky.update();
         wallpaperPlayer.start();
         worldScene.start();
+        weather.start();
         resumed = true;
         screensaver = false;
         updateWorldOverlay();
@@ -1295,6 +1304,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         endReorder();   // Home or another app while reordering keeps the order so far
         wallpaperPlayer.stop();
         worldScene.stop();
+        weather.stop();   // never fetched in the background
         resumed = false;
         updateWorldOverlay();
         if (worldOverlay != null) {

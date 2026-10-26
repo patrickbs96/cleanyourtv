@@ -129,6 +129,7 @@ A new key needs one there in the same pull request.
 | `clock_wallpaper_dim` | 0 to 90 | How dark that wallpaper is behind the clock, in percent (50 by default) |
 | `clock_glow` | bool | The clock screensaver's coloured glow (`false` by default); `false` leaves the moving clock on plain black, e.g. for an OLED |
 | `oled_shift` | bool | OLED burn-in guard: once a minute the header, pills, top shelf, grid with its dock band and the focus highlight move together by a random 0 to 3 dp in each direction, never to the same place twice in a row (a 400 ms glide, a jump with `reduced_motion`). Home starts unmoved, the first move comes after a minute, and leaving Home puts it back; wallpaper, sky and glow stay put (`true` by default) |
+| `weather` | bool | The weather line under the date, "12° · Cloudy" (`true` by default in this fork): the temperature and a word for the WMO weather code from Open-Meteo, in the stats line's look in Clean and in the date's type in the worlds. The launcher's only network access: one HTTPS GET to `api.open-meteo.com` with `latitude` and `longitude` from `config.xml` rounded to two decimals, every 30 minutes while Home is in front and 5 minutes after a failure, never in the background; the last reading shows at once on a start within 2 hours, and a failure leaves the last value. `false`, or no `latitude`/`longitude`, hides the line and fetches nothing |
 | `glow_style` | string | Shape of the glow behind the focused app, in its colour: `radial` (default) or `horizon`, the colour washing down from the top edge to black; the cinematic shelf keeps its own |
 | `glass_style` | string | Look of the focus highlight: `glass` (default: a translucent slab with a bright top sheen, a crisp rim and a faint outer glow), `rim` (the crisp rim alone, no sheen, fill or glow, for a quiet focus over a wallpaper) or `halo` (the rim with a lighter outer glow) |
 | `cinematic_home` | bool | Cinematic top shelf: the focused dock app's artwork, softened, fills the top of the screen in its colour, with a larger name, "Last opened" (apps opened from Home), dock position dots, a focus glow in the app's colour and a translucent dock band; off by default |
@@ -175,7 +176,8 @@ An empty collection falls back to `wallpaper.jpg`, or the background colour if n
 Selection is random without an immediate repeat when alternatives exist. The current image and its
 change time survive app/process restarts. Rotation runs only while Home is visible; on return from
 another app, an overdue background changes then. Images are decoded on a worker thread and bounded
-to the screen size. There is no download service, Internet permission or computer-side scheduler.
+to the screen size. There is no download service or computer-side scheduler, and the wallpapers never use the network
+(the launcher's only network access is the `weather` line).
 The original system idle screensaver is left unchanged.
 
 On the TV, Launcher settings has a Wallpaper row: pick one picture from the collection (or the theme's

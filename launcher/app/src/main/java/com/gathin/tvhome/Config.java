@@ -246,6 +246,8 @@ final class Config {
     final boolean oledShift;
     /** Intent action of the TV's ambient-light menu; the Ambilight pill shows where it resolves, "" for none (config.xml, ambilight_action). */
     final String ambilightAction;
+    /** The weather line under the date, the launcher's only network access (config.xml, weather; Weather, spec § 4.10c). */
+    final boolean weather;
     /** Every app in the dock's row, which scrolls sideways, and no grid below it (config.xml, single_row); needs dock_row. */
     final boolean singleRow;
     /** With single_row, the band runs behind every app in the row, not only the dock apps (config.xml, dock_band_all). */
@@ -264,7 +266,7 @@ final class Config {
                    List<RaceWeekend.Race> raceCalendar, boolean cinematicHome, boolean ambientGlow, boolean appGlow, boolean fadeRows, int homeIdleClockMinutes,
                    boolean keyFilter, boolean dockGlass, String glowStyle, boolean wallpaperCaptions,
                    boolean handleViewInputs, boolean tileMenu, boolean dockEvenPadding, boolean dockBand, boolean cinematicDots, boolean cinematicWhiteFocus, boolean wifiStatusColor, int cinematicScrim, int cinematicArt,
-                   Map<String, Set<String>> wallpaperMoods, boolean gamepadPassthrough, boolean consumeVolumeKeys, boolean powerOnHome, boolean wifiStatusWarnings, List<String> topBarApps, boolean showGreeting, boolean headerWhite, boolean clockWallpaper, int clockWallpaperDim, boolean clockGlow, String glassStyle, boolean singleRow, boolean dockBandAll, boolean lunarDate, int lunarUtcOffset, boolean dateBelowClock, boolean oledShift, String ambilightAction) {
+                   Map<String, Set<String>> wallpaperMoods, boolean gamepadPassthrough, boolean consumeVolumeKeys, boolean powerOnHome, boolean wifiStatusWarnings, List<String> topBarApps, boolean showGreeting, boolean headerWhite, boolean clockWallpaper, int clockWallpaperDim, boolean clockGlow, String glassStyle, boolean singleRow, boolean dockBandAll, boolean lunarDate, int lunarUtcOffset, boolean dateBelowClock, boolean oledShift, String ambilightAction, boolean weather) {
         this.handleViewInputs = handleViewInputs;
         this.tileMenu = tileMenu;
         this.inputKeycodes = inputKeycodes;
@@ -363,6 +365,7 @@ final class Config {
         this.clockGlow = clockGlow;
         this.oledShift = oledShift;
         this.ambilightAction = ambilightAction;
+        this.weather = weather;
         this.singleRow = singleRow;
         this.dockBandAll = dockBandAll;
         this.glowStyle = glowStyle(glowStyle);
@@ -480,6 +483,7 @@ final class Config {
         boolean clockGlow = res.getBoolean(R.bool.clock_glow);
         boolean oledShift = res.getBoolean(R.bool.oled_shift);
         String ambilightAction = res.getString(R.string.ambilight_action).trim();
+        boolean weather = res.getBoolean(R.bool.weather);
         String glassStyle = res.getString(R.string.glass_style);
         boolean singleRow = res.getBoolean(R.bool.single_row);
         boolean dockBandAll = res.getBoolean(R.bool.dock_band_all);
@@ -581,6 +585,7 @@ final class Config {
             clockGlow = bool(json, "clock_glow", clockGlow);
             oledShift = bool(json, "oled_shift", oledShift);
             ambilightAction = string(json, "ambilight_action", ambilightAction);
+            weather = bool(json, "weather", weather);
             singleRow = bool(json, "single_row", singleRow);
             dockBandAll = bool(json, "dock_band_all", dockBandAll);
             glowStyle = string(json, "glow_style", glowStyle);
@@ -645,7 +650,7 @@ final class Config {
                 dockBand, cinematicDots, cinematicWhiteFocus, wifiStatusColor, cinematicScrim, cinematicArt, wallpaperMoods, gamepadPassthrough,
                 consumeVolumeKeys, powerOnHome, wifiStatusWarnings, topBarApps, showGreeting, headerWhite, clockWallpaper,
                 Math.max(0, Math.min(90, clockWallpaperDim)), clockGlow, glassStyle, singleRow && dockRow, dockBandAll, lunar, lunarOffset,
-                dateBelowClock, oledShift, ambilightAction);
+                dateBelowClock, oledShift, ambilightAction, weather);
     }
 
     /**

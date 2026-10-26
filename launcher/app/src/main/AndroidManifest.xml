@@ -7,6 +7,10 @@
     <uses-feature android:name="android.hardware.wifi" android:required="false" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 
+    <!-- Nur Wetterzeile, Spec § 4.10c (docs/superpowers/specs/2026-10-25-vier-welten-launcher-design.md): the weather
+         line's one HTTPS GET to api.open-meteo.com (Weather). Nothing else in the launcher uses the network;
+         weather=false in config.xml or a theme turns it off. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <!-- Needed since Android 10 to read the Wi-Fi network name for the network pill. Never requested at

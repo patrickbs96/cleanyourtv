@@ -241,6 +241,23 @@
                         android:letterSpacing="0.14"
                         android:textAllCaps="true" />
 
+                    <!-- Weather line ("12° · Cloudy", weather; Weather, spec § 4.10c), in the stats line's look;
+                         the worlds give it the date's type. Gone until the first reading, and with weather off. -->
+                    <TextView
+                        android:id="@+id/weather"
+                        android:gravity="right"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:singleLine="true"
+                        android:ellipsize="end"
+                        android:textColor="#D9FFFFFF"
+                        android:textSize="14sp"
+                        android:fontFamily="@string/font_medium"
+                        android:letterSpacing="0.04"
+                        android:focusable="false"
+                        android:visibility="gone" />
+
                         <!-- Lunar date ("Lunar 13/9 · Year of the Horse"), shown when lunar_date is on. -->
                         <TextView
                             android:id="@+id/lunarDate"

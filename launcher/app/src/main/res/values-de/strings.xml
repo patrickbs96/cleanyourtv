@@ -80,4 +80,16 @@
     <string name="world_scene_day">Tag</string>
     <string name="world_scene_night">Nacht</string>
     <string name="world_hog_hero_prefix">Zauberspiegel zeigt</string>
+    <string name="weather_line">%1$s° · %2$s</string>
+    <string name="wmo_clear">Klar</string>
+    <string name="wmo_fair">Heiter</string>
+    <string name="wmo_cloudy">Bewölkt</string>
+    <string name="wmo_fog">Nebel</string>
+    <string name="wmo_drizzle">Niesel</string>
+    <string name="wmo_rain">Regen</string>
+    <string name="wmo_snow">Schnee</string>
+    <string name="wmo_showers">Schauer</string>
+    <string name="wmo_snow_showers">Schneeschauer</string>
+    <string name="wmo_thunder">Gewitter</string>
+    <string name="wmo_unknown">—</string>
 </resources>

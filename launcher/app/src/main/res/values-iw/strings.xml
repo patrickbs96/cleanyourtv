@@ -157,4 +157,16 @@
     <string name="world_scene_day">יום</string>
     <string name="world_scene_night">לילה</string>
     <string name="world_hog_hero_prefix">המראה הקסומה מציגה</string>
+    <string name="weather_line">%1$s° · %2$s</string>
+    <string name="wmo_clear">בהיר</string>
+    <string name="wmo_fair">מעונן חלקית</string>
+    <string name="wmo_cloudy">מעונן</string>
+    <string name="wmo_fog">ערפל</string>
+    <string name="wmo_drizzle">טפטוף</string>
+    <string name="wmo_rain">גשם</string>
+    <string name="wmo_snow">שלג</string>
+    <string name="wmo_showers">ממטרים</string>
+    <string name="wmo_snow_showers">ממטרי שלג</string>
+    <string name="wmo_thunder">סופת רעמים</string>
+    <string name="wmo_unknown">—</string>
 </resources>

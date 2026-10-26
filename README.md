@@ -4,7 +4,16 @@
 > Launcher-Einstellungen gibt es die Zeile „Welt“. Clean bleibt der unveränderte Launcher. Entwurf:
 > [`docs/superpowers/specs/2026-10-25-vier-welten-launcher-design.md`](docs/superpowers/specs/2026-10-25-vier-welten-launcher-design.md),
 > Szenen und Bedienung: [`launcher/worlds/README.md`](launcher/worlds/README.md). Darunter folgt das README des
-> Originalprojekts, ergänzt nur um die Schriftlizenzen der Welten.
+> Originalprojekts, ergänzt nur um die Schriftlizenzen der Welten und den Hinweis zur Netzberechtigung.
+>
+> **Was der Launcher ins Netz sendet.** Anders als der Original-Launcher hat dieser Fork die Berechtigung `INTERNET`,
+> nur für die Wetterzeile unter dem Datum („12° · Bewölkt“, Spec § 4.10c). Er sendet genau eine Anfrage: ein HTTPS-GET
+> an `api.open-meteo.com/v1/forecast` mit `latitude` und `longitude` aus `config.xml`, auf zwei Nachkommastellen
+> gerundet (etwa 1 km), und den Feldern `current=temperature_2m,weather_code&timezone=auto`. Das passiert alle
+> 30 Minuten, solange Home im Vordergrund ist, 5 Minuten nach einem Fehler und nie im Hintergrund. Sonst nichts: keine
+> weiteren Verbindungen, keine Telemetrie, keine Kennung, kein Konto. Open-Meteo sieht dabei wie jeder Server die
+> IP-Adresse des Anschlusses. Der Schalter `weather=false` (in `config.xml` oder im Theme) schaltet die Zeile ab, dann
+> gibt es keinen Netzzugriff. Ohne `latitude` oder `longitude` ist sie ebenfalls aus.
 
 <p align="center">
   <a href="https://cleanyour.tv"><img src="https://raw.githubusercontent.com/Gathin23/cleanyourtv/main/docs/banner.png" alt="CleanYourTV. Your TV, minus the ads. Strip the bloatware from any Android TV or Google TV over Wi-Fi and replace the ad-filled home screen with a clean launcher that looks like an Apple TV. No root, no cable, nothing uninstalled, and a one-line restore." width="800"></a>
@@ -567,7 +576,8 @@ apps), which is why the report names that loss per package instead of calling it
 ## The launcher
 
 A small native home screen for Android TV: **about 518 KB**, plain Java, built for TVs with 1 GB of RAM.
-No blur, no video, no network permission, no background services.
+No blur, no video, no network permission, no background services. (This fork adds `INTERNET` for one
+thing only, the weather line; see the note at the top.)
 
 The **TV** needs Android 8.0 (API 26) or newer: `minSdk` is a compile-time floor in
 [`launcher/app/build.gradle`](launcher/app/build.gradle), and the install script asks the TV for

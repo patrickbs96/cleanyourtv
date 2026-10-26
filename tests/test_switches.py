@@ -40,6 +40,8 @@ SCREENSHOT_WANTED = {
     "oled_shift",
     # Vier Welten, Task 14: its screenshot waits until the TV is free again (shots/t14-pill.png).
     "ambilight_action",
+    # Vier Welten, Task 15: its screenshot waits until the TV is free again (shots/t15-weather.png).
+    "weather",
 }
 
 

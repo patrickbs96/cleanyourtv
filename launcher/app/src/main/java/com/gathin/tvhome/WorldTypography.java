@@ -128,6 +128,19 @@ final class WorldTypography {
     }
 
     /**
+     * The weather line (Weather, spec § 4.10c) in the date's type, colour, size and spacing, once the world has styled
+     * the date (and shamsi_date has resized it); Clean returns and keeps the layout's stats look.
+     */
+    static void applyWeather(World w, TextView date, TextView weather) {
+        if (w.isClean()) return;
+        weather.setTypeface(date.getTypeface());
+        weather.setTextColor(date.getCurrentTextColor());
+        weather.setTextSize(TypedValue.COMPLEX_UNIT_PX, date.getTextSize());
+        weather.setLetterSpacing(date.getLetterSpacing());
+        weather.setAllCaps(true);   // as the date, which the layout writes in capitals
+    }
+
+    /**
      * The hero line for this app label. Hogwarts puts the small, spaced gold "ZAUBERSPIEGEL ZEIGT" over the name
      * (drawn in the italic the hero view has); Marvel and Star Wars write it in capitals; Clean leaves it as it is.
      */

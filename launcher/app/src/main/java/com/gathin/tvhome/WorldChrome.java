@@ -170,7 +170,7 @@ final class WorldChrome {
         View block = a.findViewById(R.id.leftBlock);
         TextView[] texts = {
                 a.findViewById(R.id.greeting), a.findViewById(R.id.clock), a.findViewById(R.id.date),
-                a.findViewById(R.id.shamsiDate), a.findViewById(R.id.lunarDate)};
+                a.findViewById(R.id.shamsiDate), a.findViewById(R.id.lunarDate), a.findViewById(R.id.weather)};
         int start = Math.round(FIELD_START_DP * dp);
         int end = Math.round(FIELD_END_DP * dp);
         Runnable refit = () -> {

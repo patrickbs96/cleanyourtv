@@ -165,4 +165,18 @@
     <string name="world_scene_night">Night</string>
     <!-- Hogwarts: the line in front of the hero's app name. -->
     <string name="world_hog_hero_prefix">The magic mirror shows</string>
+    <!-- The weather line under the date (weather, spec § 4.10c): %1$s the temperature in whole degrees, %2$s the
+         word for the WMO weather code below. -->
+    <string name="weather_line">%1$s° · %2$s</string>
+    <string name="wmo_clear">Clear</string>
+    <string name="wmo_fair">Fair</string>
+    <string name="wmo_cloudy">Cloudy</string>
+    <string name="wmo_fog">Fog</string>
+    <string name="wmo_drizzle">Drizzle</string>
+    <string name="wmo_rain">Rain</string>
+    <string name="wmo_snow">Snow</string>
+    <string name="wmo_showers">Showers</string>
+    <string name="wmo_snow_showers">Snow showers</string>
+    <string name="wmo_thunder">Thunderstorm</string>
+    <string name="wmo_unknown">—</string>
 </resources>

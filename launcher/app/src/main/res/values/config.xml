@@ -392,9 +392,16 @@
     <integer name="sky_intensity">0</integer>
     <!-- Where the TV is, in decimal degrees, so the sky's sunrise and sunset glows follow the real sun
          (computed on the TV, no network). Empty: a fixed temperate day, sunset glow around 19:00.
-         Vilnius: 54.69 and 25.28. -->
+         Vilnius: 54.69 and 25.28. With weather on, the same place, rounded to two decimals, is what the weather
+         line asks Open-Meteo for. -->
     <string name="latitude" translatable="false">52.52</string>
     <string name="longitude" translatable="false">13.41</string>
+    <!-- Weather line under the date ("12° · Cloudy", spec § 4.10c): the launcher's only network access, one HTTPS GET
+         to api.open-meteo.com with latitude and longitude above (two decimals, about 1 km), every 30 minutes while Home
+         is in front, 5 minutes after a failure, never in the background; the last reading shows at once on a start
+         within 2 hours. false, or no latitude or longitude, turns it off and nothing is fetched. Can also be set with
+         "weather": false in a theme's config.json. -->
+    <bool name="weather">true</bool>
 
     <!-- Cinematic top shelf: the focused dock app's artwork, softened, fills the top of the screen in its
          colour; the shelf gets a larger name, a "Last opened" line (from the apps Home opened) and dock position
