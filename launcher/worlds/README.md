@@ -78,15 +78,20 @@ Rules for a changed or new picture:
 ## Using the worlds on the TV
 
 - **Colour keys** on Home switch at once, with the world's transition: **green Clean, yellow Hogwarts, red Marvel,
-  blue Star Wars**. The same key again does nothing.
+  blue Star Wars**. The same key again does nothing. The digit keys 0 to 6 pick a world too (0 Clean, 1 Seasons,
+  2 Hogwarts, 3 Marvel, 4 Star Wars, 5 Supernatural, 6 Middle-earth). **Digits 5 and 6 now choose worlds**: a remote
+  button learned for an app under "Key bindings" on 5 or 6 earlier no longer opens that app.
 - **Launcher settings, row "World"** ("Welt"): the same four choices, each behind a dot in its key's colour. The
   world is saved in the launcher's settings and survives theme pushes, `--reset`, reboot and force-stop. Clean is
   the launcher exactly as without worlds.
-- **Hidden scene switch**: a long OK on the "World" row opens "Scene: Auto / Day / Night" ("Szene: Auto / Tag /
+- **Hidden scene switch**: a long OK on the "World" row opens "Scene: Auto / Morning / Day / Night" ("Szene: Auto / Morgen / Tag /
   Nacht"). Day or Night shows that picture (and Hogwarts' Lumos or Nox, the overlay's day or night variant) at any
   hour, for testing. It is kept in the settings under `world_scene_force` and holds while the launcher's process
   lives: Home rebuilding (a settings change, a colour key) keeps it; the first Home of a new process (after
-  `am force-stop`, a crash or a reboot) drops it and is back on Auto. In Clean it has nothing to show.
+  `am force-stop`, a crash or a reboot) drops it and is back on Auto. In Clean it has nothing to show. Morning is
+  Middle-earth's; a world without one shows its day. The same choice over adb, which Home follows at once:
+  `adb shell am start -n com.gathin.tvhome/.MainActivity --es force_mood morning` (`auto`, `morning`, `day` or
+  `night`; anything else is `auto`).
 - **`reduced_motion`** (config.xml or theme): the scene's day/night pictures still change, but the overlays do not
   run, a world switch is a hard cut without its transition, an app starts at once without the world's launch
   effect, and the focus frame moves like Clean's with reduced motion, without sparks, scan, blip or typing. The same holds with

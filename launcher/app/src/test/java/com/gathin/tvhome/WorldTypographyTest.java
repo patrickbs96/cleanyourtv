@@ -113,4 +113,33 @@ public class WorldTypographyTest {
         assertEquals(true, WorldTypography.isDayHour(18));
         assertEquals(false, WorldTypography.isDayHour(19));
     }
+
+    @Test public void morningSceneAlwaysSaysGoodMorning() {
+        for (int clock : new int[] {R.string.good_night, R.string.good_morning, R.string.good_afternoon}) {
+            assertEquals(R.string.good_morning,
+                    WorldTypography.baseGreetingRes(World.MIDDLE_EARTH, WorldScene.Mood.MORNING, clock));
+        }
+    }
+
+    @Test public void nightSceneNeverSaysGoodMorning() {
+        assertEquals(R.string.good_night,
+                WorldTypography.baseGreetingRes(World.MIDDLE_EARTH, WorldScene.Mood.NIGHT, R.string.good_morning));
+        assertEquals(R.string.good_evening,
+                WorldTypography.baseGreetingRes(World.MIDDLE_EARTH, WorldScene.Mood.NIGHT, R.string.good_evening));
+    }
+
+    @Test public void worldsWithoutMorningKeepTheClocksWord() {
+        for (World w : World.values()) {
+            if (w.hasMorning()) continue;
+            for (WorldScene.Mood m : WorldScene.Mood.values()) {
+                assertEquals(w.name(), R.string.good_night, WorldTypography.baseGreetingRes(w, m, R.string.good_night));
+                assertEquals(w.name(), R.string.good_morning, WorldTypography.baseGreetingRes(w, m, R.string.good_morning));
+            }
+        }
+    }
+
+    @Test public void middleEarthDayKeepsTheClocksWord() {
+        assertEquals(R.string.good_afternoon,
+                WorldTypography.baseGreetingRes(World.MIDDLE_EARTH, WorldScene.Mood.DAY, R.string.good_afternoon));
+    }
 }

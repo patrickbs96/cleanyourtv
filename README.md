@@ -18,6 +18,15 @@
 > nichts: keine weiteren Verbindungen, keine Telemetrie, keine Kennung, kein Konto. Open-Meteo sieht dabei wie jeder
 > Server die IP-Adresse des Anschlusses. Der Schalter `weather=false` (in `config.xml` oder im Theme) schaltet die Zeile ab, dann
 > gibt es keinen Netzzugriff. Ohne `latitude` oder `longitude` ist sie ebenfalls aus.
+>
+> **Mittelerde und Supernatural (Übernahme durch andere).** Ort und Logo gehören nicht ins Repo. Den eigenen Ort
+> (`latitude`/`longitude`, bestimmt Sonnenauf- und -untergang und die Wetterzeile) trägt jeder in einem eigenen Theme
+> unter `themes/` ein und schiebt es mit `tools/theme.sh themes/<name>`; im Repo stehen keine echten Orte oder
+> Koordinaten. Ein eigenes Logo für eine Welt kommt mit `tools/theme.sh --logo middleearth <logo.png>` (Windows:
+> `tools/theme.ps1 -Logo middleearth <logo.png>`) auf den Fernseher und geht mit `--remove` wieder weg (die Welt
+> zeichnet dann ihre eigene Schrift); `supernatural` funktioniert genauso. Die Ziffern 5 und 6 wählen jetzt Welten
+> (Supernatural, Mittelerde); auf 5 oder 6 gelernte App-Kürzel greifen nicht mehr. Die Tageszeit einer Welt lässt
+> sich zum Prüfen per adb setzen, siehe [`launcher/worlds/README.md`](launcher/worlds/README.md).
 
 <p align="center">
   <a href="https://cleanyour.tv"><img src="https://raw.githubusercontent.com/Gathin23/cleanyourtv/main/docs/banner.png" alt="CleanYourTV. Your TV, minus the ads. Strip the bloatware from any Android TV or Google TV over Wi-Fi and replace the ad-filled home screen with a clean launcher that looks like an Apple TV. No root, no cable, nothing uninstalled, and a one-line restore." width="800"></a>
@@ -649,6 +658,7 @@ and a wallpaper.
     pick what its tap, double tap and hold do (an app, the Sources menu, Close all apps or Nothing), and the Home
     button's double tap. OK on a button's name renames or removes it, after a confirmation. The arrows, OK, Back,
     Home, Power and volume can't be learned, nor the colour buttons and Settings, which keep switching the worlds
+    (and the digits 5 and 6, which pick Supernatural and Middle-earth, so a button learned there before no longer opens its app)
     and opening the settings. A button with a double tap or hold but no tap is silent on a tap; the page says so
     and asks for the tap as soon as the double tap or hold is set. Needs `HomeKeyService` or `InputKeyService`; the bindings are laid over
     `app_keys`, and Follow theme and a theme push leave them alone. **Close all apps** ends the background

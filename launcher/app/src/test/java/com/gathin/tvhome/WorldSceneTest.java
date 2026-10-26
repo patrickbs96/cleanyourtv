@@ -206,4 +206,16 @@ public class WorldSceneTest {
         prefs.put(WorldScene.FORCE_KEY, "noon");
         assertEquals(WorldScene.MOOD_AUTO, WorldScene.forcedMood(prefs));
     }
+
+    /** The force_mood extra over adb: the four choices as given (any case, spaces trimmed), anything else is auto. */
+    @Test
+    public void forceMoodExtraNormalizesToAKnownChoice() {
+        assertEquals("morning", WorldScene.normalizeMood("morning"));
+        assertEquals("day", WorldScene.normalizeMood(" Day "));
+        assertEquals("night", WorldScene.normalizeMood("NIGHT"));
+        assertEquals("auto", WorldScene.normalizeMood("auto"));
+        assertEquals("auto", WorldScene.normalizeMood("dusk"));
+        assertEquals("auto", WorldScene.normalizeMood(""));
+        assertEquals("auto", WorldScene.normalizeMood(null));
+    }
 }

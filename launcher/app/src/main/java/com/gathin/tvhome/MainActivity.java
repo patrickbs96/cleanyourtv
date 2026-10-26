@@ -480,6 +480,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         density = getResources().getDisplayMetrics().density;
         // config.xml, overlaid by config.json from a pushed theme (see Config and tools/theme.sh).
         Config cfg = Config.load(this);
+        saveForceMoodIfAsked(getIntent());   // before the scene reads the choice
         world = World.current(getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE));
         appLibrarySelection = cfg.appLibrarySelection;
         libraryOkOpens = cfg.libraryOkOpens;
@@ -1066,6 +1067,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
+    /** The adb way to the scene picker's choice: {@code am start -n com.gathin.tvhome/.MainActivity --es force_mood morning}. */
+    static final String EXTRA_FORCE_MOOD = "force_mood";
+
+    /**
+     * Over adb, force_mood (auto, morning, day or night; anything else is auto) is saved as the settings' scene picker
+     * saves it and the extra is consumed, so a later recreate() does not apply it again. True when there was one.
+     */
+    private boolean saveForceMoodIfAsked(Intent intent) {
+        if (intent == null || !intent.hasExtra(EXTRA_FORCE_MOOD)) return false;
+        String mood = WorldScene.normalizeMood(intent.getStringExtra(EXTRA_FORCE_MOOD));
+        intent.removeExtra(EXTRA_FORCE_MOOD);
+        WorldScene.saveForcedMood(getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE), mood);
+        return true;
+    }
+
     /**
      * VIEW_INPUTS, forwarded by InputsRequestActivity while handle_view_inputs is on: open the Inputs menu once
      * the pill is on screen. The intent is replaced so a later recreate() does not
@@ -1114,6 +1130,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         super.onNewIntent(intent);
         // Home pressed while the crawl rolls (Home already in front, so no pause): it ends.
         stopCrawl();
+        if (saveForceMoodIfAsked(intent)) {
+            setIntent(intent);
+            recreate();   // Home follows at once, as after the settings picker
+            return;
+        }
         if (openLauncherSettingsIfAsked(intent)) return;
         if (openInputsIfAsked(intent)) return;
         if (intent == null || !intent.hasCategory(Intent.CATEGORY_HOME)) return;
@@ -3275,8 +3296,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             greeting.setText(festiveGreeting);
             greeting.setTextColor(WorldTypography.liftTowardsWhite(festival.accentColor(), 0.25f));
         } else {
-            String base = greetingName.isEmpty() ? getString(res)
-                    : getString(R.string.greeting_with_name, getString(res), greetingName);
+            // In a world with a morning the scene's mood decides the base word (a June sunrise is before 5 o'clock).
+            int baseRes = WorldTypography.baseGreetingRes(world, worldMood(), res);
+            String base = greetingName.isEmpty() ? getString(baseRes)
+                    : getString(R.string.greeting_with_name, getString(baseRes), greetingName);
             // A world's greeting goes in already in capitals. textAllCaps turns Star Wars' "Äußerer Rand" into
             // "ÄUSSERER RAND", one character longer than the text it was given, and the single-line greeting then
             // dropped that many characters at its end ("… RAN"). In capitals already, the transformation keeps

@@ -160,7 +160,7 @@
     <string name="world_starwars">Star Wars</string>
     <string name="world_supernatural">Supernatural</string>
     <string name="world_middleearth">Middle-earth</string>
-    <!-- Middle-earth's own lines after the day's greeting (Mittelerde spec § 4.3): morning, day, evening and night. -->
+    <!-- Middle-earth's own lines after the day's greeting (Mittelerde spec § 4.3): morning, day and night. -->
     <string name="world_middleearth_greeting_morning">A new day in the hill country</string>
     <string name="world_middleearth_greeting_day">The road goes far</string>
     <string name="world_middleearth_greeting_night">The eye is watching</string>

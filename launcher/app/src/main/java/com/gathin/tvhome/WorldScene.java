@@ -41,7 +41,7 @@ final class WorldScene {
     enum Mood {
         MORNING("morning"), DAY("day"), NIGHT("night");
 
-        /** As forceMood saves it, and the end of Middle-earth's picture name (world_middleearth_&lt;id&gt;). */
+        /** As the settings' scene picker saves it (saveForcedMood), and the end of Middle-earth's picture name (world_middleearth_&lt;id&gt;). */
         final String id;
 
         Mood(String id) {
@@ -54,7 +54,7 @@ final class WorldScene {
     }
 
     /**
-     * forceMood's choices: the sun decides, or always morning, day or night (the hidden test switch, Task 11).
+     * The scene picker's choices (long OK on "Welt" in the launcher settings): the sun decides, or always morning, day or night.
      * Morning is Middle-earth's; a world without one shows its day.
      */
     static final String MOOD_AUTO = "auto", MOOD_MORNING = "morning", MOOD_DAY = "day", MOOD_NIGHT = "night";
@@ -137,7 +137,7 @@ final class WorldScene {
         }
     }
 
-    /** forceMood's choice as given, or auto for anything unknown. */
+    /** The picker's choice as given, or auto for anything unknown. */
     private static String knownMood(String mood) {
         return MOOD_MORNING.equals(mood) || MOOD_DAY.equals(mood) || MOOD_NIGHT.equals(mood) ? mood : MOOD_AUTO;
     }
@@ -187,7 +187,7 @@ final class WorldScene {
     }
 
     /**
-     * The same with forceMood's choice first: day (a forced morning is day too) or night as forced, the sun's for
+     * The same with the picker's choice first: day (a forced morning is day too) or night as forced, the sun's for
      * auto (and anything unknown).
      */
     static boolean isDay(String forced, int minuteOfDay, int sunrise, int sunset) {
@@ -197,7 +197,7 @@ final class WorldScene {
     }
 
     /**
-     * World {@code w}'s mood at this minute, forceMood's choice first. Night outside {@link #isDay(int, int, int)};
+     * World {@code w}'s mood at this minute, the picker's choice first. Night outside {@link #isDay(int, int, int)};
      * in a world with a morning ({@link World#hasMorning}) morning from the sunrise until {@link #MORNING_END}, so
      * none when the sun rises after 11:00, and day from then on; every other world has day and night only. A forced
      * morning is the day of a world without one; anything unknown is auto.
@@ -326,7 +326,7 @@ final class WorldScene {
     }
 
     /**
-     * This world's mood now, by the sun (worked out once a day) or by forceMood. Also for the greeting's words
+     * This world's mood now, by the sun (worked out once a day) or by the scene picker's choice. Also for the greeting's words
      * (Hogwarts' Lumos/Nox, Middle-earth's three).
      */
     Mood mood() {
@@ -384,10 +384,19 @@ final class WorldScene {
         top.setScaleY(scale);
     }
 
-    /** auto, morning, day or night (anything else is auto), for this Home only; the scene follows at once. */
+    /**
+     * auto, morning, day or night (anything else is auto), for this Home only; the scene follows at once. The adb
+     * way ({@code MainActivity}'s force_mood extra) goes through here after saving the choice as the settings' scene
+     * picker does (long OK on "Welt", {@link #saveForcedMood}).
+     */
     void forceMood(String mood) {
         forced = knownMood(mood);
         update();
+    }
+
+    /** The mood a force_mood extra means: one of the four choices, auto for anything else (and for null). */
+    static String normalizeMood(String mood) {
+        return knownMood(mood == null ? null : mood.trim().toLowerCase(java.util.Locale.ROOT));
     }
 
     /** From the minute tick: when the mood (or Seasons' look) has changed, fades the other picture in. */
@@ -488,7 +497,7 @@ final class WorldScene {
             top.setAlpha(0f);
             fading = false;
             if (old != null && old != next) bottom.postDelayed(old::recycle, 500);
-            update();   // forceMood may have asked for the other mood meanwhile
+            update();   // the picker may have asked for the other mood meanwhile
         }).start();
     }
 

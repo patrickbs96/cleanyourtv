@@ -6,7 +6,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class WorldTransitionTest {
-    @Test public void totalStaysUnder900ms() { for (World w : World.values()) assertTrue(WorldTransition.leaveMs(w) + WorldTransition.enterMs(w) <= 900); }
+    @Test public void totalStaysUnder900ms() { for (World w : World.values()) assertTrue(w + "", WorldTransition.leaveMs(w) + WorldTransition.enterMs(w) <= (w == World.MIDDLE_EARTH ? 1700 : 900)); }
 
     @Test public void pendingIsConsumedOnlyByTheTargetWorld() {
         FakePrefs p = new FakePrefs(); p.put(WorldTransition.PENDING_KEY, "marvel");
@@ -21,7 +21,9 @@ public class WorldTransitionTest {
         assertEquals(250, WorldTransition.leaveMs(World.MARVEL)); assertEquals(500, WorldTransition.enterMs(World.MARVEL));
         assertEquals(400, WorldTransition.leaveMs(World.STARWARS)); assertEquals(300, WorldTransition.enterMs(World.STARWARS));
         assertEquals(300, WorldTransition.leaveMs(World.SUPERNATURAL)); assertEquals(500, WorldTransition.enterMs(World.SUPERNATURAL));
-        assertEquals(400, WorldTransition.leaveMs(World.MIDDLE_EARTH)); assertEquals(450, WorldTransition.enterMs(World.MIDDLE_EARTH));
+        assertEquals(650, WorldTransition.leaveMs(World.MIDDLE_EARTH)); assertEquals(950, WorldTransition.enterMs(World.MIDDLE_EARTH));
+        assertTrue(WorldTransition.leaveMs(World.MIDDLE_EARTH) + WorldTransition.enterMs(World.MIDDLE_EARTH) <= 1700);
+        assertTrue(WorldTransition.enterTimeoutMs(World.MIDDLE_EARTH) > WorldTransition.enterMs(World.MIDDLE_EARTH));
     }
 
     /**
@@ -31,7 +33,7 @@ public class WorldTransitionTest {
     @Test public void middleEarthMistDriftsAcrossThenTheLandscapeAppears() {
         World w = World.MIDDLE_EARTH;
         long cut = WorldTransition.leaveMs(w), end = cut + WorldTransition.enterMs(w);
-        assertTrue(end <= 900);
+        assertTrue(end <= 1700);
         float peak = WorldTransition.FOG_PEAK;
         assertTrue(peak > 0.8f && peak <= 1f);
         for (float x = 0f; x <= 1f; x += 0.05f) {

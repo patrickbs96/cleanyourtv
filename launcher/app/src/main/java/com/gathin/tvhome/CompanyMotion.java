@@ -6,7 +6,7 @@ import java.util.Random;
  * Middle-earth's walking company (spec § 4.2) without the drawing: ten figures on the dock's top edge, walking left to
  * right once across in about 6 minutes, then a pause of 2 to 5 minutes (random, its seed fixed for the day), then in
  * from the left again. Behind the focused app's name (its extent plus 4 % of the width) the company shows at a
- * quarter, softened over 3 % of the width, and at full strength everywhere else; MiddleEarthOverlay draws it with the
+ * 60 %, softened over 3 % of the width, and at full strength everywhere else; MiddleEarthOverlay draws it with the
  * silhouettes of CompanySilhouettes.
  *
  * <p>Its clock is its own: it walks only while the overlay runs (start, advance on every tick, stop), so after
@@ -21,8 +21,8 @@ final class CompanyMotion {
     static final long STEP_MS = 2400;
     /** The most one tick moves the company on, however late it comes. */
     static final long MAX_FRAME_MS = 200;
-    /** Behind the name: a quarter; the name's margin and the soft edge, as shares of the width. */
-    static final float DIM = 0.25f, NAME_MARGIN = 0.04f, NAME_FADE = 0.03f;
+    /** Behind the name: 60 % (spec 25 %, too faint on the TV: Patrick, TV-Abnahme 27.10.); the name's margin and the soft edge, as shares of the width. */
+    static final float DIM = 0.6f, NAME_MARGIN = 0.04f, NAME_FADE = 0.03f;
     /** A new name's dimmed area (or none) comes in over this long (blendAlpha). */
     static final long NAME_BLEND_MS = 200;
 

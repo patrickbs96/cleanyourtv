@@ -108,8 +108,8 @@ public class WorldTest {
         assertEquals(1.07f, WorldLaunchMotion.tileScaleX(w, 500, 1.07f), 0f);
         assertEquals(WorldTransition.MIDDLE_EARTH_PEAK, WorldTransition.peak(w), 0f);
         assertTrue(WorldTransition.peak(w) < WorldTransition.peak(World.CLEAN));
-        assertEquals(400, WorldTransition.leaveMs(w));
-        assertEquals(450, WorldTransition.enterMs(w));
+        assertEquals(650, WorldTransition.leaveMs(w));
+        assertEquals(950, WorldTransition.enterMs(w));
         assertEquals(WorldTransition.FOG_PEAK, WorldTransition.fogAlpha(w, 0.5f, WorldTransition.leaveMs(w), true), 0f);
         assertEquals(0f, WorldTransition.flashFor(w, WorldTransition.leaveMs(w) + 100), 0f);
         assertEquals(0f, WorldTransition.raysFor(w, WorldTransition.leaveMs(w) + 100), 0f);

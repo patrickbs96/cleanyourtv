@@ -259,6 +259,19 @@ final class WorldTypography {
     }
 
     /**
+     * The greeting's base word for the scene's mood. By the clock alone Middle-earth's morning picture can say "Gute
+     * Nacht" (a June sunrise is before 5 o'clock) and its night picture "Guten Morgen" (a winter sunrise is after 8):
+     * the scene wins there, a morning always says good morning and a night never does. Only the worlds with a
+     * morning ({@link World#hasMorning()}); every other world, and day and evening, keep the clock's word.
+     */
+    static int baseGreetingRes(World w, WorldScene.Mood mood, int clockRes) {
+        if (!w.hasMorning()) return clockRes;
+        if (mood == WorldScene.Mood.MORNING) return R.string.good_morning;
+        if (mood == WorldScene.Mood.NIGHT && clockRes == R.string.good_morning) return R.string.good_night;
+        return clockRes;
+    }
+
+    /**
      * "Nox · Guten Abend", "Guten Abend · Äußerer Rand", "Guten Abend · Something's out there": the world's words
      * around the day's greeting for the scene's mood, those that are strings looked up through {@code strings}
      * (Resources::getString): "Guten Morgen · Ein neuer Tag im Hügelland" in Middle-earth. A morning is day for the

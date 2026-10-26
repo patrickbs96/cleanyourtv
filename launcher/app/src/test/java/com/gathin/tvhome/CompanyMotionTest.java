@@ -8,23 +8,23 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Plain JVM tests for Middle-earth's walking company (spec § 4.2): dimmed to a quarter behind the focused app's name
+ * Plain JVM tests for Middle-earth's walking company (spec § 4.2): dimmed to 60 % behind the focused app's name
  * (its extent plus 4 % of the width, softened over 3 %), full elsewhere and without a name; once across in about
  * 6 minutes, then a pause of 2 to 5 minutes fixed per day; and it goes on where it stood after a pause of Home.
  */
 public class CompanyMotionTest {
     private static final float W = 1920f;
 
-    /** Behind the name and its margin of 4 % of the width the company shows at 25 %. */
-    @Test public void alphaInsideNameIsQuarter() {
+    /** Behind the name and its margin of 4 % of the width the company shows at 60 %. */
+    @Test public void alphaInsideNameIsSixtyPercent() {
         float left = 136f, right = 520f, margin = 0.04f * W, fade = 0.03f * W;
         for (float x = left - margin; x <= right + margin; x += 1f) {
-            assertEquals(x + "", 0.25f, CompanyMotion.alphaAt(x, left, right, W), 1e-6f);
+            assertEquals(x + "", 0.6f, CompanyMotion.alphaAt(x, left, right, W), 1e-6f);
         }
         // Full again past the soft edge, on both sides, and in between it only rises going outwards.
         assertEquals(1f, CompanyMotion.alphaAt(right + margin + fade + 1f, left, right, W), 1e-6f);
         assertEquals(1f, CompanyMotion.alphaAt(left - margin - fade - 1f, left, right, W), 1e-6f);
-        float before = 0.25f;
+        float before = 0.6f;
         for (float x = right + margin; x <= right + margin + fade; x += 1f) {
             float a = CompanyMotion.alphaAt(x, left, right, W);
             assertTrue(x + ": " + a, a >= before - 1e-6f && a <= 1f);
@@ -51,12 +51,12 @@ public class CompanyMotionTest {
         float left = 136f, shortRight = 520f, longRight = 1300f;
         float x = 1200f;
         assertEquals(1f, CompanyMotion.alphaAt(x, left, shortRight, W), 1e-6f);
-        assertEquals(0.25f, CompanyMotion.alphaAt(x, left, longRight, W), 1e-6f);
-        assertEquals(0.25f, CompanyMotion.alphaAt(longRight + 0.04f * W, left, longRight, W), 1e-6f);
+        assertEquals(0.6f, CompanyMotion.alphaAt(x, left, longRight, W), 1e-6f);
+        assertEquals(0.6f, CompanyMotion.alphaAt(longRight + 0.04f * W, left, longRight, W), 1e-6f);
         assertEquals(1f, CompanyMotion.alphaAt(longRight + 0.07f * W + 1f, left, longRight, W), 1e-6f);
         // Moved along the dock (another app focused, a name further right): the area moves with it.
         assertEquals(1f, CompanyMotion.alphaAt(300f, 900f, 1300f, W), 1e-6f);
-        assertEquals(0.25f, CompanyMotion.alphaAt(1000f, 900f, 1300f, W), 1e-6f);
+        assertEquals(0.6f, CompanyMotion.alphaAt(1000f, 900f, 1300f, W), 1e-6f);
     }
 
     /** Stopped (onPause, a screensaver) and started again later, the company stands where it stood and walks on. */
@@ -189,8 +189,8 @@ public class CompanyMotionTest {
     /** A new name's dimmed area (or none) comes in over NAME_BLEND_MS instead of at once. */
     @Test public void dimmedAreaBlendsToTheNewName() {
         float x = 300f;
-        // From a name over x to none: a quarter at the start, full at the end, in between rising.
-        assertEquals(0.25f, CompanyMotion.blendAlpha(x, 136f, 520f, -1f, -1f, W, 0f), 1e-6f);
+        // From a name over x to none: 60 % at the start, full at the end, in between rising.
+        assertEquals(0.6f, CompanyMotion.blendAlpha(x, 136f, 520f, -1f, -1f, W, 0f), 1e-6f);
         assertEquals(1f, CompanyMotion.blendAlpha(x, 136f, 520f, -1f, -1f, W, 1f), 1e-6f);
         float half = CompanyMotion.blendAlpha(x, 136f, 520f, -1f, -1f, W, 0.5f);
         assertTrue("" + half, half > 0.3f && half < 0.95f);
@@ -202,7 +202,7 @@ public class CompanyMotionTest {
         }
         // Past its end and before its start it holds.
         assertEquals(1f, CompanyMotion.blendAlpha(x, 136f, 520f, -1f, -1f, W, 3f), 1e-6f);
-        assertEquals(0.25f, CompanyMotion.blendAlpha(x, 136f, 520f, -1f, -1f, W, -1f), 1e-6f);
+        assertEquals(0.6f, CompanyMotion.blendAlpha(x, 136f, 520f, -1f, -1f, W, -1f), 1e-6f);
         assertEquals(CompanyMotion.alphaAt(x, 900f, 1300f, W),
                 CompanyMotion.blendAlpha(x, 136f, 520f, 900f, 1300f, W, 1f), 1e-6f);
         assertTrue(CompanyMotion.NAME_BLEND_MS >= 150 && CompanyMotion.NAME_BLEND_MS <= 300);

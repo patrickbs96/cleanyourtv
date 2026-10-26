@@ -37,8 +37,8 @@ import java.util.Random;
  * 500 ms, at night one flash lights its sky (at most 40 %, only the sky, never the screen white) with a bolt and the
  * shadow of the wings, by day the sun's rays flare up and fade into the overlay's own. Day or night is the new Home's
  * overlay's (SupernaturalOverlay draws both, so they are its own flash and rays).</li>
- * <li>Middle-earth (its own spec § 4.3): a veil of mist drifts in from the left over the old scene in 400 ms, the
- * scene dimming only a little under it, and stands dense at the cut; in the new Home's 450 ms it drifts on to the
+ * <li>Middle-earth (its own spec § 4.3): a veil of mist drifts in from the left over the old scene in 650 ms, the
+ * scene dimming only a little under it, and stands dense at the cut; in the new Home's 950 ms it drifts on to the
  * right and the landscape of the mood appears behind it, from the left. Soft billows ride its edge.</li>
  * </ul>
  *
@@ -88,8 +88,8 @@ final class WorldTransition {
         switch (target) {
             case HOGWARTS:
             case SUPERNATURAL: return 300;
-            case STARWARS:
-            case MIDDLE_EARTH: return 400;
+            case STARWARS: return 400;
+            case MIDDLE_EARTH: return 650;   // longer than its spec (400), Patrick, TV-Abnahme 27.10.;
             default: return 250;   // Clean, Seasons and Marvel
         }
     }
@@ -98,7 +98,7 @@ final class WorldTransition {
     static long enterMs(World target) {
         switch (target) {
             case HOGWARTS: return 600;
-            case MIDDLE_EARTH: return 450;
+            case MIDDLE_EARTH: return 950;   // spec 450, Patrick, TV-Abnahme 27.10.
             case MARVEL:
             case SUPERNATURAL: return 500;
             case STARWARS: return 300;
