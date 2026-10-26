@@ -113,6 +113,7 @@
     <string name="seasons_greeting_wedding">%1$d. Hochzeitstag</string>
     <string name="world_scene">Szene</string>
     <string name="world_scene_auto">Auto (nach der Sonne)</string>
+    <string name="world_scene_morning">Morgen</string>
     <string name="world_scene_day">Tag</string>
     <string name="world_scene_night">Nacht</string>
     <string name="world_hog_hero_prefix">Zauberspiegel zeigt</string>

@@ -56,26 +56,30 @@ public class WorldTest {
     }
     /**
      * Middle-earth's words come after the day's greeting, in the app's language (spec § 4.3): its own strings, the
-     * road by day and the eye by night. The morning's words are a string already; Task 2's third mood picks them.
+     * hill country in the morning, the road by day and the eye by night.
      */
     @Test public void middleEarthGreetsAfterTheGreetingInTheAppsLanguage() {
         World w = World.MIDDLE_EARTH;
         assertEquals("", w.greetingPrefix(true));
         assertEquals("", w.greetingPrefix(false));
-        assertEquals(R.string.world_middleearth_greeting_day, w.greetingSuffixRes(true));
-        assertEquals(R.string.world_middleearth_greeting_night, w.greetingSuffixRes(false));
-        java.util.function.IntFunction<String> de = res -> res == R.string.world_middleearth_greeting_day
+        assertEquals(R.string.world_middleearth_greeting_morning, w.greetingSuffixRes(WorldScene.Mood.MORNING));
+        assertEquals(R.string.world_middleearth_greeting_day, w.greetingSuffixRes(WorldScene.Mood.DAY));
+        assertEquals(R.string.world_middleearth_greeting_night, w.greetingSuffixRes(WorldScene.Mood.NIGHT));
+        java.util.function.IntFunction<String> de = res -> res == R.string.world_middleearth_greeting_morning
+                ? "Ein neuer Tag im Hügelland" : res == R.string.world_middleearth_greeting_day
                 ? "Weit ist der Weg" : res == R.string.world_middleearth_greeting_night ? "Das Auge wacht" : "?";
-        assertEquals("Weit ist der Weg", w.greetingSuffix(true, de));
-        assertEquals("Das Auge wacht", w.greetingSuffix(false, de));
-        // The other worlds' words are in the code: no string to look up, the lookup is never asked.
+        assertEquals("Ein neuer Tag im Hügelland", w.greetingSuffix(WorldScene.Mood.MORNING, de));
+        assertEquals("Weit ist der Weg", w.greetingSuffix(WorldScene.Mood.DAY, de));
+        assertEquals("Das Auge wacht", w.greetingSuffix(WorldScene.Mood.NIGHT, de));
+        // The other worlds' words are in the code: no string to look up, the lookup is never asked; a morning is
+        // their day.
         java.util.function.IntFunction<String> never = res -> { throw new AssertionError(res); };
         for (World other : World.values()) {
             if (other == w) continue;
-            assertEquals(other.name(), 0, other.greetingSuffixRes(true));
-            assertEquals(other.name(), 0, other.greetingSuffixRes(false));
-            assertEquals(other.name(), other.greetingSuffix(true), other.greetingSuffix(true, never));
-            assertEquals(other.name(), other.greetingSuffix(false), other.greetingSuffix(false, never));
+            for (WorldScene.Mood m : WorldScene.Mood.values()) {
+                assertEquals(other.name(), 0, other.greetingSuffixRes(m));
+                assertEquals(other.name(), other.greetingSuffix(m.isDay()), other.greetingSuffix(m, never));
+            }
         }
     }
     /**

@@ -69,24 +69,19 @@ final class PersonalGreeting {
     }
 
     /**
-     * The greeting for today's entries in world {@code w}; {@code day} picks Hogwarts' Lumos or Nox and Supernatural's
-     * and Middle-earth's day or night words, Middle-earth's in the app's language.
+     * The greeting for today's entries in world {@code w}; the scene's {@code mood} picks Hogwarts' Lumos or Nox,
+     * Supernatural's day or night words and Middle-earth's morning, day or night words in the app's language.
      */
-    static String text(Resources r, SharedPreferences prefs, World w, SeasonsToday t, boolean day) {
+    static String text(Resources r, SharedPreferences prefs, World w, SeasonsToday t, WorldScene.Mood mood) {
         if (t == null || t.personal.isEmpty()) return "";
-        return text(templates(r, prefs), w, t, day, r::getString);
-    }
-
-    /** The same from the templates with the words in the code only (World.greetingSuffix(boolean)). */
-    static String text(Templates s, World w, SeasonsToday t, boolean day) {
-        return text(s, w, t, day, res -> "");
+        return text(templates(r, prefs), w, t, mood, r::getString);
     }
 
     /**
      * The same from the templates, the world's words that are strings looked up through {@code strings}: "" without
      * an entry today.
      */
-    static String text(Templates s, World w, SeasonsToday t, boolean day, IntFunction<String> strings) {
+    static String text(Templates s, World w, SeasonsToday t, WorldScene.Mood mood, IntFunction<String> strings) {
         if (t == null || t.personal.isEmpty()) return "";
         boolean themed = w.hasOwnMotion();
         // One phrase per kind and count: the birthdays of the day share one ("Alex & Robin"); identical phrases once.
@@ -106,8 +101,8 @@ final class PersonalGreeting {
         }
         String text = String.join(SEPARATOR, phrases);
         if (!themed) return text;
-        String prefix = w.greetingPrefix(day);
-        String suffix = w.greetingSuffix(day, strings);
+        String prefix = w.greetingPrefix(mood.isDay());
+        String suffix = w.greetingSuffix(mood, strings);
         if (!prefix.isEmpty()) text = prefix + SEPARATOR + text;
         return suffix.isEmpty() ? text : text + SEPARATOR + suffix;
     }

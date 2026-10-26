@@ -191,6 +191,7 @@
     <string name="seasons_greeting_wedding">%1$d שנות נישואין</string>
     <string name="world_scene">סצנה</string>
     <string name="world_scene_auto">אוטומטי (לפי השמש)</string>
+    <string name="world_scene_morning">בוקר</string>
     <string name="world_scene_day">יום</string>
     <string name="world_scene_night">לילה</string>
     <string name="world_hog_hero_prefix">המראה הקסומה מציגה</string>

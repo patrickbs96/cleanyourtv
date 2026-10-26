@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- app_banners names drawables at run time, which resource shrinking cannot see: keep every banner_*. Jahreskreis'
-     scenes are found by name as well (WorldScene.drawableName): keep every world_seasons_*. -->
+     scenes and Middle-earth's three are found by name as well (WorldScene.drawableName): keep every world_seasons_*
+     and world_middleearth_*. -->
 <resources xmlns:tools="http://schemas.android.com/tools"
-    tools:keep="@drawable/banner_*,@drawable/world_seasons_*" />
+    tools:keep="@drawable/banner_*,@drawable/world_seasons_*,@drawable/world_middleearth_*" />

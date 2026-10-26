@@ -143,7 +143,7 @@ enum World {
      * The words after the greeting: Äußerer Rand in Star Wars, Back on the road by day and Something's out there by
      * night in Supernatural (own lines, the same in every language, Supernatural spec § 4.3). Only the words in the
      * code: Middle-earth's are strings ({@link #greetingSuffixRes}), so "" here; callers that show a greeting take
-     * {@link #greetingSuffix(boolean, IntFunction)}.
+     * {@link #greetingSuffix(WorldScene.Mood, IntFunction)}.
      */
     String greetingSuffix(boolean day) {
         if (this == STARWARS) return "Äußerer Rand";
@@ -161,24 +161,27 @@ enum World {
     }
 
     /**
-     * The words after the greeting that come in the app's language, as a string: Middle-earth's Weit ist der Weg by
-     * day and Das Auge wacht by night (Mittelerde spec § 4.3; its morning's words, world_middleearth_greeting_morning,
-     * come with the third mood). 0 for every other world, whose words are {@link #greetingSuffix(boolean)}.
+     * The words after the greeting that come in the app's language, as a string: Middle-earth's Ein neuer Tag im
+     * Hügelland in the morning, Weit ist der Weg by day and Das Auge wacht by night (Mittelerde spec § 4.3). 0 for
+     * every other world, whose words are {@link #greetingSuffix(boolean)}.
      */
-    int greetingSuffixRes(boolean day) {
-        if (this == MIDDLE_EARTH) {
-            return day ? R.string.world_middleearth_greeting_day : R.string.world_middleearth_greeting_night;
+    int greetingSuffixRes(WorldScene.Mood mood) {
+        if (this != MIDDLE_EARTH) return 0;
+        switch (mood) {
+            case MORNING: return R.string.world_middleearth_greeting_morning;
+            case DAY: return R.string.world_middleearth_greeting_day;
+            default: return R.string.world_middleearth_greeting_night;
         }
-        return 0;
     }
 
     /**
-     * The words after the greeting in every world: {@link #greetingSuffixRes} looked up through {@code strings}
-     * (Resources::getString on the TV), else the words in the code. Home and the personal greeting take this one.
+     * The words after the greeting in every world for the scene's mood: {@link #greetingSuffixRes} looked up through
+     * {@code strings} (Resources::getString on the TV), else the words in the code, a morning being day. Home and the
+     * personal greeting take this one.
      */
-    String greetingSuffix(boolean day, IntFunction<String> strings) {
-        int res = greetingSuffixRes(day);
-        return res != 0 ? strings.apply(res) : greetingSuffix(day);
+    String greetingSuffix(WorldScene.Mood mood, IntFunction<String> strings) {
+        int res = greetingSuffixRes(mood);
+        return res != 0 ? strings.apply(res) : greetingSuffix(mood.isDay());
     }
 
     /** Every world but Clean shows the top pills as icons only. */

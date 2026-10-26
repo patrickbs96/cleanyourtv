@@ -279,13 +279,14 @@ public final class LauncherSettingsActivity extends Activity {
     }
 
     /**
-     * Auto, Day or Night for the world's scene, to test both pictures and Hogwarts' Lumos/Nox at any hour. It holds
-     * until the launcher's process restarts (force-stop, reboot); recreating Home keeps it.
+     * Auto, Morning, Day or Night for the world's scene, to test every picture and Hogwarts' Lumos/Nox at any hour.
+     * Morning is Middle-earth's; the worlds without one show their day for it. It holds until the launcher's process
+     * restarts (force-stop, reboot); recreating Home keeps it.
      */
     private void showScenePicker() {
-        String[] moods = {WorldScene.MOOD_AUTO, WorldScene.MOOD_DAY, WorldScene.MOOD_NIGHT};
-        String[] labels = {getString(R.string.world_scene_auto), getString(R.string.world_scene_day),
-                getString(R.string.world_scene_night)};
+        String[] moods = {WorldScene.MOOD_AUTO, WorldScene.MOOD_MORNING, WorldScene.MOOD_DAY, WorldScene.MOOD_NIGHT};
+        String[] labels = {getString(R.string.world_scene_auto), getString(R.string.world_scene_morning),
+                getString(R.string.world_scene_day), getString(R.string.world_scene_night)};
         // As Home's scene reads it, so an earlier process's choice shows (and is) Auto.
         String current = WorldScene.forcedMood(choices);
         int checked = 0;

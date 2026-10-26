@@ -260,19 +260,13 @@ final class WorldTypography {
 
     /**
      * "Nox · Guten Abend", "Guten Abend · Äußerer Rand", "Guten Abend · Something's out there": the world's words
-     * around the day's greeting.
+     * around the day's greeting for the scene's mood, those that are strings looked up through {@code strings}
+     * (Resources::getString): "Guten Morgen · Ein neuer Tag im Hügelland" in Middle-earth. A morning is day for the
+     * worlds without one (Lumos).
      */
-    static String greetingText(World w, String base, boolean day) {
-        return greetingText(w, base, day, res -> "");
-    }
-
-    /**
-     * The same with the words that are strings looked up through {@code strings} (Resources::getString): "Guten Tag ·
-     * Weit ist der Weg" in Middle-earth. Home takes this one; the one above leaves Middle-earth's words out.
-     */
-    static String greetingText(World w, String base, boolean day, IntFunction<String> strings) {
-        String prefix = w.greetingPrefix(day);
-        String suffix = w.greetingSuffix(day, strings);
+    static String greetingText(World w, String base, WorldScene.Mood mood, IntFunction<String> strings) {
+        String prefix = w.greetingPrefix(mood.isDay());
+        String suffix = w.greetingSuffix(mood, strings);
         String text = prefix.isEmpty() ? base : prefix + " · " + base;
         return suffix.isEmpty() ? text : text + " · " + suffix;
     }

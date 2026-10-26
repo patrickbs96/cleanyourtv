@@ -86,6 +86,14 @@ abstract class WorldOverlay extends View {
         invalidate();
     }
 
+    /**
+     * The scene's mood as it shows it (WorldScene.showsMood). Only Middle-earth tells its morning from its day and
+     * overrides this; every other overlay draws its day set for a morning ({@link #setDay}).
+     */
+    void setMood(WorldScene.Mood mood) {
+        setDay(mood.isDay());
+    }
+
     /** Whether it draws its day set (as the scene shows it), else its night set. */
     boolean isDay() {
         return day;

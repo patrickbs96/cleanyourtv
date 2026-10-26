@@ -205,6 +205,7 @@
     <!-- Hidden test switch (long OK on the World row): the scene's day or night picture, until the launcher restarts. -->
     <string name="world_scene">Scene</string>
     <string name="world_scene_auto">Auto (by the sun)</string>
+    <string name="world_scene_morning">Morning</string>
     <string name="world_scene_day">Day</string>
     <string name="world_scene_night">Night</string>
     <!-- Hogwarts: the line in front of the hero's app name. -->

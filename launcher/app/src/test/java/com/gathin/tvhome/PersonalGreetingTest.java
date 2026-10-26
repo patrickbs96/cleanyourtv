@@ -44,95 +44,112 @@ public class PersonalGreetingTest {
     public void noEntryGivesEmptyText() {
         SeasonsToday none = on(2026, 3, 14);
         for (World w : World.values()) {
-            assertEquals(w.id, "", PersonalGreeting.text(DE, w, none, true));
-            assertEquals(w.id, "", PersonalGreeting.text(DE, w, null, true));
+            assertEquals(w.id, "", greet(DE, w, none, true));
+            assertEquals(w.id, "", greet(DE, w, null, true));
         }
         // An entry on another day shows nothing either.
-        assertEquals("", PersonalGreeting.text(DE, World.CLEAN, on(2026, 3, 15, ALEX_BIRTHDAY), true));
+        assertEquals("", greet(DE, World.CLEAN, on(2026, 3, 15, ALEX_BIRTHDAY), true));
     }
 
     @Test
     public void birthdayInCleanAndSeasons() {
-        assertEquals("Happy Birthday, Alex", PersonalGreeting.text(DE, World.CLEAN, PI_DAY_2026, true));
-        assertEquals("Happy Birthday, Alex", PersonalGreeting.text(DE, World.SEASONS, PI_DAY_2026, false));
-        assertEquals("Happy Birthday, Alex", PersonalGreeting.text(EN, World.CLEAN, PI_DAY_2026, true));
+        assertEquals("Happy Birthday, Alex", greet(DE, World.CLEAN, PI_DAY_2026, true));
+        assertEquals("Happy Birthday, Alex", greet(DE, World.SEASONS, PI_DAY_2026, false));
+        assertEquals("Happy Birthday, Alex", greet(EN, World.CLEAN, PI_DAY_2026, true));
     }
 
     @Test
     public void birthdayInTheThemedWorldsTakesTheirWords() {
-        assertEquals("Lumos · Alles Gute, Alex", PersonalGreeting.text(DE, World.HOGWARTS, PI_DAY_2026, true));
-        assertEquals("Nox · Alles Gute, Alex", PersonalGreeting.text(DE, World.HOGWARTS, PI_DAY_2026, false));
-        assertEquals("Suit up · Happy birthday, Alex", PersonalGreeting.text(EN, World.MARVEL, PI_DAY_2026, true));
+        assertEquals("Lumos · Alles Gute, Alex", greet(DE, World.HOGWARTS, PI_DAY_2026, true));
+        assertEquals("Nox · Alles Gute, Alex", greet(DE, World.HOGWARTS, PI_DAY_2026, false));
+        assertEquals("Suit up · Happy birthday, Alex", greet(EN, World.MARVEL, PI_DAY_2026, true));
         assertEquals("Alles Gute, Alex · Äußerer Rand",
-                PersonalGreeting.text(DE, World.STARWARS, PI_DAY_2026, true));
+                greet(DE, World.STARWARS, PI_DAY_2026, true));
     }
 
     /** Supernatural is a themed world: the plain wish, then its day or night words. */
     @Test
     public void birthdayInSupernaturalTakesItsDayOrNightWords() {
         assertEquals("Alles Gute, Alex · Back on the road",
-                PersonalGreeting.text(DE, World.SUPERNATURAL, PI_DAY_2026, true));
+                greet(DE, World.SUPERNATURAL, PI_DAY_2026, true));
         assertEquals("Happy birthday, Alex · Something's out there",
-                PersonalGreeting.text(EN, World.SUPERNATURAL, PI_DAY_2026, false));
+                greet(EN, World.SUPERNATURAL, PI_DAY_2026, false));
         SeasonsToday anniversary = on(2026, 3, 14, ANNIVERSARY);
         assertEquals("7 Jahre · Alex & Robin · Something's out there",
-                PersonalGreeting.text(DE, World.SUPERNATURAL, anniversary, false));
+                greet(DE, World.SUPERNATURAL, anniversary, false));
     }
 
-    /** Middle-earth's words as values-de and values have them (world_middleearth_greeting_day/_night). */
+    /** Middle-earth's words as values-de and values have them (world_middleearth_greeting_morning/_day/_night). */
     private static String middleEarthDe(int res) {
+        if (res == R.string.world_middleearth_greeting_morning) return "Ein neuer Tag im Hügelland";
         if (res == R.string.world_middleearth_greeting_day) return "Weit ist der Weg";
         if (res == R.string.world_middleearth_greeting_night) return "Das Auge wacht";
         throw new AssertionError(res);
     }
 
     private static String middleEarthEn(int res) {
+        if (res == R.string.world_middleearth_greeting_morning) return "A new day in the hill country";
         if (res == R.string.world_middleearth_greeting_day) return "The road goes far";
         if (res == R.string.world_middleearth_greeting_night) return "The eye is watching";
         throw new AssertionError(res);
     }
 
-    /** Middle-earth is a themed world: the plain wish, then its day or night words in the app's language. */
+    /**
+     * The greeting by day or night with a lookup that fails for every string: the worlds other than Middle-earth have
+     * their words in the code and never consult the resources.
+     */
+    private static String greet(PersonalGreeting.Templates s, World w, SeasonsToday t, boolean day) {
+        return PersonalGreeting.text(s, w, t, day ? WorldScene.Mood.DAY : WorldScene.Mood.NIGHT,
+                res -> { throw new AssertionError(w + " looked up " + res); });
+    }
+
+    /** Middle-earth is a themed world: the plain wish, then its morning, day or night words in the app's language. */
     @Test
     public void birthdayInMiddleEarthTakesItsWordsInTheAppsLanguage() {
-        assertEquals("Alles Gute, Alex · Weit ist der Weg",
-                PersonalGreeting.text(DE, World.MIDDLE_EARTH, PI_DAY_2026, true, PersonalGreetingTest::middleEarthDe));
-        assertEquals("Happy birthday, Alex · The eye is watching",
-                PersonalGreeting.text(EN, World.MIDDLE_EARTH, PI_DAY_2026, false, PersonalGreetingTest::middleEarthEn));
+        assertEquals("Alles Gute, Alex · Ein neuer Tag im Hügelland", PersonalGreeting.text(DE, World.MIDDLE_EARTH,
+                PI_DAY_2026, WorldScene.Mood.MORNING, PersonalGreetingTest::middleEarthDe));
+        assertEquals("Happy birthday, Alex · A new day in the hill country", PersonalGreeting.text(EN,
+                World.MIDDLE_EARTH, PI_DAY_2026, WorldScene.Mood.MORNING, PersonalGreetingTest::middleEarthEn));
+        assertEquals("Alles Gute, Alex · Weit ist der Weg", PersonalGreeting.text(DE, World.MIDDLE_EARTH,
+                PI_DAY_2026, WorldScene.Mood.DAY, PersonalGreetingTest::middleEarthDe));
+        assertEquals("Happy birthday, Alex · The eye is watching", PersonalGreeting.text(EN, World.MIDDLE_EARTH,
+                PI_DAY_2026, WorldScene.Mood.NIGHT, PersonalGreetingTest::middleEarthEn));
         SeasonsToday anniversary = on(2026, 3, 14, ANNIVERSARY);
-        assertEquals("7 Jahre · Alex & Robin · Das Auge wacht",
-                PersonalGreeting.text(DE, World.MIDDLE_EARTH, anniversary, false, PersonalGreetingTest::middleEarthDe));
-        // Without an entry nothing, as everywhere; the other worlds' words need no lookup.
-        assertEquals("", PersonalGreeting.text(DE, World.MIDDLE_EARTH, on(2026, 3, 15), true,
+        assertEquals("7 Jahre · Alex & Robin · Das Auge wacht", PersonalGreeting.text(DE, World.MIDDLE_EARTH,
+                anniversary, WorldScene.Mood.NIGHT, PersonalGreetingTest::middleEarthDe));
+        // Without an entry nothing, as everywhere; the other worlds' words need no lookup, a morning is their day.
+        assertEquals("", PersonalGreeting.text(DE, World.MIDDLE_EARTH, on(2026, 3, 15), WorldScene.Mood.DAY,
                 PersonalGreetingTest::middleEarthDe));
-        assertEquals("Alles Gute, Alex · Back on the road",
-                PersonalGreeting.text(DE, World.SUPERNATURAL, PI_DAY_2026, true, PersonalGreetingTest::middleEarthDe));
+        assertEquals("Alles Gute, Alex · Back on the road", PersonalGreeting.text(DE, World.SUPERNATURAL,
+                PI_DAY_2026, WorldScene.Mood.MORNING, res -> { throw new AssertionError(res); }));
+        assertEquals("Lumos · Alles Gute, Alex", PersonalGreeting.text(DE, World.HOGWARTS,
+                PI_DAY_2026, WorldScene.Mood.MORNING, res -> { throw new AssertionError(res); }));
     }
 
     @Test
     public void twoBirthdaysShareOneGreeting() {
         SeasonsToday both = on(2026, 3, 14, ALEX_BIRTHDAY, ROBIN_BIRTHDAY);
-        assertEquals("Happy Birthday, Alex & Robin", PersonalGreeting.text(DE, World.CLEAN, both, true));
+        assertEquals("Happy Birthday, Alex & Robin", greet(DE, World.CLEAN, both, true));
     }
 
     @Test
     public void anniversaryCountsTheYears() {
         SeasonsToday t = on(2026, 3, 14, ANNIVERSARY);
-        assertEquals("7 Jahre · Alex & Robin", PersonalGreeting.text(DE, World.CLEAN, t, true));
-        assertEquals("7 years · Alex & Robin", PersonalGreeting.text(EN, World.CLEAN, t, true));
+        assertEquals("7 Jahre · Alex & Robin", greet(DE, World.CLEAN, t, true));
+        assertEquals("7 years · Alex & Robin", greet(EN, World.CLEAN, t, true));
         assertEquals("1 Jahr · Alex & Robin",
-                PersonalGreeting.text(DE, World.CLEAN, on(2020, 3, 14, ANNIVERSARY), true));
+                greet(DE, World.CLEAN, on(2020, 3, 14, ANNIVERSARY), true));
         // The start year itself: no count yet, only the names.
-        assertEquals("Alex & Robin", PersonalGreeting.text(DE, World.CLEAN, on(2019, 3, 14, ANNIVERSARY), true));
+        assertEquals("Alex & Robin", greet(DE, World.CLEAN, on(2019, 3, 14, ANNIVERSARY), true));
     }
 
     @Test
     public void anniversaryTakesTheDefaultTemplate() {
         SeasonsToday t = on(2027, 3, 14, ANNIVERSARY);
-        assertEquals("8 Jahre · Alex & Robin", PersonalGreeting.text(DE, World.CLEAN, t, true));
-        assertEquals("8 years · Alex & Robin", PersonalGreeting.text(EN, World.SEASONS, t, true));
+        assertEquals("8 Jahre · Alex & Robin", greet(DE, World.CLEAN, t, true));
+        assertEquals("8 years · Alex & Robin", greet(EN, World.SEASONS, t, true));
         // In the themed worlds after their word, as before.
-        assertEquals("Lumos · 8 Jahre · Alex & Robin", PersonalGreeting.text(DE, World.HOGWARTS, t, true));
+        assertEquals("Lumos · 8 Jahre · Alex & Robin", greet(DE, World.HOGWARTS, t, true));
     }
 
     @Test
@@ -141,14 +158,14 @@ public class PersonalGreetingTest {
         PersonalDays.saveAnniversaryGreeting(prefs, "Happy {years}th · {names}", DE_ANNIVERSARY);
         PersonalGreeting.Templates own = DE.withAnniversary(PersonalDays.anniversaryGreeting(prefs, DE_ANNIVERSARY));
         SeasonsToday t = on(2027, 3, 14, ANNIVERSARY);
-        assertEquals("Happy 8th · Alex & Robin", PersonalGreeting.text(own, World.CLEAN, t, true));
-        assertEquals("Nox · Happy 8th · Alex & Robin", PersonalGreeting.text(own, World.HOGWARTS, t, false));
+        assertEquals("Happy 8th · Alex & Robin", greet(own, World.CLEAN, t, true));
+        assertEquals("Nox · Happy 8th · Alex & Robin", greet(own, World.HOGWARTS, t, false));
         // An own template is taken as written, also in the first year (no "1 Jahr" of the default).
         assertEquals("Happy 1th · Alex & Robin",
-                PersonalGreeting.text(own, World.CLEAN, on(2020, 3, 14, ANNIVERSARY), true));
+                greet(own, World.CLEAN, on(2020, 3, 14, ANNIVERSARY), true));
         // Further entries of the day still follow with " · ".
         assertEquals("Happy Birthday, Alex · Happy 8th · Alex & Robin",
-                PersonalGreeting.text(own, World.CLEAN, on(2027, 3, 14, ANNIVERSARY, ALEX_BIRTHDAY), true));
+                greet(own, World.CLEAN, on(2027, 3, 14, ANNIVERSARY, ALEX_BIRTHDAY), true));
     }
 
     @Test
@@ -165,36 +182,36 @@ public class PersonalGreetingTest {
         prefs.edit().putString(PersonalDays.ANNIVERSARY_GREETING, "").commit();
         PersonalGreeting.Templates s = DE.withAnniversary(PersonalDays.anniversaryGreeting(prefs, DE_ANNIVERSARY));
         assertEquals("8 Jahre · Alex & Robin",
-                PersonalGreeting.text(s, World.CLEAN, on(2027, 3, 14, ANNIVERSARY), true));
+                greet(s, World.CLEAN, on(2027, 3, 14, ANNIVERSARY), true));
         // The default keeps its own first year.
         assertEquals("1 Jahr · Alex & Robin",
-                PersonalGreeting.text(s, World.CLEAN, on(2020, 3, 14, ANNIVERSARY), true));
+                greet(s, World.CLEAN, on(2020, 3, 14, ANNIVERSARY), true));
     }
 
     @Test
     public void anUnknownPlaceholderStays() {
         PersonalGreeting.Templates own = DE.withAnniversary("{years} · {names} {heart}");
         assertEquals("8 · Alex & Robin {heart}",
-                PersonalGreeting.text(own, World.CLEAN, on(2027, 3, 14, ANNIVERSARY), true));
+                greet(own, World.CLEAN, on(2027, 3, 14, ANNIVERSARY), true));
     }
 
     @Test
     public void weddingDayCountsFromTheFirstYear() {
-        assertEquals("5. Hochzeitstag", PersonalGreeting.text(DE, World.CLEAN, on(2032, 8, 19, WEDDING), true));
-        assertEquals("5 years married", PersonalGreeting.text(EN, World.CLEAN, on(2032, 8, 19, WEDDING), true));
-        assertEquals("1. Hochzeitstag", PersonalGreeting.text(DE, World.CLEAN, on(2028, 8, 19, WEDDING), true));
-        assertEquals("1 year married", PersonalGreeting.text(EN, World.CLEAN, on(2028, 8, 19, WEDDING), true));
+        assertEquals("5. Hochzeitstag", greet(DE, World.CLEAN, on(2032, 8, 19, WEDDING), true));
+        assertEquals("5 years married", greet(EN, World.CLEAN, on(2032, 8, 19, WEDDING), true));
+        assertEquals("1. Hochzeitstag", greet(DE, World.CLEAN, on(2028, 8, 19, WEDDING), true));
+        assertEquals("1 year married", greet(EN, World.CLEAN, on(2028, 8, 19, WEDDING), true));
         // The wedding day itself shows nothing (PersonalDay.shows).
-        assertEquals("", PersonalGreeting.text(DE, World.CLEAN, on(2027, 8, 19, WEDDING), true));
+        assertEquals("", greet(DE, World.CLEAN, on(2027, 8, 19, WEDDING), true));
     }
 
     @Test
     public void furtherEntriesOfTheDayAreAppended() {
         SeasonsToday t = on(2026, 3, 14, ANNIVERSARY, ALEX_BIRTHDAY);
         assertEquals("Happy Birthday, Alex · 7 Jahre · Alex & Robin",
-                PersonalGreeting.text(DE, World.CLEAN, t, true));
+                greet(DE, World.CLEAN, t, true));
         assertEquals("Nox · Alles Gute, Alex · 7 Jahre · Alex & Robin",
-                PersonalGreeting.text(DE, World.HOGWARTS, t, false));
+                greet(DE, World.HOGWARTS, t, false));
     }
 
     @Test
@@ -208,10 +225,10 @@ public class PersonalGreetingTest {
 
     @Test
     public void festivalLosesToBirthday() {
-        String birthday = PersonalGreeting.text(EN, World.CLEAN, PI_DAY_2026, true);
+        String birthday = greet(EN, World.CLEAN, PI_DAY_2026, true);
         assertEquals("Happy Birthday, Alex", PersonalGreeting.pick(birthday, "Happy Diwali", "Good morning"));
         // Without an entry the festival's greeting stays as it is today.
-        String none = PersonalGreeting.text(EN, World.CLEAN, on(2026, 3, 15), true);
+        String none = greet(EN, World.CLEAN, on(2026, 3, 15), true);
         assertEquals("Happy Diwali", PersonalGreeting.pick(none, "Happy Diwali", "Good morning"));
     }
 

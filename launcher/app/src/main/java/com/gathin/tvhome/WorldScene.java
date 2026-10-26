@@ -22,6 +22,10 @@ import java.util.function.ToIntFunction;
  * the mood changes the new picture fades in over the old one in 300 ms, never a hard cut, and only the picture on
  * screen stays in memory after that. Clean has no scene and adds no views at all.
  *
+ * <p>Middle-earth has three moods ({@link Mood}): its morning picture from the sunrise to 11:00, then its day one
+ * (Mittelerde spec § 4.1). Its pictures are found by name ({@link #drawableName(World, Mood)}); until they are there
+ * it keeps its plain colour.
+ *
  * <p>Jahreskreis (Seasons) shows the day's {@link Look} instead (setLook): its picture is found by name
  * ({@link #drawableName}), a day and a night one for the seasons, one for every other look, and a look without a
  * picture keeps the world's plain colour. A new look (midnight, a test date) fades in like a mood change; bright looks
@@ -29,8 +33,33 @@ import java.util.function.ToIntFunction;
  * filter on the scene's views only (OLED rule, spec § 4.8); a season's night picture is painted dark already.
  */
 final class WorldScene {
-    /** forceMood's choices: the sun decides, or always day, or always night (the hidden test switch, Task 11). */
-    static final String MOOD_AUTO = "auto", MOOD_DAY = "day", MOOD_NIGHT = "night";
+    /**
+     * The scene's moods. Every world knows day and night; Middle-earth ({@link World#hasMorning}) splits its day into
+     * a morning until 11:00 and the day after (Mittelerde spec § 4.1). A morning counts as day wherever only day and
+     * night matter (the overlays' setDay, Hogwarts' Lumos, Supernatural's words).
+     */
+    enum Mood {
+        MORNING("morning"), DAY("day"), NIGHT("night");
+
+        /** As forceMood saves it, and the end of Middle-earth's picture name (world_middleearth_&lt;id&gt;). */
+        final String id;
+
+        Mood(String id) {
+            this.id = id;
+        }
+
+        boolean isDay() {
+            return this != NIGHT;
+        }
+    }
+
+    /**
+     * forceMood's choices: the sun decides, or always morning, day or night (the hidden test switch, Task 11).
+     * Morning is Middle-earth's; a world without one shows its day.
+     */
+    static final String MOOD_AUTO = "auto", MOOD_MORNING = "morning", MOOD_DAY = "day", MOOD_NIGHT = "night";
+    /** Middle-earth's morning ends at 11:00 (spec § 4.1), in minutes of the day. */
+    static final int MORNING_END = 11 * 60;
     /**
      * The test switch's choice in Config.SETTINGS_NAME (one of the moods). It holds while this process lives, so
      * Home's recreate (a world or setting change) keeps it, and a new process (force-stop, reboot) is back on auto.
@@ -56,7 +85,7 @@ final class WorldScene {
     private int[] sun;
     private String forced = MOOD_AUTO;
     /** The mood of the picture on screen; null before the first one (or when it could not be read). */
-    private Boolean shownDay;
+    private Mood shownMood;
     private Bitmap shown;
     private boolean active;
     private boolean fading;
@@ -87,24 +116,30 @@ final class WorldScene {
         root.addView(bottom, 0, matchParent());
         root.addView(top, 1, matchParent());
         // The first picture is decoded right here, so Home's first frame already has it, as with the wallpaper.
-        boolean day = isDay();
-        int res = resFor(context, w, day, this.look);
+        Mood mood = mood();
+        int res = resFor(context, w, mood, this.look);
         Bitmap first = decode(context, res);
         if (first != null) {
             bottom.setImageBitmap(first);
-            dim(bottom, this.look, day);
+            dim(bottom, this.look, mood.isDay());
             shown = first;
-            shownDay = day;
+            shownMood = mood;
             shownDate = this.date;
             shownLook = this.look;
             // The picture covers the whole screen: the world's plain colour under it is overdraw.
             root.setBackground(null);
-        } else if (res == 0 && w == World.SEASONS) {
-            // A look without a picture yet: its plain colour is what it shows, so the minute tick has nothing to load.
-            shownDay = day;
+        } else if (res == 0) {
+            // No picture (yet) for this look or mood (Seasons' plain looks, Middle-earth before its pictures): its
+            // plain colour is what it shows, so the minute tick has nothing to load.
+            shownMood = mood;
             shownDate = this.date;
             shownLook = this.look;
         }
+    }
+
+    /** forceMood's choice as given, or auto for anything unknown. */
+    private static String knownMood(String mood) {
+        return MOOD_MORNING.equals(mood) || MOOD_DAY.equals(mood) || MOOD_NIGHT.equals(mood) ? mood : MOOD_AUTO;
     }
 
     /**
@@ -117,15 +152,15 @@ final class WorldScene {
             if (prefs.contains(FORCE_KEY)) prefs.edit().remove(FORCE_KEY).apply();
             return MOOD_AUTO;
         }
-        String mood = prefs.getString(FORCE_KEY, MOOD_AUTO);
-        return MOOD_DAY.equals(mood) || MOOD_NIGHT.equals(mood) ? mood : MOOD_AUTO;
+        return knownMood(prefs.getString(FORCE_KEY, MOOD_AUTO));
     }
 
     /** The test switch: saves the mood for this process's next Home; the caller makes Home rebuild. */
     static void saveForcedMood(SharedPreferences prefs, String mood) {
         // Chosen in this process, so its next scene must keep it rather than take it for an old process's.
         processChecked = true;
-        if (MOOD_DAY.equals(mood) || MOOD_NIGHT.equals(mood)) prefs.edit().putString(FORCE_KEY, mood).commit();
+        String known = knownMood(mood);
+        if (!MOOD_AUTO.equals(known)) prefs.edit().putString(FORCE_KEY, known).commit();
         else prefs.edit().remove(FORCE_KEY).commit();
     }
 
@@ -151,11 +186,28 @@ final class WorldScene {
         return minuteOfDay >= sunrise && minuteOfDay < sunset + DUSK_MINUTES;
     }
 
-    /** The same with forceMood's choice first: day or night as forced, the sun's for auto (and anything unknown). */
+    /**
+     * The same with forceMood's choice first: day (a forced morning is day too) or night as forced, the sun's for
+     * auto (and anything unknown).
+     */
     static boolean isDay(String forced, int minuteOfDay, int sunrise, int sunset) {
-        if (MOOD_DAY.equals(forced)) return true;
+        if (MOOD_DAY.equals(forced) || MOOD_MORNING.equals(forced)) return true;
         if (MOOD_NIGHT.equals(forced)) return false;
         return isDay(minuteOfDay, sunrise, sunset);
+    }
+
+    /**
+     * World {@code w}'s mood at this minute, forceMood's choice first. Night outside {@link #isDay(int, int, int)};
+     * in a world with a morning ({@link World#hasMorning}) morning from the sunrise until {@link #MORNING_END}, so
+     * none when the sun rises after 11:00, and day from then on; every other world has day and night only. A forced
+     * morning is the day of a world without one; anything unknown is auto.
+     */
+    static Mood mood(World w, String forced, int minuteOfDay, int sunrise, int sunset) {
+        if (MOOD_MORNING.equals(forced)) return w.hasMorning() ? Mood.MORNING : Mood.DAY;
+        if (MOOD_DAY.equals(forced)) return Mood.DAY;
+        if (MOOD_NIGHT.equals(forced)) return Mood.NIGHT;
+        if (!isDay(minuteOfDay, sunrise, sunset)) return Mood.NIGHT;
+        return w.hasMorning() && minuteOfDay < MORNING_END ? Mood.MORNING : Mood.DAY;
     }
 
     /**
@@ -179,18 +231,41 @@ final class WorldScene {
     }
 
     /**
-     * The picture for this world, mood and look: Seasons' found by name (the looks add theirs without code), 0 when
-     * it has none (its plain colour stays); the other worlds' as {@link #resFor(World, boolean)}.
+     * The picture name of a world with a morning for this mood: world_middleearth_morning, _day or _night (made by
+     * launcher/worlds/middleearth/make_scene.py); null for the worlds without one, whose pictures are fixed.
      */
-    static int resFor(Context context, World w, boolean day, Look look) {
-        return resFor(w, day, look,
+    static String drawableName(World w, Mood mood) {
+        return w.hasMorning() ? "world_" + w.id + "_" + mood.id : null;
+    }
+
+    /**
+     * The fixed picture for this world and mood: {@link #resFor(World, boolean)}, a morning being day. 0 for Clean,
+     * Seasons and Middle-earth, whose pictures are found by name ({@link #resFor(World, Mood, Look, ToIntFunction)}).
+     */
+    static int resFor(World w, Mood mood) {
+        return resFor(w, mood, null, name -> 0);
+    }
+
+    /**
+     * The picture for this world, mood and look: Seasons' and Middle-earth's found by name (Seasons' looks add theirs
+     * without code, Middle-earth's three come with its pictures), 0 when there is none (its plain colour stays); the
+     * other worlds' as {@link #resFor(World, boolean)}.
+     */
+    static int resFor(Context context, World w, Mood mood, Look look) {
+        return resFor(w, mood, look,
                 name -> context.getResources().getIdentifier(name, "drawable", context.getPackageName()));
     }
 
     /** The same with the lookup by name given (getIdentifier in the app, a stand-in in tests). */
+    static int resFor(World w, Mood mood, Look look, ToIntFunction<String> byName) {
+        if (w.hasMorning()) return byName.applyAsInt(drawableName(w, mood));
+        if (w != World.SEASONS) return resFor(w, mood.isDay());
+        return look != null ? byName.applyAsInt(drawableName(look, mood.isDay())) : 0;
+    }
+
+    /** The same by day or night only: Seasons' looks know no morning. */
     static int resFor(World w, boolean day, Look look, ToIntFunction<String> byName) {
-        if (w != World.SEASONS) return resFor(w, day);
-        return look != null ? byName.applyAsInt(drawableName(look, day)) : 0;
+        return resFor(w, day ? Mood.DAY : Mood.NIGHT, look, byName);
     }
 
     /**
@@ -250,22 +325,40 @@ final class WorldScene {
         update();
     }
 
-    /** Whether it is day now, by the sun (worked out once a day) or by forceMood. Also for Hogwarts' Lumos/Nox. */
-    boolean isDay() {
+    /**
+     * This world's mood now, by the sun (worked out once a day) or by forceMood. Also for the greeting's words
+     * (Hogwarts' Lumos/Nox, Middle-earth's three).
+     */
+    Mood mood() {
         LocalDateTime now = LocalDateTime.now();
         if (!now.toLocalDate().equals(sunDay)) {
             sunDay = now.toLocalDate();
             sun = WallpaperMood.sun(sunDay, latitude, longitude, ZoneId.systemDefault());
         }
-        return isDay(forced, now.getHour() * 60 + now.getMinute(), sun[0], sun[1]);
+        return mood(world, forced, now.getHour() * 60 + now.getMinute(), sun[0], sun[1]);
+    }
+
+    /** Whether it is day now (a morning is day), as {@link #mood()}. */
+    boolean isDay() {
+        return mood().isDay();
     }
 
     /**
-     * Day or night as the scene shows it now: the mood of the picture on screen (or of Seasons' plain colour), which
-     * lags {@link #isDay} by a picture's decode and fade; isDay() before anything shows. The overlay follows this.
+     * The mood as the scene shows it now: the picture's on screen (or that of a plain colour), which lags
+     * {@link #mood()} by a picture's decode and fade; mood() before anything shows. The overlay follows this.
      */
+    Mood showsMood() {
+        return shownMood != null ? shownMood : mood();
+    }
+
+    /** Day or night as the scene shows it now ({@link #showsMood}, a morning being day). */
     boolean showsDay() {
-        return shownDay != null ? shownDay : isDay();
+        return showsMood().isDay();
+    }
+
+    /** Seasons' shown day or night for {@link #seasonsChange}; null before anything shows. */
+    private Boolean shownDay() {
+        return shownMood != null ? shownMood.isDay() : null;
     }
 
     void start() {
@@ -291,46 +384,48 @@ final class WorldScene {
         top.setScaleY(scale);
     }
 
-    /** auto, day or night (anything else is auto), for this Home only; the scene follows at once. */
+    /** auto, morning, day or night (anything else is auto), for this Home only; the scene follows at once. */
     void forceMood(String mood) {
-        forced = MOOD_DAY.equals(mood) || MOOD_NIGHT.equals(mood) ? mood : MOOD_AUTO;
+        forced = knownMood(mood);
         update();
     }
 
     /** From the minute tick: when the mood (or Seasons' look) has changed, fades the other picture in. */
     void update() {
         if (bottom == null || !active || fading) return;
-        boolean day = isDay();
+        Mood mood = mood();
         if (world == World.SEASONS) {
-            int change = seasonsChange(shownDate, shownLook, date, look, shownDay, day);
+            int change = seasonsChange(shownDate, shownLook, date, look, shownDay(), mood.isDay());
             if (change == MOOD) {
-                shownDay = day;
+                shownMood = mood;
                 if (listener != null) listener.run();
             }
             if (change != RELOAD) return;
-        } else if (shownDay != null && shownDay == day) {
+        } else if (shownMood == mood) {
             return;
         }
         Context context = root.getContext();
-        int res = resFor(context, world, day, look);
+        int res = resFor(context, world, mood, look);
         if (res == 0) {
-            // A look without a picture keeps the plain colour, and is marked shown: no lookup or decode a minute.
-            if (world == World.SEASONS) showPlainColour(day);
+            // A look or mood without a picture (Seasons' plain looks, Middle-earth before its pictures) keeps the
+            // plain colour, and is marked shown: no lookup or decode a minute. The themed worlds' fixed pictures are
+            // never 0.
+            showPlainColour(mood);
             return;
         }
         fading = true;
         Look nextLook = look;
         LocalDate nextDate = date;
-        // Decoded off the UI thread; it happens twice a day (and when Seasons' look changes).
+        // Decoded off the UI thread; it happens two or three times a day (and when Seasons' look changes).
         new Thread(() -> {
             Bitmap next = decode(context, res);
-            root.post(() -> show(next, day, nextLook, nextDate));
+            root.post(() -> show(next, mood, nextLook, nextDate));
         }, "WorldScene").start();
     }
 
-    /** Seasons on a look without a picture: the world's plain colour, the last picture (if any) released. */
-    private void showPlainColour(boolean day) {
-        shownDay = day;
+    /** A look or mood without a picture: the world's plain colour, the last picture (if any) released. */
+    private void showPlainColour(Mood mood) {
+        shownMood = mood;
         shownLook = look;
         shownDate = date;
         if (shown != null) {
@@ -345,7 +440,8 @@ final class WorldScene {
         if (listener != null) listener.run();
     }
 
-    private void show(Bitmap next, boolean day, Look nextLook, LocalDate nextDate) {
+    private void show(Bitmap next, Mood mood, Look nextLook, LocalDate nextDate) {
+        boolean day = mood.isDay();
         if (next == null) {
             fading = false;
             return;   // unreadable: keep the picture on screen (or the world's colour)
@@ -363,7 +459,7 @@ final class WorldScene {
             bottom.setImageBitmap(next);
             dim(bottom, nextLook, day);
             shown = next;
-            shownDay = day;
+            shownMood = mood;
             shownLook = nextLook;
             shownDate = nextDate;
             root.setBackground(null);
@@ -372,7 +468,7 @@ final class WorldScene {
             if (world == World.SEASONS) update();   // the look may have changed meanwhile
             return;
         }
-        shownDay = day;
+        shownMood = mood;
         shownLook = nextLook;
         shownDate = nextDate;
         top.setImageBitmap(next);

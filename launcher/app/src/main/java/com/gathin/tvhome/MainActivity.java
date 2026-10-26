@@ -565,8 +565,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (worldOverlay != null) {
             root.addView(worldOverlay, root.indexOfChild(sky), new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-            // The overlay switches day and night with the picture, not before its decode and fade.
-            worldScene.setListener(() -> worldOverlay.setDay(worldScene.showsDay()));
+            // Middle-earth's overlay knows its morning too; for the others setMood is setDay and changes nothing here.
+            worldOverlay.setMood(worldScene.showsMood());
+            // The overlay switches its mood with the picture, not before its decode and fade.
+            worldScene.setListener(() -> worldOverlay.setMood(worldScene.showsMood()));
         }
         // Seasons' birthday ties its balloons to the dock's top edge: the bow goes over the dock band, so into
         // oledLayer right under the focus frame (it moves with the dock's OLED shift); gone on every other look.
@@ -3131,9 +3133,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
     }
 
-    /** Day or night for the world's greeting words (Lumos/Nox): the scene's, by the sun at config.xml's place. */
-    private boolean worldDay() {
-        return worldScene.isDay();
+    /**
+     * The mood for the world's greeting words (Lumos/Nox, Middle-earth's morning, day and night): the scene's, by the
+     * sun at config.xml's place.
+     */
+    private WorldScene.Mood worldMood() {
+        return worldScene.mood();
     }
 
     private void updateGreeting() {
@@ -3176,7 +3181,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         String festiveGreeting = festive && world.isClean() ? festival.greetingText(getResources()) : "";
         // A personal day's greeting wins over both, in every world (Jahreskreis § 4.8); "" on every other day.
         String personal = PersonalGreeting.text(getResources(),
-                getSharedPreferences(PersonalDays.PREFS, MODE_PRIVATE), world, personalToday, worldDay());
+                getSharedPreferences(PersonalDays.PREFS, MODE_PRIVATE), world, personalToday, worldMood());
         if (!personal.isEmpty()) {
             String text = PersonalGreeting.pick(personal, festiveGreeting, "");
             // In capitals already in the worlds, for the reason given below.
@@ -3196,7 +3201,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // dropped that many characters at its end ("… RAN"). In capitals already, the transformation keeps
             // the length; it looks the same, as the view writes in capitals anyway.
             greeting.setText(world.isClean() ? base
-                    : WorldTypography.greetingText(world, base, worldDay(), this::getString)
+                    : WorldTypography.greetingText(world, base, worldMood(), this::getString)
                             .toUpperCase(Locale.getDefault()));
             greeting.setTextColor(WorldTypography.greetingColor(world, greetingColor, worldAccent()));
         }
