@@ -8,10 +8,12 @@ import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RadialGradient;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Shader;
 import android.os.SystemClock;
 
+import java.time.LocalDate;
 import java.util.Random;
 
 /**
@@ -19,7 +21,12 @@ import java.util.Random;
  * morning smoke rises from the chimney and mist drifts over the fields; by day mist drifts through the valley; by
  * night the crater glows and throws sparks, the lava channels glimmer, ash falls, and on the tower's crown the eye
  * pulses while its cone of light sweeps slowly over the land, about every 18 s from 0.9 radians on one side of
- * straight down to 0.9 on the other. The walking company comes with its own task (CompanyMotion).
+ * straight down to 0.9 on the other.
+ *
+ * <p>In every mood the company (spec § 4.2) walks on the dock's top edge in the scene's darkest tone, left to right
+ * once in about 6 minutes, then pauses for 2 to 5; behind the focused app's name (setHeroName) it shows at a quarter.
+ * Its step pictures are drawn once per size (CompanySilhouettes), its clock is its own (CompanyMotion) and is kept for
+ * the process, so it goes on where it stood after onPause, a screensaver or Home built anew. Stopped, it stands.
  *
  * <p>The household's own logo picture (WorldLogo, spec § 4.4) stands in the free area at the top middle, the same
  * place in all three moods, at 85 % brightness; without one there is no lettering. The logo and, by night, the eye
@@ -63,6 +70,19 @@ final class MiddleEarthOverlay extends WorldOverlay {
     private static final float EMBER_SIZE = 0.28f;
     /** Ash: flakes falling over the scene above the dock, slowly, drifting right. */
     private static final int ASH = 40;
+    /** The company's figure height in units: a tenth of the picture's (the mockup's S). */
+    static final float COMPANY_S = 0.1f * MiddleEarthScene.UNITS_H;
+    /** Today's company, kept over Home's rebuilds (recreate) so it walks on from where it stood. */
+    private static CompanyMotion sharedCompany;
+
+    private final CompanyMotion company;
+    private final CompanySilhouettes silhouettes = new CompanySilhouettes();
+    /** The silhouettes' paint: the mood's darkest tone, its alpha the dimming at the figure. */
+    private final Paint companyPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
+    private final Rect cell = new Rect();
+    private final RectF place = new RectF();
+    /** The focused app's name on screen, left and right in view pixels; -1 for none. */
+    private float nameLeft = -1f, nameRight = -1f;
 
     private final float[] puffX = new float[PUFFS], puffS = new float[PUFFS];
     private final float[] mistX = new float[MIST_DAY_PUFFS], mistY = new float[MIST_DAY_PUFFS],
@@ -97,6 +117,7 @@ final class MiddleEarthOverlay extends WorldOverlay {
     MiddleEarthOverlay(Context context, boolean day) {
         super(context, day);
         mood = day ? WorldScene.Mood.DAY : WorldScene.Mood.NIGHT;
+        company = companyFor(LocalDate.now().toEpochDay());
         Random seeded = new Random(0x4D45L);
         for (int i = 0; i < PUFFS; i++) {
             puffX[i] = (i + seeded.nextFloat() * 0.5f) / PUFFS;
@@ -154,11 +175,42 @@ final class MiddleEarthOverlay extends WorldOverlay {
         setMood(day ? WorldScene.Mood.DAY : WorldScene.Mood.NIGHT);
     }
 
-    /** Stopped (onPause, reduced motion, a screensaver): what moves goes, the logo and the eye at rest stay. */
+    /**
+     * Stopped (onPause, reduced motion, a screensaver): what moves goes, the logo and the eye at rest stay, and the
+     * company stands where it got to.
+     */
     @Override
     void stop() {
+        company.stop(SystemClock.uptimeMillis());
         super.stop();
         invalidate();
+    }
+
+    @Override
+    protected void onStart(long now) {
+        company.start(now);
+    }
+
+    @Override
+    protected void onFrame(long now) {
+        company.advance(now);
+    }
+
+    /**
+     * The focused app's name above the dock, its left and right edge in this view's pixels (MainActivity, on every
+     * focus change and layout of the name); -1, -1 while none shows. The company dims behind it.
+     */
+    void setHeroName(float left, float right) {
+        if (left == nameLeft && right == nameRight) return;
+        nameLeft = left;
+        nameRight = right;
+        invalidate();
+    }
+
+    /** Today's company: the one already walking, or a new one for a new day. */
+    private static CompanyMotion companyFor(long day) {
+        if (sharedCompany == null || sharedCompany.day != day) sharedCompany = new CompanyMotion(day);
+        return sharedCompany;
     }
 
     @Override
@@ -187,6 +239,14 @@ final class MiddleEarthOverlay extends WorldOverlay {
             logoRect.set(ux(box[0]), uy(box[1]), ux(box[2]), uy(box[3]));
         }
         for (int i = 0; i < 4; i++) regions[i].setEmpty();
+        // The company's step pictures, drawn once for this size (a mood changes only the paint's colour), and the
+        // band over the dock's top edge it walks in, in every mood.
+        silhouettes.build(COMPANY_S * unit);
+        companyPaint.setColor(MiddleEarthScene.darkest(mood));
+        if (silhouettes.isBuilt()) {
+            float top = dockPx - silhouettes.anchorY();
+            regions[3].set(0, (int) Math.floor(top), w, (int) Math.ceil(top + silhouettes.cellH()));
+        }
         switch (mood) {
             case MORNING: {
                 float[] c = MiddleEarthScene.CHIMNEY_TOP;
@@ -241,7 +301,29 @@ final class MiddleEarthOverlay extends WorldOverlay {
         }
         // The eye at night, pulsing and sweeping while the motion runs, at rest otherwise.
         if (!day && getWidth() > 0) drawEye(c, now, moving);
+        drawCompany(c);
         if (logo != null) c.drawBitmap(logo, null, logoRect, logoPaint);
+    }
+
+    /**
+     * The company on the dock's top edge, from the last figure to the wizard ahead, each in its step picture and
+     * dimmed behind the app's name at its feet; nothing during the pause.
+     */
+    private void drawCompany(Canvas c) {
+        float progress = company.progress();
+        if (progress < 0f || !silhouettes.isBuilt()) return;
+        float w = getWidth(), s = COMPANY_S * unit;
+        float head = CompanyMotion.headX(progress, w, s);
+        long walked = company.walkedMs();
+        float cw = silhouettes.cellW(), top = dockPx - silhouettes.anchorY();
+        for (int i = 0; i < CompanyMotion.COMPANY.length; i++) {
+            float x = head - CompanyMotion.OFFSETS[i] * s, left = x - silhouettes.anchorX();
+            if (left + cw < 0f || left > w) continue;
+            companyPaint.setAlpha(Math.round(255 * CompanyMotion.alphaAt(x, nameLeft, nameRight, w)));
+            silhouettes.cell(CompanyMotion.stepFrame(walked, i, CompanySilhouettes.FRAMES), cell);
+            place.set(left, top, left + cw, top + silhouettes.cellH());
+            c.drawBitmap(silhouettes.sheet(CompanyMotion.COMPANY[i]), cell, place, companyPaint);
+        }
     }
 
     private void drawMorning(Canvas c, long now) {

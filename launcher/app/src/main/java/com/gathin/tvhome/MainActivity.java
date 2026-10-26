@@ -153,6 +153,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private Weather weather;
     private View ambient;
     private TextView heroName;
+    /** heroName's and the world overlay's place in the window, for Middle-earth's company (updateCompanyName). */
+    private final int[] heroNameAt = new int[2], overlayAt = new int[2];
     /** The top shelf: heroName, plus the cinematic shelf's "Last opened" line and dock position dots. */
     private View hero;
     private TextView heroMeta;
@@ -569,6 +571,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             worldOverlay.setMood(worldScene.showsMood());
             // The overlay switches its mood with the picture, not before its decode and fade.
             worldScene.setListener(() -> worldOverlay.setMood(worldScene.showsMood()));
+            // Middle-earth's company dims behind the app's name: it follows the name's width as it is laid out.
+            if (worldOverlay instanceof MiddleEarthOverlay) {
+                heroName.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> updateCompanyName());
+            }
         }
         // Seasons' birthday ties its balloons to the dock's top edge: the bow goes over the dock band, so into
         // oledLayer right under the focus frame (it moves with the dock's OLED shift); gone on every other look.
@@ -1264,6 +1270,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             ambient.setAlpha(0f);
             heroArt.animate().cancel();
             heroArt.setAlpha(0f);
+            updateCompanyName();
         }
         if (rebuild) reloadTiles();
         if (animate && entrance && animations && !reducedMotion) {
@@ -2246,6 +2253,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 ambient.setAlpha(1f);
             }
             heroShown = true;
+            updateCompanyName();
             return;
         }
 
@@ -2285,6 +2293,25 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         } else {
             hero.setY(y);
         }
+        // Every focus change: the company dims behind this name (a new name follows once it is laid out).
+        updateCompanyName();
+    }
+
+    /**
+     * Middle-earth's company (spec § 4.2) dims behind the focused app's name: tells its overlay where the name stands
+     * across the screen, or that none shows (-1, -1). Nothing in the other worlds.
+     */
+    private void updateCompanyName() {
+        if (!(worldOverlay instanceof MiddleEarthOverlay)) return;
+        MiddleEarthOverlay overlay = (MiddleEarthOverlay) worldOverlay;
+        if (!heroShown || heroName.getWidth() <= 0) {
+            overlay.setHeroName(-1f, -1f);
+            return;
+        }
+        heroName.getLocationInWindow(heroNameAt);
+        overlay.getLocationInWindow(overlayAt);
+        float left = heroNameAt[0] - overlayAt[0];
+        overlay.setHeroName(left, left + heroName.getWidth());
     }
 
     /**
@@ -2547,6 +2574,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         heroArt.animate().cancel();
         heroArt.setAlpha(0f);
         heroShown = false;
+        updateCompanyName();
         if (!ambientGlow) return;
         if (!animations || reducedMotion) {
             setAmbient(color);
@@ -2573,6 +2601,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         ambient.animate().cancel();
         heroArt.animate().cancel();
         heroShown = false;
+        updateCompanyName();
         if (animations && !reducedMotion) {
             hero.animate().alpha(0f).setDuration(160).start();
             if (ambientGlow) ambient.animate().alpha(0f).setDuration(300).start();
