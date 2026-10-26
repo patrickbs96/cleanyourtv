@@ -8,6 +8,7 @@ import android.graphics.Typeface;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextPaint;
+import android.text.Layout;
 import android.text.TextUtils;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.MetricAffectingSpan;
@@ -15,6 +16,7 @@ import android.text.style.RelativeSizeSpan;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.TextView;
 
 import java.util.Locale;
@@ -144,6 +146,34 @@ final class WorldTypography {
         weather.setTextSize(TypedValue.COMPLEX_UNIT_PX, date.getTextSize());
         weather.setLetterSpacing(date.getLetterSpacing());
         weather.setAllCaps(true);   // as the date, which the layout writes in capitals
+        tightenDateColumn(date, weather);
+    }
+
+    /**
+     * With the weather line the date column (weekday, date, weather: three lines in the worlds' taller faces) stood
+     * higher than the clock, so it filled the clock row from its top and its first line sat right under the greeting.
+     * The worlds close the column's line gaps (the date's 6dp line spacing, the weather's 4dp top margin) and put the
+     * room they free above the column instead: the column keeps its height, so the header and the dock stay where
+     * they are, and its lines settle down beside the clock. The padding follows the date's line count (one or two).
+     */
+    private static void tightenDateColumn(TextView date, TextView weather) {
+        if (!(date.getParent() instanceof View)) return;
+        View column = (View) date.getParent();
+        float extra = date.getLineSpacingExtra();
+        date.setLineSpacing(0f, date.getLineSpacingMultiplier());
+        ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) weather.getLayoutParams();
+        int margin = lp.topMargin;
+        lp.topMargin = 0;
+        weather.setLayoutParams(lp);
+        // Posted: a layout change listener runs inside the layout pass, where a new layout would be deferred anyway.
+        date.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> column.post(() -> {
+            Layout layout = date.getLayout();
+            int lines = layout != null ? layout.getLineCount() : 1;
+            int top = Math.round(extra * Math.max(0, lines - 1)) + margin;
+            if (column.getPaddingTop() != top) {
+                column.setPadding(column.getPaddingLeft(), top, column.getPaddingRight(), column.getPaddingBottom());
+            }
+        }));
     }
 
     /**
