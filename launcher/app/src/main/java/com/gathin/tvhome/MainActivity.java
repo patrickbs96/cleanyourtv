@@ -318,6 +318,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private WorldOverlay worldOverlay;
     /** Seasons only: the bow tying the birthday balloons to the dock, over the dock band (BalloonBowView). */
     private BalloonBowView balloonBow;
+    /** Seasons' anniversary crawl while it rolls (over everything on Home), else null. */
+    private CrawlView crawl;
+    /** The key whose press ended the crawl: its repeats and release are eaten too; NO_KEY when none. */
+    private int crawlEndKey = NO_KEY;
+    private static final int NO_KEY = -1;
     /** Between onResume and onPause, for WorldOverlay.shouldRun. */
     private boolean resumed;
     /** The idle clock (ClockActivity) was started from Home and has not been left yet. */
@@ -1066,6 +1071,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+        // Home pressed while the crawl rolls (Home already in front, so no pause): it ends.
+        stopCrawl();
         if (openLauncherSettingsIfAsked(intent)) return;
         if (openInputsIfAsked(intent)) return;
         if (intent == null || !intent.hasCategory(Intent.CATEGORY_HOME)) return;
@@ -1152,6 +1159,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         resumed = true;
         screensaver = false;
         updateWorldOverlay();
+        playCrawlIfDue();
         handler.postDelayed(minuteTick, MINUTE_MS);
         if (festive && diya != null) {
             diya.start();
@@ -1324,6 +1332,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onPause() {
         super.onPause();
+        // Nothing of the crawl goes on behind another app; the day stays done.
+        stopCrawl();
+        crawlEndKey = NO_KEY;
         root.removeCallbacks(showIdleClock);
         endReorder();   // Home or another app while reordering keeps the order so far
         wallpaperPlayer.stop();
@@ -1487,6 +1498,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      */
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
+        // Seasons' anniversary crawl: any key ends it, and that whole press goes nowhere else.
+        if (crawlKey(event)) return true;
         // While a world's app start plays (and its blend stands), keys wait: a second OK opens nothing twice, a held
         // OK opens no tile menu, the D-pad moves no focus away from the growing tile. Volume still works. Back before
         // the app started drops the effect as leaving Home does (ruling R13): no app, Home as it was. Its release
@@ -3277,8 +3290,70 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Starts or stops the world's motion as WorldOverlay.shouldRun has it; nothing in Clean. */
     private void updateWorldOverlay() {
         if (worldOverlay == null) return;
-        if (WorldOverlay.shouldRun(world, animations, reducedMotion, resumed, screensaver)) worldOverlay.start();
-        else worldOverlay.stop();
+        // The crawl covers the whole scene: nothing ticks under it.
+        if (WorldOverlay.shouldRun(world, animations, reducedMotion, resumed, screensaver) && crawl == null) {
+            worldOverlay.start();
+        } else {
+            worldOverlay.stop();
+        }
+    }
+
+    /**
+     * Seasons on an anniversary (spec § 4.3, § 4.5): the first resume of the day rolls the crawl, the household's
+     * text (PersonalDays.crawlText) with the day's names and years. The day is marked as it starts, so a recreate
+     * or a world switch back the same day does not roll it again. With reduced motion or animations off it is not
+     * shown at all (twenty seconds of moving text are what those turn off), and the day still counts as done.
+     */
+    private void playCrawlIfDue() {
+        if (world != World.SEASONS || seasonsToday == null || seasonsToday.look != Look.ANNIVERSARY
+                || crawl != null) return;
+        SharedPreferences prefs = getSharedPreferences(PersonalDays.PREFS, MODE_PRIVATE);
+        if (!OncePerDay.take(prefs, PersonalDays.CRAWL_LAST, seasonsDate)) return;
+        if (!animations || reducedMotion) return;
+        String text = CrawlView.fill(PersonalDays.crawlText(prefs, getString(R.string.seasons_crawl_default)),
+                seasonsToday.names(), seasonsToday.years());
+        crawl = new CrawlView(this);
+        // Last child of root: over the scene, the tiles, the pills and the focus frame.
+        root.addView(crawl, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        updateWorldOverlay();
+        crawl.play(text, this::onCrawlEnded);
+    }
+
+    /** Ends the crawl if it rolls (a key, Home, leaving Home); onCrawlEnded tidies up. */
+    private void stopCrawl() {
+        if (crawl != null) crawl.stop();
+    }
+
+    /** The crawl has ended, by itself (MAX_MS) or by stopCrawl: Home is as before, and its prompt may show. */
+    private void onCrawlEnded() {
+        CrawlView ended = crawl;
+        crawl = null;
+        if (ended != null) root.removeView(ended);
+        updateWorldOverlay();
+        showCardPrompt();
+    }
+
+    /**
+     * Keys while the crawl rolls: any key ends it and is eaten, Back, OK, the D-pad, digits and colour keys alike,
+     * and so are that press's repeats and release, so nothing of it reaches Home. Keys a key service takes first
+     * (bound keys, Home, Settings) never come here; they leave Home or send a new intent, and that ends it too.
+     */
+    private boolean crawlKey(KeyEvent event) {
+        int code = event.getKeyCode();
+        if (crawl != null && crawl.isPlaying()) {
+            // A release here belongs to a press from before the crawl: nothing more of it to eat.
+            crawlEndKey = event.getAction() == KeyEvent.ACTION_UP ? NO_KEY : code;
+            stopCrawl();
+            return true;
+        }
+        if (crawlEndKey == NO_KEY) return false;
+        if (code != crawlEndKey) {
+            crawlEndKey = NO_KEY;
+            return false;
+        }
+        if (event.getAction() == KeyEvent.ACTION_UP) crawlEndKey = NO_KEY;
+        return true;
     }
 
     private void playPetalShower() {
@@ -3860,7 +3935,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      */
     private void showCardPrompt() {
         if (!moduleCards || !tilesReady || promptsPaused || cardPrompt != null || !hasWindowFocus() || isFinishing()
-                || reordering) return;
+                || reordering || crawl != null) return;
         if (cards.isEmpty() || !CardFeature.working()) return;
         CardFeature.run(() -> {
             showCardPromptNow();

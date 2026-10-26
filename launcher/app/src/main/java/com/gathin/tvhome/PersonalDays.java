@@ -25,6 +25,8 @@ final class PersonalDays {
     static final String MOTHERS_DAY = "mothers_day";
     static final String FATHERS_DAY = "fathers_day";
     static final String CRAWL_TEXT = "crawl_text";
+    /** The day the anniversary crawl last started (OncePerDay), so it rolls once a day. */
+    static final String CRAWL_LAST = "crawl_last";
     static final String FORCE_DATE = "force_date";
     /** The force_date value that goes back to the real date. */
     static final String AUTO = "auto";
