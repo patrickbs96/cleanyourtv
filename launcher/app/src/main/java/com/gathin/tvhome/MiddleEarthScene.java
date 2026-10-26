@@ -20,6 +20,12 @@ final class MiddleEarthScene {
     static final float[] LOGO = {92.16f, 7.56f, 34.56f, 8.64f};
     static final float[] LOGO_FREE = {92.16f, 4.32f, 34.56f, 15.12f};
 
+    /**
+     * The header on the top left (greeting, clock, date, weather) as {left, top, right, bottom} (HEADER): all three
+     * scenes show only sky there, and the crater's sparks stop below its bottom.
+     */
+    static final float[] HEADER = {0.0f, 0.0f, 76.0f, 34.0f};
+
     /** Morning: the top of the chimney the smoke rises from (CHIMNEY_TOP). */
     static final float[] CHIMNEY_TOP = {171.0f, 45.6f};
     /** Morning and day: the band the mist drifts through, {top, bottom} (MIST_MORNING, MIST_DAY). */
@@ -36,9 +42,9 @@ final class MiddleEarthScene {
     /** The channels' width in their middle (LAVA_W); they taper to their ends. */
     static final float LAVA_W = 0.34f;
 
-    /** Night: the dark tower's top, the tips of its horns (TOWER_TOP). */
+    /** Night: the dark tower's top, its crown's highest merlon (TOWER_TOP). */
     static final float[] TOWER_TOP = {146.0f, 35.0f};
-    /** Night: the eye between the horns (EYE), {centre x, y, half width, half height}, painted dim at rest. */
+    /** Night: the eye set into the crown's wall (EYE), {centre x, y, half width, half height}, dim at rest. */
     static final float[] EYE = {146.0f, 39.0f, 2.9f, 1.35f};
     /** Night: where the sweeping cone of light starts (CONE_ORIGIN), the eye's centre. */
     static final float[] CONE_ORIGIN = {146.0f, 39.0f};

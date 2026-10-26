@@ -21,7 +21,7 @@ JAVA_DIR = ROOT / "launcher" / "app" / "src" / "main" / "java" / "com" / "gathin
 JAVA = JAVA_DIR / "MiddleEarthScene.java"
 PERSONAL_MOTIONS = JAVA_DIR / "PersonalMotions.java"
 
-SHARED = ("DOCK", "LOGO", "LOGO_FREE", "CHIMNEY_TOP", "MIST_MORNING", "MIST_DAY", "CRATER", "LAVA", "LAVA_W",
+SHARED = ("DOCK", "HEADER", "LOGO", "LOGO_FREE", "CHIMNEY_TOP", "MIST_MORNING", "MIST_DAY", "CRATER", "LAVA", "LAVA_W",
           "TOWER_TOP", "EYE", "CONE_ORIGIN", "DARKEST_MORNING", "DARKEST_DAY", "DARKEST_NIGHT")
 
 
@@ -130,11 +130,18 @@ class MiddleEarthDrawingTest(unittest.TestCase):
         for args in ((50.0, 15.0, 11, 0.9), (57.0, 10.0, 17, 0.9), (63.0, 6.0, 23, 0.6)):
             self.assertGreaterEqual(float(self.scene.mountain_line(*args).min()), 35.5 - 1e-3)
 
-    def test_tower_flank_reaches_the_top(self):
-        """The tower's horns end at TOWER_TOP and its foot stands on the dock."""
-        ys = [y for _, y in self.scene.TOWER_FLANK]
+    def test_tower_reaches_the_top_and_holds_the_eye(self):
+        """The crown's highest merlon ends at TOWER_TOP, the foot stands on the dock, and the eye sits inside the
+        crown's wall."""
+        pts = self.scene.tower_outline()
+        ys = [y for _, y in pts]
         self.assertAlmostEqual(min(ys), self.scene.TOWER_TOP[1])
         self.assertGreater(max(ys), self.scene.DOCK)
+        bottom, top, half = self.scene.TOWER_CROWN
+        ex, ey, rx, ry = self.scene.EYE
+        self.assertLessEqual(rx, half)
+        self.assertTrue(top <= ey - ry and ey + ry <= bottom)
+        self.assertAlmostEqual(ex, self.scene.TOWER_TOP[0])
 
 
 if __name__ == "__main__":

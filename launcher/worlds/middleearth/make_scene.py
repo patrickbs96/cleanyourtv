@@ -9,8 +9,10 @@
                                    of conifers, gnarled old trees with bark in front; on the right a slim dark tower
                                    with storeys in the haze
     world_middleearth_night.jpg    "Dunkler Turm" (red): layers of ash in the sky, a volcano on the left with hatched
-                                   flanks and three lava channels, a jagged black tower with buttresses, storeys and
-                                   glimmering windows on the right above the dock, an army of spears on rugged ground
+                                   flanks and three lava channels, a jagged black tower in stepped tiers with
+                                   buttresses standing off it, glimmering windows and a crenellated crown with the
+                                   eye set into its wall, on the right above the dock; an army of spears on rugged
+                                   ground
 
     python launcher/worlds/middleearth/make_scene.py
 
@@ -49,6 +51,7 @@ TAU = 2 * np.pi
 DOCK = 76.6                              # the dock's top edge (y 766 of 1080): the company walks on it
 PILLS = (128.0, 23.0, 192.0, 34.0)       # the pills' zone (PersonalMotions.PILLS): left, top, right, bottom
 HEADER = (0.0, 0.0, 76.0, 34.0)          # greeting, clock, date and weather on the top left: left, top, right, bottom
+                                         # (the crater's sparks stop below its bottom)
 # The logo picture (spec § 4.4): centred at x 57 %, y 11 %, at most 18 % wide and 8 % high, as x, y, width, height;
 # and the area kept free round it (x 48 to 66 %, y 4 to 18 %), sky and clouds only in all three scenes.
 LOGO = (92.16, 7.56, 34.56, 8.64)
@@ -67,8 +70,8 @@ LAVA = (
     ((46.0, 40.8), (45.6, 46.0), (46.8, 51.4), (45.8, 57.0), (47.0, 62.4)),
 )
 LAVA_W = 0.34                            # the channels' width in their middle; they taper to their ends
-# Night: the dark tower's top (between its two horns), the eye on it (centre, half width, half height; painted dim,
-# the overlay lights it and lets it pulse) and the origin of its sweeping cone of light.
+# Night: the dark tower's top (its crown's highest merlon), the eye set into the crown (centre, half width, half
+# height; painted dim, the overlay lights it and lets it pulse) and the origin of its sweeping cone of light.
 TOWER_TOP = (146.0, 35.0)
 EYE = (146.0, 39.0, 2.9, 1.35)
 CONE_ORIGIN = (146.0, 39.0)
@@ -364,9 +367,10 @@ def path_and_fence(img, rng):
 
 
 def morning_scene(rng):
-    img = c.vgradient([(0, "#2A3424"), (.16, "#525E46"), (.32, "#7A846A"), (.45, "#878B70"), (1, "#878B70")])
+    img = c.vgradient([(0, "#2E3826"), (.16, "#5E6A4C"), (.30, "#868A68"), (.40, "#9C8E6A"), (.47, "#A08A64"),
+                       (1, "#A08A64")])
     # the morning light low on the left, warm
-    c.radial(img, 52, 49, 80, [(0, "#B89C60", .10), (1, "#B89C60", 0)], ry=16, mode="add")
+    c.radial(img, 52, 49, 80, [(0, "#C89A58", .05), (1, "#C89A58", 0)], ry=14, mode="add")
     soft_clouds(img, rng, 18, (12, 40), "#A8AC92", 0.35)
     soft_clouds(img, rng, 10, (20, 44), "#6E785E", 0.18, rx=(10, 24), ry=(0.5, 1.0))
     sky = img.copy()
@@ -504,7 +508,7 @@ def gnarled_tree(img, x, base, s, lean, rng):
 
 
 def day_scene(rng):
-    img = c.vgradient([(0, "#202C34"), (.16, "#3E4E56"), (.32, "#6E7E84"), (.46, "#889496"), (1, "#8A9698")])
+    img = c.vgradient([(0, "#202C34"), (.16, "#44545C"), (.32, "#74848A"), (.46, "#889496"), (1, "#8A9698")])
     soft_clouds(img, rng, 14, (10, 34), "#9AA6A8", 0.28, rx=(10, 26), ry=(0.6, 1.3))
     sky = img.copy()
     # the far range, the tower in the haze before it, then the nearer ranges, each darker and less hazy
@@ -562,46 +566,97 @@ def day_scene(rng):
 
 
 # ---- the night: the dark tower ------------------------------------------------------------------------------------
-# The tower's left flank from its foot on the dock up to the tip of its left horn, as offsets from TOWER_TOP's x
-# (units); the right flank mirrors it. Teeth stick out at each storey; between the horns it dips to TOWER_NOTCH.
-TOWER_FLANK = ((-7.2, 77.4), (-6.4, 72.0), (-7.3, 71.0), (-5.9, 70.4), (-5.2, 64.0), (-6.1, 63.0), (-4.8, 62.4),
-               (-4.3, 56.0), (-5.2, 55.0), (-3.9, 54.4), (-3.5, 49.0), (-4.3, 48.0), (-3.2, 47.4), (-2.8, 44.2),
-               (-3.6, 43.0), (-4.2, 40.2), (-4.9, 37.4), (-4.6, 35.0), (-3.6, 36.8), (-2.4, 39.6), (-1.2, 41.0))
-TOWER_NOTCH = 41.4
-TOWER_STOREYS = (43.0, 48.0, 55.0, 63.0, 71.0)   # the storeys' lines, at the teeth
-# The buttresses at its foot, two each side: top x, top y, outer foot x, inner foot x (left side, mirrored).
-BUTTRESSES = ((-5.0, 58.0, -12.6, -6.8), (-3.8, 48.5, -9.6, -6.0))
+# The tower in stepped tiers, each a little narrower than the one below, from its foot on the dock: bottom, top,
+# half width at the bottom and at the top (units). Every tier's flank carries jagged teeth, every ledge a row of
+# them; on top sits a wider crown with stepped merlons whose highest one ends at TOWER_TOP, the eye set into its wall.
+TOWER_TIERS = ((77.4, 66.0, 7.0, 6.2), (65.5, 56.5, 5.4, 4.8), (56.0, 48.5, 4.2, 3.7), (48.0, 42.6, 3.2, 2.9))
+TOWER_CROWN = (41.0, 37.0, 4.4)          # the crown's wall: its corbelled bottom, its top, its half width
+# The merlons on the crown from its left edge to the middle: left, right (offsets from TOWER_TOP's x) and top; the
+# right half mirrors them, the middle one spans both.
+MERLONS = ((-4.4, -3.5, 36.2), (-2.7, -1.8, 35.6), (-1.0, 1.0, 35.0))
+# The buttresses, standing off the tower and joined to it by a strut (left side, mirrored): the pier's outer and inner
+# foot x, its top (x, y), and the strut's end on the tower (x, y).
+BUTTRESSES = ((-13.2, -8.8, (-8.6, 56.4), (-5.0, 61.0)),)
+
+
+def tower_left():
+    """The tower's left outline from its foot up to the middle of the crown (units, x as offsets from TOWER_TOP's
+    x): jagged teeth up each tier's flank, a row of teeth on every ledge, the corbelled crown and its merlons."""
+    pts = []
+    for k, (yb, yt, hb, ht) in enumerate(TOWER_TIERS):
+        pts.append((-hb, yb))
+        n = max(1, int((yb - yt) / 3.2))
+        for j in range(1, n + 1):
+            y = yb - (yb - yt) * j / (n + 1)
+            h = hb + (ht - hb) * j / (n + 1)
+            pts += [(-h, y + 0.6), (-h - 1.5, y - 1.0), (-h - 0.9, y - 0.2), (-h, y - 0.4)]
+        pts.append((-ht, yt))
+        inner = TOWER_TIERS[k + 1][2] if k + 1 < len(TOWER_TIERS) else None
+        if inner is not None:
+            # the ledge: a lip sticking out, a row of teeth across it back to the next tier
+            pts += [(-ht - 0.8, yt), (-ht - 0.8, yt - 0.5)]
+            x = -ht - 0.8
+            while x + 0.75 < -inner:
+                pts += [(x + 0.15, yt - 1.6), (x + 0.4, yt - 0.5)]
+                x += 0.6
+            pts.append((-inner, yt - 0.5))
+    bottom, top, half = TOWER_CROWN
+    ht = TOWER_TIERS[-1][3]
+    pts += [(-ht - 0.4, TOWER_TIERS[-1][1] - 0.4), (-half, bottom)]
+    edge = -half
+    for left, right, y in MERLONS:
+        if left > edge:
+            pts += [(edge, top), (left, top)]
+        right = min(right, 0.0)
+        pts += [(left, y), (right, y)]
+        edge = right
+    return pts
+
+
+def tower_outline():
+    """The whole outline: tower_left() and its mirror, placed at TOWER_TOP's x."""
+    tx = TOWER_TOP[0]
+    left = tower_left()
+    return [(tx + dx, y) for dx, y in left] + [(tx - dx, y) for dx, y in reversed(left)]
 
 
 def tower_half(y):
-    """The tower's half width at row y (units), its flank without the teeth."""
-    ys = [77.4, 70.4, 62.4, 54.4, 47.4, 44.2]
-    hs = [7.2, 5.9, 4.8, 3.9, 3.2, 2.8]
+    """The tower's half width at row y (units), its tiers' flanks without the teeth."""
+    ys, hs = [], []
+    for yb, yt, hb, ht in TOWER_TIERS:
+        ys += [yb, yt]
+        hs += [hb, ht]
     return float(np.interp(y, ys[::-1], hs[::-1]))
 
 
 def dark_tower(img, rng):
     tx = TOWER_TOP[0]
-    left = [(tx + dx, y) for dx, y in TOWER_FLANK]
-    right = [(tx - dx, y) for dx, y in reversed(TOWER_FLANK)]
-    outline = left + [(tx, TOWER_NOTCH)] + right
-    body = c.shape(lambda p: p.poly(outline), blur=0.04)
-    butt = c.shape(lambda p: [p.poly([(tx + k * bx, by), (tx + k * ox, 77.4), (tx + k * ix, 77.4)])
-                              for bx, by, ox, ix in BUTTRESSES for k in (1, -1)], blur=0.04)
-    # small spikes on the buttresses
-    spikes = c.shape(lambda p: [p.poly([(tx + k * (bx + (ox - bx) * t) - 0.3 * k, by + (77.4 - by) * t),
-                                        (tx + k * (bx + (ox - bx) * t) - 0.9 * k, by + (77.4 - by) * t - 1.6),
-                                        (tx + k * (bx + (ox - bx) * t) + 0.3 * k, by + (77.4 - by) * t + 0.3)])
-                                for bx, by, ox, ix in BUTTRESSES for k in (1, -1) for t in (0.3, 0.62)], blur=0.03)
-    tower = np.maximum(np.maximum(body, butt), spikes)
-    c.blend(img, tower, "#070202")
-    # a faint red rim on its left, lit by the volcano, and the storeys as dim lines
-    rim = np.clip(tower - np.roll(tower, int(0.3 * c.U), axis=1), 0, 1)
+    body = c.shape(lambda p: p.poly(tower_outline()), blur=0.04)
+
+    def piers(p):
+        for ox, ix, (px, py), (sx, sy) in BUTTRESSES:
+            for k in (1, -1):
+                p.poly([(tx + k * ox, 77.4), (tx + k * ix, 77.4), (tx + k * (px + 1.0), py + 2.2),
+                        (tx + k * (px + 0.3), py + 1.4), (tx + k * px, py), (tx + k * (px - 0.5), py + 1.2),
+                        (tx + k * (px - 1.1), py + 2.0)])
+                # a spike halfway up the pier, and the strut over to the tower
+                mx, my = (ox + px) / 2, (77.4 + py) / 2
+                p.poly([(tx + k * (mx - 0.1), my - 0.4), (tx + k * (mx - 1.3), my - 1.6),
+                        (tx + k * (mx + 0.2), my + 0.6)])
+                line(p, [(tx + k * px, py + 1.0), (tx + k * (px + sx) / 2, (py + sy) / 2 - 0.6), (tx + k * sx, sy)],
+                     0.9)
+    butt = c.shape(piers, blur=0.04)
+    # the buttresses a little lighter than the tower, lit red from the volcano along their edges
+    c.blend(img, butt, "#1E0907")
+    c.add(img, np.clip(butt - np.roll(butt, int(0.3 * c.U), axis=1), 0, 1) * 0.35, "#A0341A")
+    c.blend(img, body, "#070202")
+    rim = np.clip(body - np.roll(body, int(0.3 * c.U), axis=1), 0, 1)
     c.add(img, rim * 0.28, "#8A2A14")
-    floors = c.shape(lambda p: [p.rect(tx - tower_half(y) + 0.3, y, 2 * tower_half(y) - 0.6, 0.14)
-                                for y in TOWER_STOREYS], blur=0.03)
-    c.blend(img, floors * body * 0.4, "#5A1C0E")
-    # glimmering windows: narrow slits in the storeys
+    # the storeys as dim lines at each tier's top
+    floors = c.shape(lambda p: [p.rect(tx - tower_half(y) + 0.3, y + 0.6, 2 * tower_half(y) - 0.6, 0.14)
+                                for _, y, _, _ in TOWER_TIERS[:-1]], blur=0.03)
+    c.blend(img, floors * body * 0.45, "#5A1C0E")
+    # glimmering windows: narrow slits in the tiers
     lay = Layer()
     for _ in range(24):
         y = float(rng.uniform(44.0, 75.0))
@@ -611,15 +666,17 @@ def dark_tower(img, rng):
     glow = np.asarray(lay.im.filter(ImageFilter.GaussianBlur(0.6 * c.U)), dtype=np.float32)
     c.add(img, glow[:, :, 3] / 255.0 * 0.6, "#C84A14")
     lay.over(img, blur=0.02)
-    # the eye at rest between the horns: dim, with its slit (the overlay lights it and lets it pulse)
+    # the eye at rest, set into the crown's wall: a dark recess, a dim fiery ring, a round dark core (the overlay
+    # lights it and lets it pulse)
     ex, ey, rx, ry = EYE
-    c.radial(img, ex, ey, rx * 1.8, [(0, "#E05A14", .22), (1, "#E05A14", 0)], ry=ry * 2.0, mode="add")
+    c.blend(img, c.shape(lambda p: p.ellipse(ex, ey, rx * 1.12, ry * 1.25), blur=0.06), "#020000")
+    c.radial(img, ex, ey, rx * 1.6, [(0, "#E05A14", .20), (1, "#E05A14", 0)], ry=ry * 1.8, mode="add")
     c.blend(img, c.shape(lambda p: p.ellipse(ex, ey, rx, ry), blur=0.08) * 0.9, "#6A240A")
-    c.blend(img, c.shape(lambda p: p.ellipse(ex, ey, rx * 0.66, ry * 0.6), blur=0.1) * 0.9, "#94380E")
-    c.blend(img, c.shape(lambda p: p.ellipse(ex, ey, rx * 0.12, ry * 0.9), blur=0.04), "#0C0302")
+    c.blend(img, c.shape(lambda p: p.ellipse(ex, ey, rx * 0.66, ry * 0.62), blur=0.1) * 0.9, "#94380E")
+    c.blend(img, c.shape(lambda p: p.circle(ex, ey, ry * 0.42), blur=0.06), "#160502")
 
 
-def volcano_outline(rng):
+def volcano_outline():
     """The volcano's outline: a ragged crater rim and concave flanks, steep at the top, running out to the plain."""
     cx, cy, half = CRATER
     r = np.random.default_rng(SEED + 7)
@@ -639,21 +696,21 @@ def volcano(img, rng):
     cx, cy, half = CRATER
     # the crater's glow over the rim, kept below the header
     c.radial(img, cx, cy, 12.0, [(0, "#FF5A14", .24), (.5, "#B02A0C", .07), (1, "#FF5A14", 0)], ry=4.6, mode="add")
-    m = c.shape(lambda p: p.poly(volcano_outline(rng)), blur=0.05)
+    m = c.shape(lambda p: p.poly(volcano_outline()), blur=0.05)
     c.blend(img, m, c.vgradient([(0, "#2C0D08"), (1, "#140605")], top=cy / 108, bottom=72 / 108))
     # the flanks: the side away from the glow darker, hatched ridges down both
     away = np.clip((XS - cx) / 40, 0, 1)[None, :]
     c.blend(img, m * away * 0.45, "#0E0404")
     down = np.clip((YS[:, None] - cy) / 6, 0, 1)
-    c.blend(img, hatch(m, 0.75, -0.62, 0.11) * down * (1 - away) * 0.55, "#0C0303")
-    c.blend(img, hatch(m, 0.75, 0.62, 0.11, offset=0.3) * down * away * 0.55, "#0C0303")
-    c.add(img, hatch(m, 2.3, -0.62, 0.09, offset=0.9) * down * (1 - away) * 0.10, "#C04A20")
+    c.blend(img, hatch(m, 0.75, -0.62, 0.11) * down * (1 - away) * 0.7, "#0C0303")
+    c.blend(img, hatch(m, 0.75, 0.62, 0.11, offset=0.3) * down * away * 0.7, "#0C0303")
+    c.add(img, hatch(m, 2.3, -0.62, 0.09, offset=0.9) * down * (1 - away) * 0.18, "#C04A20")
     # the lava channels at rest (the overlay lets them glow and pulse, and adds the embers)
     c.add(img, c.shape(lambda p: tapered(p, LAVA, LAVA_W * 3.0), blur=1.0) * m * 0.40, "#E0400C")
     c.add(img, c.shape(lambda p: tapered(p, LAVA, LAVA_W * 1.6), blur=0.25) * m * 0.45, "#FF5A10")
     c.blend(img, c.shape(lambda p: tapered(p, LAVA, LAVA_W), blur=0.04) * m * 0.85, "#FF9A40")
     # the lit inner edge of the crater rim
-    rim = volcano_outline(rng)[25:31]
+    rim = volcano_outline()[25:31]
     c.add(img, c.shape(lambda p: line(p, rim, 0.25), blur=0.2) * 0.3, "#FF7A28")
 
 
@@ -694,11 +751,12 @@ def night_scene(rng):
     rocks = mountain_line(69.6, 2.4, 61, 1.6, top_limit=60.0)
     m = under(rocks)
     c.blend(img, m, c.vgradient([(0, "#260C08"), (1, "#140605")], top=0.6, bottom=0.72))
-    c.add(img, hatch(m, 0.9, -0.4, 0.1) * crest(rocks, 3.0) * 0.12, "#FF5A28")
+    c.add(img, hatch(m, 0.9, -0.4, 0.1) * crest(rocks, 3.0) * 0.20, "#FF5A28")
     army(img, rng)
     plain = column(XS, 71.2 + np.sin(XS / 192 * 7 + 1) * 0.6 + np.sin(XS * 0.9) * 0.25)
     c.blend(img, under(plain), "#1A0705")
-    c.add(img, hatch(under(plain), 1.1, -0.4, 0.1) * np.clip((YS[:, None] - 71) / 6, 0, 1) * 0.10, "#FF5A28")
+    c.add(img, hatch(under(plain), 1.1, -0.4, 0.1) * np.clip((YS[:, None] - 71) / 6, 0, 1) * 0.18, "#FF5A28")
+    c.add(img, crest(plain, 0.8) * 0.10, "#C04A20")
     dark_tower(img, rng)
     c.blend(img, under(column(XS, DOCK - 0.4 + np.sin(XS / 192 * 5 + 2) * 0.25)), DARKEST_NIGHT)
     return img, sky
