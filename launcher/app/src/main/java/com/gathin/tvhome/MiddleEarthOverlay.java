@@ -26,7 +26,8 @@ import java.util.Random;
  * <p>In every mood the company (spec § 4.2) walks on the dock's top edge in the scene's darkest tone, left to right
  * once in about 6 minutes, then pauses for 2 to 5; behind the focused app's name (setHeroName) it shows at a quarter.
  * Its step pictures are drawn once per size (CompanySilhouettes), its clock is its own (CompanyMotion) and is kept for
- * the process, so it goes on where it stood after onPause, a screensaver or Home built anew. Stopped, it stands.
+ * the process, so it goes on where it stood after onPause, a screensaver or Home built anew. Stopped, it stands; with
+ * reduced motion or animations off, when it never walked, it stands in the middle of the screen.
  *
  * <p>The household's own logo picture (WorldLogo, spec § 4.4) stands in the free area at the top middle, the same
  * place in all three moods, at 85 % brightness; without one there is no lettering. The logo and, by night, the eye
@@ -83,6 +84,9 @@ final class MiddleEarthOverlay extends WorldOverlay {
     private final RectF place = new RectF();
     /** The focused app's name on screen, left and right in view pixels; -1 for none. */
     private float nameLeft = -1f, nameRight = -1f;
+    /** The area before the last change and when it changed: the dimming blends from it (CompanyMotion.blendAlpha). */
+    private float fromLeft = -1f, fromRight = -1f;
+    private long nameAt;
 
     private final float[] puffX = new float[PUFFS], puffS = new float[PUFFS];
     private final float[] mistX = new float[MIST_DAY_PUFFS], mistY = new float[MIST_DAY_PUFFS],
@@ -181,14 +185,15 @@ final class MiddleEarthOverlay extends WorldOverlay {
      */
     @Override
     void stop() {
-        company.stop(SystemClock.uptimeMillis());
+        // Only if this overlay started the clock: an old one's late stop after a recreate leaves the new one's be.
+        company.stop(SystemClock.uptimeMillis(), this);
         super.stop();
         invalidate();
     }
 
     @Override
     protected void onStart(long now) {
-        company.start(now);
+        company.start(now, this);
     }
 
     @Override
@@ -202,8 +207,12 @@ final class MiddleEarthOverlay extends WorldOverlay {
      */
     void setHeroName(float left, float right) {
         if (left == nameLeft && right == nameRight) return;
+        // From the area as it stands (a blend under way ends where it was heading) over to the new one.
+        fromLeft = nameLeft;
+        fromRight = nameRight;
         nameLeft = left;
         nameRight = right;
+        nameAt = SystemClock.uptimeMillis();
         invalidate();
     }
 
@@ -245,7 +254,7 @@ final class MiddleEarthOverlay extends WorldOverlay {
         companyPaint.setColor(MiddleEarthScene.darkest(mood));
         if (silhouettes.isBuilt()) {
             float top = dockPx - silhouettes.anchorY();
-            regions[3].set(0, (int) Math.floor(top), w, (int) Math.ceil(top + silhouettes.cellH()));
+            regions[3].set(0, (int) Math.floor(top), w, (int) Math.ceil(top + silhouettes.placeH()));
         }
         switch (mood) {
             case MORNING: {
@@ -301,7 +310,7 @@ final class MiddleEarthOverlay extends WorldOverlay {
         }
         // The eye at night, pulsing and sweeping while the motion runs, at rest otherwise.
         if (!day && getWidth() > 0) drawEye(c, now, moving);
-        drawCompany(c);
+        drawCompany(c, now);
         if (logo != null) c.drawBitmap(logo, null, logoRect, logoPaint);
     }
 
@@ -309,19 +318,22 @@ final class MiddleEarthOverlay extends WorldOverlay {
      * The company on the dock's top edge, from the last figure to the wizard ahead, each in its step picture and
      * dimmed behind the app's name at its feet; nothing during the pause.
      */
-    private void drawCompany(Canvas c) {
-        float progress = company.progress();
-        if (progress < 0f || !silhouettes.isBuilt()) return;
+    private void drawCompany(Canvas c, long now) {
+        if (!company.isVisible() || !silhouettes.isBuilt()) return;
         float w = getWidth(), s = COMPANY_S * unit;
-        float head = CompanyMotion.headX(progress, w, s);
+        // Walking along its crossing, or standing in the middle while its clock never ran (reduced motion).
+        float head = company.headX(w, s);
         long walked = company.walkedMs();
-        float cw = silhouettes.cellW(), top = dockPx - silhouettes.anchorY();
+        float cw = silhouettes.placeW(), top = dockPx - silhouettes.anchorY();
+        // A new name's dimmed area comes in over NAME_BLEND_MS while the motion runs (its ticks draw it), at once else.
+        float blend = isRunning() ? (now - nameAt) / (float) CompanyMotion.NAME_BLEND_MS : 1f;
         for (int i = 0; i < CompanyMotion.COMPANY.length; i++) {
             float x = head - CompanyMotion.OFFSETS[i] * s, left = x - silhouettes.anchorX();
             if (left + cw < 0f || left > w) continue;
-            companyPaint.setAlpha(Math.round(255 * CompanyMotion.alphaAt(x, nameLeft, nameRight, w)));
+            companyPaint.setAlpha(Math.round(255 * CompanyMotion.blendAlpha(x, fromLeft, fromRight, nameLeft,
+                    nameRight, w, blend)));
             silhouettes.cell(CompanyMotion.stepFrame(walked, i, CompanySilhouettes.FRAMES), cell);
-            place.set(left, top, left + cw, top + silhouettes.cellH());
+            place.set(left, top, left + cw, top + silhouettes.placeH());
             c.drawBitmap(silhouettes.sheet(CompanyMotion.COMPANY[i]), cell, place, companyPaint);
         }
     }

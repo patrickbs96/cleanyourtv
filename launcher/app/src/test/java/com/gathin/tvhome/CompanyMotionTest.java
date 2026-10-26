@@ -3,6 +3,7 @@ package com.gathin.tvhome;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -133,6 +134,78 @@ public class CompanyMotionTest {
                 assertTrue(k >= 0 && k < 16);
             }
         }
+    }
+
+    /**
+     * With reduced motion (or animations off) the overlay never ticks: the company stands in the middle of the
+     * screen, visible and still whatever the clock says, instead of waiting unseen left of it.
+     */
+    @Test public void companyStandsStillWithReducedMotion() {
+        assertFalse(WorldOverlay.shouldRun(World.MIDDLE_EARTH, true, true, true, false));
+        CompanyMotion m = new CompanyMotion(20_000L);
+        float s = 108f;
+        assertFalse(m.hasWalked());
+        assertTrue(m.isVisible());
+        float head = m.headX(W, s);
+        // The group's middle (the wizard ahead, the shield bearer last) at half the width.
+        float middle = head - CompanyMotion.OFFSETS[0] * s / 2f;
+        assertEquals(0.5f * W, middle, 1f);
+        // Stopped again and again (onPause, a screensaver) and frames that never come: it stays where it stands.
+        for (long t = 0; t <= 30 * 60_000L; t += 60_000L) {
+            m.stop(t);
+            assertEquals(head, m.headX(W, s), 0f);
+            assertTrue(m.isVisible());
+        }
+        assertFalse(m.hasWalked());
+        // Moving after all, it walks its way from the left as ever.
+        m.start(0);
+        assertTrue(m.hasWalked());
+        assertEquals(CompanyMotion.headX(0f, W, s), m.headX(W, s), 0f);
+    }
+
+    /**
+     * After a recreate the old overlay may stop the clock late, after the new one started it: only the overlay that
+     * started it stops it, so the new one's company walks on.
+     */
+    @Test public void aLateStopOfAnOldOverlayKeepsTheNewOneWalking() {
+        CompanyMotion m = new CompanyMotion(20_000L);
+        Object oldOverlay = new Object(), newOverlay = new Object();
+        m.start(0, oldOverlay);
+        for (long t = 0; t <= 990; t += WorldOverlay.FRAME_MS) m.advance(t);
+        m.start(1_000, newOverlay);
+        float p = m.progress();
+        m.stop(1_010, oldOverlay);
+        assertTrue(m.isRunning());
+        assertEquals(p, m.progress(), 0f);
+        m.advance(1_033);
+        float frame = WorldOverlay.FRAME_MS / (float) CompanyMotion.CROSS_MS;
+        assertEquals(p + frame, m.progress(), 1e-6f);
+        // Its own stop stops it, walked up to then.
+        m.stop(1_066, newOverlay);
+        assertFalse(m.isRunning());
+        assertEquals(p + 2 * frame, m.progress(), 1e-6f);
+    }
+
+    /** A new name's dimmed area (or none) comes in over NAME_BLEND_MS instead of at once. */
+    @Test public void dimmedAreaBlendsToTheNewName() {
+        float x = 300f;
+        // From a name over x to none: a quarter at the start, full at the end, in between rising.
+        assertEquals(0.25f, CompanyMotion.blendAlpha(x, 136f, 520f, -1f, -1f, W, 0f), 1e-6f);
+        assertEquals(1f, CompanyMotion.blendAlpha(x, 136f, 520f, -1f, -1f, W, 1f), 1e-6f);
+        float half = CompanyMotion.blendAlpha(x, 136f, 520f, -1f, -1f, W, 0.5f);
+        assertTrue("" + half, half > 0.3f && half < 0.95f);
+        float before = 0f;
+        for (float t = 0f; t <= 1f; t += 0.05f) {
+            float a = CompanyMotion.blendAlpha(x, 136f, 520f, -1f, -1f, W, t);
+            assertTrue(t + ": " + a, a >= before - 1e-6f);
+            before = a;
+        }
+        // Past its end and before its start it holds.
+        assertEquals(1f, CompanyMotion.blendAlpha(x, 136f, 520f, -1f, -1f, W, 3f), 1e-6f);
+        assertEquals(0.25f, CompanyMotion.blendAlpha(x, 136f, 520f, -1f, -1f, W, -1f), 1e-6f);
+        assertEquals(CompanyMotion.alphaAt(x, 900f, 1300f, W),
+                CompanyMotion.blendAlpha(x, 136f, 520f, 900f, 1300f, W, 1f), 1e-6f);
+        assertTrue(CompanyMotion.NAME_BLEND_MS >= 150 && CompanyMotion.NAME_BLEND_MS <= 300);
     }
 
     /** Walks one motion through {@code n} cycles a frame at a time, returning each cycle's pause. */

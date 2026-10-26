@@ -26,10 +26,20 @@ final class CompanySilhouettes {
     /** What a cell holds round the feet, in figure heights: left, top, right, bottom (y up is negative). */
     private static final float U0 = -0.45f, V0 = -1.25f, U1 = 0.5f, V1 = 0.05f;
 
+    /**
+     * A sheet's widest, a texture size every GPU takes. A cell is about 1.13 figure heights wide (U1 - U0 and the
+     * blur's pad of 4 x 0.045), so 16 cells fit up to figures 226 px high: 2160 lines (216 px) still fit at full size
+     * (16 x 245 = 3920 px). Larger figures are drawn at that height and scaled up when placed.
+     */
+    static final int MAX_SHEET_W = 4096;
+    private static final float CELL_W_PER_HEIGHT = (U1 - U0) + 4 * 0.045f;
+
     private final Bitmap[] sheets = new Bitmap[CompanyMotion.KINDS];
-    /** One cell's size and where the feet stand in it, in pixels; the figure height they were drawn for. */
+    /** One cell's size and where the feet stand in it, in sheet pixels; the figure height asked for. */
     private int cellW, cellH;
     private float anchorX, anchorY, drawnFor;
+    /** Screen pixels per sheet pixel: 1 unless the figures were too high for MAX_SHEET_W. */
+    private float scale = 1f;
 
     private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG), stroke = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint softFill = new Paint(Paint.ANTI_ALIAS_FLAG), softStroke = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -54,6 +64,10 @@ final class CompanySilhouettes {
         if (height <= 0f || (sheets[0] != null && height == drawnFor)) return;
         recycle();
         drawnFor = height;
+        // Within MAX_SHEET_W (a pixel to spare for rounding), scaled up when placed if the figures are higher.
+        float fit = (MAX_SHEET_W / (float) FRAMES - 2f) / CELL_W_PER_HEIGHT;
+        scale = height > fit ? height / fit : 1f;
+        height = Math.min(height, fit);
         float blur = Math.max(1f, 0.045f * height), pad = 2f * blur;
         BlurMaskFilter soft = new BlurMaskFilter(blur, BlurMaskFilter.Blur.NORMAL);
         softFill.setMaskFilter(soft);
@@ -83,20 +97,21 @@ final class CompanySilhouettes {
         return sheets[kind];
     }
 
-    int cellW() {
-        return cellW;
+    /** A step picture's size on screen, and where the feet stand in it, in screen pixels. */
+    float placeW() {
+        return cellW * scale;
     }
 
-    int cellH() {
-        return cellH;
+    float placeH() {
+        return cellH * scale;
     }
 
     float anchorX() {
-        return anchorX;
+        return anchorX * scale;
     }
 
     float anchorY() {
-        return anchorY;
+        return anchorY * scale;
     }
 
     /** Step picture {@code frame}'s place on its sheet into {@code out}. */
@@ -110,6 +125,7 @@ final class CompanySilhouettes {
             sheets[i] = null;
         }
         drawnFor = 0f;
+        scale = 1f;
     }
 
     // ---- the mockup's figure(): figure units, 1 = a tall figure's height, y up is negative, walking right --------

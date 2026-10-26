@@ -23,6 +23,8 @@ final class CompanyMotion {
     static final long MAX_FRAME_MS = 200;
     /** Behind the name: a quarter; the name's margin and the soft edge, as shares of the width. */
     static final float DIM = 0.25f, NAME_MARGIN = 0.04f, NAME_FADE = 0.03f;
+    /** A new name's dimmed area (or none) comes in over this long (blendAlpha). */
+    static final long NAME_BLEND_MS = 200;
 
     /** The figures' kinds (the mockup's figure()). */
     static final int SHIELD = 0, HORSE = 1, SMALL = 2, MAN = 3, DWARF = 4, ELF = 5, WIZARD = 6, KINDS = 7;
@@ -44,6 +46,10 @@ final class CompanyMotion {
     private final Random random;
     /** Time into this cycle (across, then the pause), this cycle's pause, and the last tick; -1: none since a stop. */
     private long elapsed, pause, last = -1;
+    /** Whether its clock ever ran: until then (reduced motion, animations off) it stands in the middle. */
+    private boolean walked;
+    /** Who started the clock last (an overlay): only that one stops it again; null for anyone. */
+    private Object owner;
 
     CompanyMotion(long day) {
         this.day = day;
@@ -53,13 +59,21 @@ final class CompanyMotion {
 
     /** The motion starts (the overlay's onStart): it walks on from here. */
     void start(long now) {
+        start(now, null);
+    }
+
+    /** The motion starts for {@code who}: only its {@link #stop(long, Object)} stops it, a late one of another not. */
+    void start(long now, Object who) {
         last = now;
+        walked = true;
+        owner = who;
     }
 
     /** Every tick: walks the time since the last one, {@link #MAX_FRAME_MS} at most; the first after a stop starts. */
     void advance(long now) {
         if (last < 0) {
             last = now;
+            walked = true;
             return;
         }
         long dt = Math.max(0, Math.min(MAX_FRAME_MS, now - last));
@@ -74,8 +88,39 @@ final class CompanyMotion {
 
     /** The motion stops (onPause, reduced motion, a screensaver): walked up to now, then it stands. */
     void stop(long now) {
-        advance(now);
+        stop(now, owner);
+    }
+
+    /** Stopped by {@code who}: walked up to now and standing, unless another started it since (then nothing). */
+    void stop(long now, Object who) {
+        if (who != owner) return;
+        if (last >= 0) advance(now);
         last = -1;
+        owner = null;
+    }
+
+    /** Whether the clock runs (started or picked up by a tick, not stopped since). */
+    boolean isRunning() {
+        return last >= 0;
+    }
+
+    /** Whether the clock ever ran; until then the company stands in the middle (headX). */
+    boolean hasWalked() {
+        return walked;
+    }
+
+    /** Whether the company shows: standing before it ever walked, then while crossing, not in the pause. */
+    boolean isVisible() {
+        return !walked || progress() >= 0f;
+    }
+
+    /**
+     * The wizard's x at the head on a screen {@code width} wide, figures {@code s} high (pixels): along its crossing
+     * ({@link #headX(float, float, float)}), or before it ever walked with the group's middle at half the width.
+     */
+    float headX(float width, float s) {
+        if (!walked) return width / 2f + OFFSETS[0] * s / 2f;
+        return headX(Math.max(0f, progress()), width, s);
     }
 
     /** How far across, 0 (just coming in) up to 1 (just gone); -1 during the pause. */
@@ -122,6 +167,20 @@ final class CompanyMotion {
         if (out <= 0f) return DIM;
         float t = Math.min(1f, out / fade);
         return DIM + (1f - DIM) * t * t * (3f - 2f * t);
+    }
+
+    /**
+     * The strength at {@code x} while the dimmed area goes over from the name {@code fromLeft}..{@code fromRight} to
+     * {@code toLeft}..{@code toRight} (either -1, -1 for none): {@code t} 0 the old area, 1 the new, eased between.
+     */
+    static float blendAlpha(float x, float fromLeft, float fromRight, float toLeft, float toRight, float width,
+            float t) {
+        float to = alphaAt(x, toLeft, toRight, width);
+        if (t >= 1f) return to;
+        float from = alphaAt(x, fromLeft, fromRight, width);
+        if (t <= 0f) return from;
+        float e = t * t * (3f - 2f * t);
+        return from + (to - from) * e;
     }
 
     /**
