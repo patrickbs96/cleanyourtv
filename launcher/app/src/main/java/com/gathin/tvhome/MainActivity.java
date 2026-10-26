@@ -357,6 +357,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private float stepFromX, stepFromY, stepToX, stepToY;
     /** Supernatural: the frame's flicker after each jump (reused) and which moves get it; null elsewhere. */
     private ValueAnimator glassFlicker;
+    /** Middle-earth: the highlight across the frame after each move (reused) and which moves get it; null elsewhere. */
+    private ValueAnimator glassGlint;
+    private WorldFocusMotion.FlickerGate glintGate;
     private WorldFocusMotion.FlickerGate flickerGate;
     /** Marvel: the frame's move waiting for the brackets to open (WorldFocusMotion.frameDelayMs), in content space. */
     private float delayedGlassX, delayedGlassY;
@@ -887,6 +890,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (world == World.STARWARS && animations && !reducedMotion) setUpGlassSteps();
         // Supernatural jumps and flickers instead (onTileFocused); reduced motion and animations off keep the spring.
         if (WorldFocusMotion.flickers(world) && animations && !reducedMotion) setUpGlassFlicker();
+        // Middle-earth springs as Clean does, and a highlight runs across its gold frame; none with reduced motion.
+        if (WorldFocusMotion.playsGlint(world, animations, reducedMotion)) setUpGlassGlint();
 
         btnInputs = findViewById(R.id.btnInputs);
         View btnSettings = findViewById(R.id.btnSettings);
@@ -1398,6 +1403,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         worldTransition.onPause();
         settleGlassSteps();
         settleGlassFlicker();
+        settleGlassGlint();
         flushDelayedGlassMove();
         handler.removeCallbacks(minuteTick);
         // Back where it was laid out, without a move; the next shift comes a minute after the return.
@@ -2009,6 +2015,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 springY.animateToFinalPosition(y - glassScrollShift);
             }
         }
+        // Middle-earth: a highlight runs once across the gold frame as it moves (only made where it plays).
+        glintGlass(moved);
         if (dockMove) {
             // Where the frame lands: its slab, the zoomed tile.
             zoomedRect.set(Math.round(x + pad), Math.round(y + pad), Math.round(x + w - pad), Math.round(y + h - pad));
@@ -2196,6 +2204,49 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (glassFlicker == null) return;
         glassFlicker.cancel();
         flickerGate.reset();
+    }
+
+    /**
+     * Middle-earth's glint (Mittelerde spec § 4.3): after a move a highlight runs once across the gold frame in
+     * WorldFocusMotion.GLINT_MS (glintCenter), then the frame is plain again. Made once and restarted; it animates only
+     * while it runs and ends, or is cancelled, without a glint.
+     */
+    private void setUpGlassGlint() {
+        glintGate = new WorldFocusMotion.FlickerGate();
+        glassGlint = ValueAnimator.ofFloat(0f, 1f);
+        glassGlint.setDuration(WorldFocusMotion.GLINT_MS);
+        glassGlint.setInterpolator(new LinearInterpolator());
+        glassGlint.addUpdateListener(a -> glass.setGlint(WorldFocusMotion.glintCenter(a.getCurrentPlayTime())));
+        glassGlint.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationCancel(Animator animation) {
+                glass.setGlint(Float.NaN);
+            }
+
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                glass.setGlint(Float.NaN);
+            }
+        });
+    }
+
+    /**
+     * A move of the frame in Middle-earth: the glint runs anew, unless the move follows the last one too closely (a
+     * held key, a fast D-pad), when the frame stays plain so the light never strobes. A refit of the same tile and
+     * every other world: nothing.
+     */
+    private void glintGlass(boolean moved) {
+        if (glassGlint == null || !moved) return;
+        boolean glint = glintGate.onMove(SystemClock.uptimeMillis());
+        glassGlint.cancel();
+        if (glint) glassGlint.start();
+    }
+
+    /** Stops the glint, the frame plain; the next move is a first one again. Nothing outside Middle-earth. */
+    private void settleGlassGlint() {
+        if (glassGlint == null) return;
+        glassGlint.cancel();
+        glintGate.reset();
     }
 
     /** Marvel's frame stops waiting for the brackets; nothing posted, nothing pending. */
@@ -2626,6 +2677,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (focusMotion != null) focusMotion.cancel();
         settleGlassSteps();
         settleGlassFlicker();
+        settleGlassGlint();
         glass.animate().cancel();
         if (animations && !reducedMotion) glass.animate().alpha(0f).setDuration(160).start();
         else glass.setAlpha(0f);

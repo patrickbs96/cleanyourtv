@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Middle-earth's Settings pill (Mittelerde spec § 4.3): a plain ring, a broad band seen at a slight tilt, its inner
+     edge a little higher than the outer one so the band looks thicker at the bottom. An own, generic shape: no
+     inscription, no lettering, no gem. One colour, tinted by the pill (pill_text). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="22dp" android:height="22dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <!-- The band: an outer and an inner ellipse, filled even-odd so only the band between them shows. -->
+    <path android:fillColor="#FFFFFFFF" android:fillType="evenOdd"
+        android:pathData="M3,12.5a9,7.5 0 1,0 18,0a9,7.5 0 1,0 -18,0Z M6.2,12a5.8,4.6 0 1,0 11.6,0a5.8,4.6 0 1,0 -11.6,0Z" />
+</vector>

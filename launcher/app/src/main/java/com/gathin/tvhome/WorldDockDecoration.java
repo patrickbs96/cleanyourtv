@@ -17,7 +17,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 /**
  * The worlds' dock (spec § 4.4): Hogwarts' gold frame with the house stripe, Marvel's metal bar with rivets and six
- * dots, Star Wars' targeting scale, Supernatural's dark band with its amber edge and the salt line on top. It extends {@link DockDecoration} and keeps its getItemOffsets, so the dock row's
+ * dots, Star Wars' targeting scale, Supernatural's dark band with its amber edge and the salt line on top, Middle-earth's dark band with its fine gold
+ * top edge. It extends {@link DockDecoration} and keeps its getItemOffsets, so the dock row's
  * geometry is the same as Clean's in every world; only onDraw differs. MainActivity uses it only where
  * {@link World#dockStyleSupported(Config)} holds (plain dock row, no single row), so the row is never a single row.
  * Every Paint, Path and shader is made once here: onDraw allocates nothing.
@@ -34,6 +35,11 @@ public class WorldDockDecoration extends DockDecoration {
     static final int SALT_TILE_PX = 211;
     /** Its grain is the same on every start: a fixed seed, never noise per frame. */
     private static final long SALT_SEED = 0x5A17L;
+    /** Middle-earth's dock: dark (#0C0D0B, the world's background, at 72 %) with a fine top edge of its gold at 85 %. */
+    static final int ME_BAND = 0xB80C0D0B;
+    static final int ME_EDGE = 0xD9000000 | (WorldChrome.ME_GOLD & 0xFFFFFF);
+    /** Its faint rim round the rest of the band: the gold at 22 %. */
+    private static final int ME_RIM = 0x38000000 | (WorldChrome.ME_GOLD & 0xFFFFFF);
 
     private final World world;
     private final int dockSize;
@@ -110,6 +116,10 @@ public class WorldDockDecoration extends DockDecoration {
             Bitmap tile = Bitmap.createBitmap(saltGrain(SALT_TILE_PX, saltHeight), SALT_TILE_PX, saltHeight,
                     Bitmap.Config.ARGB_8888);
             salt.setShader(new BitmapShader(tile, Shader.TileMode.REPEAT, Shader.TileMode.CLAMP));
+        } else if (world == World.MIDDLE_EARTH) {
+            band.setColor(ME_BAND);
+            border.setColor(ME_RIM);
+            fill.setColor(ME_EDGE);
         }
         glyph = 12 * density;
         float a = glyph * 0.2f, d = glyph * 0.28f;
@@ -224,6 +234,12 @@ public class WorldDockDecoration extends DockDecoration {
         else if (world == World.MARVEL) drawMarvel(c, tileRadius);
         else if (world == World.STARWARS) drawStarWars(c, focusFound, focusL, focusR);
         else if (world == World.SUPERNATURAL) drawSupernatural(c, tileRadius);
+        else if (world == World.MIDDLE_EARTH) drawMiddleEarth(c, tileRadius);
+    }
+
+    /** The height of Middle-earth's gold top edge: 1 dp, at least one pixel. */
+    static float meEdgePx(float density) {
+        return Math.max(1f, Math.round(density));
     }
 
     /** Stretches the band's 0..1 gradient over the band; the shader only changes when the band moves. */
@@ -326,6 +342,18 @@ public class WorldDockDecoration extends DockDecoration {
             saltTop = top;
         }
         c.drawRect(rect.left + radius, top, rect.right - radius, top + saltHeight, salt);
+    }
+
+    private void drawMiddleEarth(Canvas c, float tileRadius) {
+        // Corners as the tiles': the band reads as one with them, dark under the company walking on its top edge.
+        float radius = tileRadius;
+        c.drawRoundRect(rect, radius, radius, band);
+        c.drawRoundRect(rect, radius, radius, border);
+        // The fine gold top edge follows the rounded corners: the band's shape, clipped to its top dp.
+        c.save();
+        c.clipRect(rect.left, rect.top, rect.right, rect.top + meEdgePx(density));
+        c.drawRoundRect(rect, radius, radius, fill);
+        c.restore();
     }
 
     private void drawStarWars(Canvas c, boolean focusFound, float focusL, float focusR) {

@@ -23,7 +23,9 @@ import androidx.dynamicanimation.animation.SpringForce;
  * the new tile (500 ms) and the reactor kicks. Star Wars: the frame moves in three hard steps then blips
  * (MainActivity, with {@link #stepsInterpolate}, {@link #blipScaleY} and {@link #blipAlpha}); the scale under the dock
  * follows on its own (WorldDockDecoration). Supernatural: the frame jumps and flickers like an unsteady bulb, calm on
- * key repeat (MainActivity, with {@link #flickerAlpha} and {@link FlickerGate}). The hero changes too: a fade, a fade
+ * key repeat (MainActivity, with {@link #flickerAlpha} and {@link FlickerGate}). Middle-earth: the frame springs as
+ * Clean's and a highlight runs once across its gold rim (MainActivity, with {@link #glintCenter}), calm on key repeat
+ * too. The hero changes too: a fade, a fade
  * with a flash, or typing.
  *
  * <p>Clean never gets here. Every effect restarts cleanly on the next move (fast D-pad, key repeat): what plays is
@@ -46,6 +48,12 @@ final class WorldFocusMotion {
     private static final float[] FLICKER_DEPTH = {0.7f, 0.5f, 0.3f};
     /** A move this soon after the last one (a held key, a fast D-pad) jumps steady, so the frame never strobes. */
     static final long FLICKER_CALM_MS = 300;
+    /**
+     * Middle-earth: on a focus change a highlight runs once across the gold frame, left to right (Mittelerde spec
+     * § 4.3, ~200 ms). The band is this wide, as a fraction of the frame's width.
+     */
+    static final long GLINT_MS = 200;
+    static final float GLINT_BAND = 0.35f;
     /** The hero's fade out and in (Hogwarts, Marvel), and Star Wars' typing pace. */
     static final long HERO_FADE_MS = 220;
     static final long TYPING_MS = 45;
@@ -116,8 +124,32 @@ final class WorldFocusMotion {
         return 1f - FLICKER_DEPTH[i] * down;
     }
 
+    /** Whether the world's frame glints on a focus change: Middle-earth (MainActivity, with {@link #glintCenter}). */
+    static boolean glints(World w) {
+        return w == World.MIDDLE_EARTH;
+    }
+
+    /** Whether the glint plays at all: the world's own, with animations on and reduced motion off (then none). */
+    static boolean playsGlint(World w, boolean animations, boolean reducedMotion) {
+        return glints(w) && animations && !reducedMotion;
+    }
+
     /**
-     * Decides which of Supernatural's moves flicker: the first, and each after a pause of {@link #FLICKER_CALM_MS};
+     * Where the glint's middle is {@code ms} into its run, as a fraction of the frame's width (0 its left edge, 1 its
+     * right): from half a band before the frame to half a band past it, eased out so it starts quick and lands soft.
+     * NaN outside the run, where the frame draws no glint.
+     */
+    static float glintCenter(long ms) {
+        if (ms < 0 || ms > GLINT_MS) return Float.NaN;
+        float t = (float) ms / GLINT_MS;
+        float eased = 1f - (1f - t) * (1f - t);
+        float half = GLINT_BAND / 2f;
+        return -half + (1f + GLINT_BAND) * eased;
+    }
+
+    /**
+     * Decides which of Supernatural's moves flicker (and which of Middle-earth's glint): the first, and each after a
+     * pause of {@link #FLICKER_CALM_MS};
      * every move closer to the last one (key repeat, fast taps) jumps steady and keeps the calm going.
      */
     static final class FlickerGate {

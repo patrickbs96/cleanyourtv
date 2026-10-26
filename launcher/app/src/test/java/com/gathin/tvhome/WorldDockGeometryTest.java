@@ -54,6 +54,21 @@ public class WorldDockGeometryTest {
         return false;
     }
 
+    /** Middle-earth's dock (Mittelerde spec § 4.3): a dark band with a fine gold top edge in the world's gold. */
+    @Test
+    public void middleEarthDockIsDarkWithAFineGoldEdge() {
+        int band = WorldDockDecoration.ME_BAND;
+        int r = band >> 16 & 0xFF, g = band >> 8 & 0xFF, b = band & 0xFF;
+        assertTrue("dark", Math.max(r, Math.max(g, b)) <= 0x20);
+        assertTrue("reads as a band over the scene", (band >>> 24) >= 0x99);
+        assertEquals("the world's gold", WorldChrome.ME_GOLD & 0xFFFFFF, WorldDockDecoration.ME_EDGE & 0xFFFFFF);
+        assertTrue("clearly visible", (WorldDockDecoration.ME_EDGE >>> 24) >= 0xB3);
+        // Fine: one dp (at least one pixel) on any screen, never a bar.
+        assertEquals(1f, WorldDockDecoration.meEdgePx(0.5f), 0f);
+        assertEquals(1f, WorldDockDecoration.meEdgePx(1f), 0f);
+        assertEquals(2f, WorldDockDecoration.meEdgePx(2f), 0f);
+    }
+
     @Test
     public void unsupportedConfigFallsBackToClean() {
         // A Config stub is hard to build in a JVM test, so World.dockStyleSupported has an overload with the four values.

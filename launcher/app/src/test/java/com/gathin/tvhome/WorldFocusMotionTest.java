@@ -147,6 +147,47 @@ public class WorldFocusMotionTest {
         assertEquals(0L, WorldFocusMotion.frameDelayMs(World.SUPERNATURAL, true));
     }
 
+    /**
+     * Middle-earth's focus change (Mittelerde spec § 4.3): a highlight runs once across the gold frame in at most
+     * 200 ms, from just before its left edge to just past its right edge, never back, and is gone afterwards.
+     */
+    @Test
+    public void middleEarthGlintRunsOnceAcrossTheFrameWithin200ms() {
+        assertTrue(WorldFocusMotion.GLINT_MS <= 200L);
+        assertTrue("about 200 ms, not a blink", WorldFocusMotion.GLINT_MS >= 150L);
+        // It starts outside the frame on the left and ends outside on the right, so it enters and leaves softly.
+        assertTrue(WorldFocusMotion.glintCenter(0) + WorldFocusMotion.GLINT_BAND / 2f <= 0f);
+        assertTrue(WorldFocusMotion.glintCenter(WorldFocusMotion.GLINT_MS) - WorldFocusMotion.GLINT_BAND / 2f >= 1f);
+        float prev = WorldFocusMotion.glintCenter(0);
+        for (long ms = 1; ms <= WorldFocusMotion.GLINT_MS; ms++) {
+            float c = WorldFocusMotion.glintCenter(ms);
+            assertTrue("only forwards at " + ms, c > prev);
+            prev = c;
+        }
+        // Before and after its run there is no glint: NaN tells the frame to draw none.
+        assertTrue(Float.isNaN(WorldFocusMotion.glintCenter(-1)));
+        assertTrue(Float.isNaN(WorldFocusMotion.glintCenter(WorldFocusMotion.GLINT_MS + 1)));
+        assertTrue(WorldFocusMotion.GLINT_BAND > 0f && WorldFocusMotion.GLINT_BAND < 1f);
+    }
+
+    /** The glint is Middle-earth's alone, and only with animations on and reduced motion off. */
+    @Test
+    public void onlyMiddleEarthGlintsAndNeverWithReducedMotion() {
+        assertTrue(WorldFocusMotion.glints(World.MIDDLE_EARTH));
+        for (World w : World.values()) {
+            if (w != World.MIDDLE_EARTH) assertFalse(w.name(), WorldFocusMotion.glints(w));
+        }
+        assertTrue(WorldFocusMotion.playsGlint(World.MIDDLE_EARTH, true, false));
+        assertFalse("reduced motion: no glint", WorldFocusMotion.playsGlint(World.MIDDLE_EARTH, true, true));
+        assertFalse("animations off: no glint", WorldFocusMotion.playsGlint(World.MIDDLE_EARTH, false, false));
+        assertFalse(WorldFocusMotion.playsGlint(World.SUPERNATURAL, true, false));
+        assertFalse(WorldFocusMotion.playsGlint(World.CLEAN, true, false));
+        // The frame springs as Clean's does, without waiting and without the flicker.
+        assertNull(WorldFocusMotion.springFor(World.MIDDLE_EARTH, false));
+        assertEquals(0L, WorldFocusMotion.frameDelayMs(World.MIDDLE_EARTH, true));
+        assertFalse(WorldFocusMotion.flickers(World.MIDDLE_EARTH));
+    }
+
     @Test
     public void onlyMarvelWaitsForItsBracketsOnTheDock() {
         assertEquals(60L, WorldFocusMotion.frameDelayMs(World.MARVEL, true));

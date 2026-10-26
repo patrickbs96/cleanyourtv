@@ -4,6 +4,7 @@ import android.view.KeyEvent;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
@@ -83,19 +84,16 @@ public class WorldTest {
         }
     }
     /**
-     * Until its own skin arrives (Tasks 5 to 8) Middle-earth takes the neutral paths everywhere a world branches:
-     * no fixed picture (its three are found by name, WorldSceneTest.middleEarthPicturesAreThere), Clean's pills and
-     * gear, no warm glow, Clean's spring, no flicker, no launch effect, a plain fade in; never another world's skin.
-     * Its overlay is its own (Task 4, MiddleEarthOverlayTest).
+     * Until its own skin arrives (Tasks 7 and 8) Middle-earth takes the neutral paths everywhere a world branches:
+     * no fixed picture (its three are found by name, WorldSceneTest.middleEarthPicturesAreThere), Clean's network
+     * icon, Clean's spring, no flicker, no launch effect, a plain fade in; never another world's skin. Its overlay
+     * (Task 4, MiddleEarthOverlayTest) and its pills, dock and frame (Task 6) are its own.
      */
     @Test public void middleEarthFallsBackToNeutralPaths() {
         World w = World.MIDDLE_EARTH;
         assertEquals(0, WorldScene.resFor(w, true));
         assertEquals(0, WorldScene.resFor(w, false));
         assertTrue(WorldOverlay.hasOverlay(w, false));
-        assertEquals(R.drawable.pill_bg, WorldChrome.pillBackground(w));
-        assertEquals(0, WorldChrome.settingsIcon(w));
-        assertFalse(WorldChrome.warmFocusGlow(w));
         assertFalse(WorldChrome.ownsNetworkIcon(w));
         assertNull(WorldFocusMotion.springFor(w, false));
         assertEquals(0L, WorldFocusMotion.frameDelayMs(w, true));
@@ -182,11 +180,31 @@ public class WorldTest {
         assertEquals(0, WorldChrome.settingsIcon(World.MARVEL));
         assertEquals(0, WorldChrome.settingsIcon(World.STARWARS));
         assertEquals(0, WorldChrome.settingsIcon(World.CLEAN));
+        // Middle-earth's gold frame glows warm too (its own test below); every other world stays without.
         for (World other : World.values()) {
-            if (other != w) assertFalse(other.name(), WorldChrome.warmFocusGlow(other));
+            if (other != w && other != World.MIDDLE_EARTH) assertFalse(other.name(), WorldChrome.warmFocusGlow(other));
         }
         assertEquals(R.drawable.pill_bg, WorldChrome.pillBackground(World.CLEAN));
         assertEquals(R.drawable.pill_bg, WorldChrome.pillBackground(World.SEASONS));
+    }
+    /**
+     * Middle-earth's own chrome (Mittelerde spec § 4.3): round pills with a thin gold rim on a dark fill, a plain ring
+     * on Settings, a gold frame with a warm glow; the network pill keeps its status icons.
+     */
+    @Test public void middleEarthHasGoldPillsAndAWarmFrame() {
+        World w = World.MIDDLE_EARTH;
+        assertEquals(R.drawable.pill_bg_middleearth, WorldChrome.pillBackground(w));
+        assertEquals(R.drawable.ic_world_me_settings, WorldChrome.settingsIcon(w));
+        assertTrue(WorldChrome.warmFocusGlow(w));
+        assertFalse(WorldChrome.ownsNetworkIcon(w));
+        assertEquals(0xFFD9B56A, WorldChrome.ME_GOLD);
+        assertEquals(WorldChrome.ME_GOLD, w.accent);
+        // Its pills and ring are its own, no other world's.
+        for (World other : World.values()) {
+            if (other == w) continue;
+            assertNotEquals(other.name(), R.drawable.pill_bg_middleearth, WorldChrome.pillBackground(other));
+            assertNotEquals(other.name(), R.drawable.ic_world_me_settings, WorldChrome.settingsIcon(other));
+        }
     }
     @Test public void seasonsHasNoColourKey() {
         for (int k = KeyEvent.KEYCODE_PROG_RED; k <= KeyEvent.KEYCODE_PROG_BLUE; k++) assertNotSame(World.SEASONS, World.forKeyCode(k));

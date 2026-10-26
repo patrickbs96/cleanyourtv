@@ -3,6 +3,7 @@ package com.gathin.tvhome;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.LinearGradient;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.graphics.Shader;
@@ -40,6 +41,16 @@ public class GlassView extends View {
     private final float[] bracketLines = new float[32];
     /** Room round the slab: the glow's 6 dp, more while the open brackets need it. */
     private float inset;
+    /**
+     * Middle-earth's glint (setGlint): a light band across the rim, its middle at this fraction of the slab's width;
+     * NaN for none. Its paint and gradient are made once, the gradient for a band one unit wide round x = 0 and moved
+     * there by a local matrix, so a frame of the run allocates nothing.
+     */
+    private float glint = Float.NaN;
+    private final Paint glintPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Matrix glintMatrix = new Matrix();
+    /** The band leans a little, as light catching a polished edge. */
+    private static final float GLINT_TILT_DEG = -20f;
 
     public GlassView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -54,6 +65,10 @@ public class GlassView extends View {
         bracket.setStrokeWidth(2f * density);
         bracket.setStrokeCap(Paint.Cap.SQUARE);
         glow.setStyle(Paint.Style.STROKE);
+        glintPaint.setStyle(Paint.Style.STROKE);
+        glintPaint.setStrokeWidth(3f * density);
+        glintPaint.setShader(new LinearGradient(-0.5f, 0f, 0.5f, 0f,
+                new int[]{0x00FFF4D6, 0xF2FFF4D6, 0x00FFF4D6}, new float[]{0f, 0.5f, 1f}, Shader.TileMode.CLAMP));
         // Cache the slab as a texture. The spring only changes translation, so the GPU can
         // move it without replaying clipPath and the glow on every frame. That path is
         // software-rendered on the MT5895 and is what makes the highlight crawl.
@@ -137,6 +152,16 @@ public class GlassView extends View {
         invalidate();
     }
 
+    /**
+     * Middle-earth's glint (WorldFocusMotion.glintCenter): a pale gold light on the rim, its middle at this fraction of
+     * the slab's width (0 its left edge, 1 its right); NaN takes it off. Only set while the glint runs.
+     */
+    void setGlint(float center) {
+        if (Float.isNaN(center) && Float.isNaN(glint) || center == glint) return;
+        glint = center;
+        invalidate();
+    }
+
     /** The room this view keeps round the slab on every side: 6 dp, or 10 dp with the brackets on. */
     float insetPx() {
         return inset;
@@ -172,6 +197,7 @@ public class GlassView extends View {
         }
         if (flat) {
             canvas.drawRoundRect(rect, radius, radius, rim);
+            drawGlint(canvas);
             if (brackets) drawBrackets(canvas);
             return;
         }
@@ -186,7 +212,22 @@ public class GlassView extends View {
         canvas.restore();
 
         canvas.drawRoundRect(rect, radius, radius, rim);
+        drawGlint(canvas);
         if (brackets) drawBrackets(canvas);
+    }
+
+    /**
+     * The glint, if one runs: the rim's shape once more, a little wider, lit only where the leaning band crosses it
+     * (WorldFocusMotion.GLINT_BAND of the slab's width).
+     */
+    private void drawGlint(Canvas canvas) {
+        if (Float.isNaN(glint) || rect.width() <= 0f) return;
+        float band = WorldFocusMotion.GLINT_BAND * rect.width();
+        glintMatrix.setScale(band, band);
+        glintMatrix.postRotate(GLINT_TILT_DEG);
+        glintMatrix.postTranslate(rect.left + glint * rect.width(), rect.centerY());
+        glintPaint.getShader().setLocalMatrix(glintMatrix);
+        canvas.drawRoundRect(rect, radius, radius, glintPaint);
     }
 
     /** Four corner angles bracketOut off the slab, each leg 30 % of its edge, 2 dp thick in the rim's colour. */

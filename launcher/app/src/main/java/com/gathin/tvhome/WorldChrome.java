@@ -25,7 +25,7 @@ import android.widget.TextView;
 /**
  * The header's world chrome (spec § 4.4): each world's pill backgrounds (gold medallions, HUD switches, holo
  * switches, brass-rimmed plates) on every pill of the top bar, Hogwarts' candle, owl and star icons and its "⟡ ✦ ⟡"
- * under the date, Supernatural's star in a circle on Settings,
+ * under the date, Supernatural's star in a circle on Settings, Middle-earth's plain ring on Settings,
  * Marvel's HUD corners and Star Wars' scanline field around the greeting, clock and date. The pills' icon-only shape
  * comes from MainActivity (World.forcesIconOnlyPills) and the header's type from WorldTypography. Clean returns before
  * touching anything, so its pills keep pill_bg and the three views stay gone.
@@ -39,6 +39,8 @@ final class WorldChrome {
     /** Star Wars' scanlines: one line of #5B8CFF at 8 % every 3 px, as the mockup's repeating gradient. */
     static final int SCANLINE_COLOR = 0x145B8CFF;
     static final int SCANLINE_PERIOD_PX = 3;
+    /** Middle-earth's gold (Mittelerde spec § 4.3): its pills' rim, the dock's top edge and the focus frame. */
+    static final int ME_GOLD = 0xFFD9B56A;
     /** HUD and scanlines reach this far past the header's text on its right, and (layout margins) 12dp on its left. */
     private static final int FIELD_END_DP = 16;
     private static final int FIELD_START_DP = 12;
@@ -71,6 +73,7 @@ final class WorldChrome {
                 scanlines.setVisibility(View.VISIBLE);
                 break;
             case SUPERNATURAL:
+            case MIDDLE_EARTH:
                 setIcon(btnSettings, settingsIcon(w));
                 break;
             default:
@@ -133,22 +136,30 @@ final class WorldChrome {
             case MARVEL: return R.drawable.pill_bg_marvel;
             case STARWARS: return R.drawable.pill_bg_starwars;
             case SUPERNATURAL: return R.drawable.pill_bg_supernatural;
+            case MIDDLE_EARTH: return R.drawable.pill_bg_middleearth;
             default: return R.drawable.pill_bg;
         }
     }
 
-    /** The world's own icon on the Settings pill (Hogwarts' star, Supernatural's star in a circle), 0 for the gear. */
+    /**
+     * The world's own icon on the Settings pill (Hogwarts' star, Supernatural's star in a circle, Middle-earth's plain
+     * ring), 0 for the gear.
+     */
     static int settingsIcon(World w) {
         switch (w) {
             case HOGWARTS: return R.drawable.ic_world_hog_star;
             case SUPERNATURAL: return R.drawable.ic_world_sn_settings;
+            case MIDDLE_EARTH: return R.drawable.ic_world_me_settings;
             default: return 0;
         }
     }
 
-    /** Whether the world's focus frame glows warm (GlassView.setWarmGlow): Supernatural's amber lamp light. */
+    /**
+     * Whether the world's focus frame glows warm (GlassView.setWarmGlow): Supernatural's amber lamp light and
+     * Middle-earth's gold.
+     */
     static boolean warmFocusGlow(World w) {
-        return w == World.SUPERNATURAL;
+        return w == World.SUPERNATURAL || w == World.MIDDLE_EARTH;
     }
 
     /**
