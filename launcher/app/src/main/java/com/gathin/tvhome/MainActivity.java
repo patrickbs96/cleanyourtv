@@ -2945,7 +2945,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         } else {
             String base = greetingName.isEmpty() ? getString(res)
                     : getString(R.string.greeting_with_name, getString(res), greetingName);
-            greeting.setText(world.isClean() ? base : WorldTypography.greetingText(world, base, worldDay()));
+            // A world's greeting goes in already in capitals. textAllCaps turns Star Wars' "Äußerer Rand" into
+            // "ÄUSSERER RAND", one character longer than the text it was given, and the single-line greeting then
+            // dropped that many characters at its end ("… RAN"). In capitals already, the transformation keeps
+            // the length; it looks the same, as the view writes in capitals anyway.
+            greeting.setText(world.isClean() ? base
+                    : WorldTypography.greetingText(world, base, worldDay()).toUpperCase(Locale.getDefault()));
             greeting.setTextColor(WorldTypography.greetingColor(world, greetingColor));
         }
         if (shamsi) shamsiDate.setText(Shamsi.today(getResources()));
