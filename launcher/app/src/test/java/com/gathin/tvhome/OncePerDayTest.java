@@ -59,6 +59,17 @@ public class OncePerDayTest {
     }
 
     @Test
+    public void aWrongClockMarksNothing() {
+        // Started before the network time: the day may be wrong, so it neither shows nor counts as done.
+        FakePrefs p = new FakePrefs();
+        assertFalse(OncePerDay.take(p, "crawl_last", DAY, false));
+        assertEquals(null, p.getString("crawl_last", null));
+        // Once the clock is right, the real day still shows it.
+        assertTrue(OncePerDay.take(p, "crawl_last", DAY, true));
+        assertFalse(OncePerDay.take(p, "crawl_last", DAY, true));
+    }
+
+    @Test
     public void keysAreIndependent() {
         FakePrefs p = new FakePrefs();
         assertTrue(OncePerDay.take(p, "crawl_last", DAY));

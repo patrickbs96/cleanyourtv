@@ -192,35 +192,60 @@ public class PersonalGreetingTest {
     @Test
     public void confettiPlaysOnceADayWithAnEntry() {
         FakePrefs prefs = new FakePrefs();
-        assertTrue(ConfettiBurstView.due(prefs, World.CLEAN, PI_DAY_2026, true, false));
+        assertTrue(ConfettiBurstView.due(prefs, World.CLEAN, PI_DAY_2026, true, false, true));
+        // Due is not yet done: the day counts once the burst starts.
+        assertNull(prefs.getString(PersonalDays.CONFETTI_LAST, null));
+        assertTrue(ConfettiBurstView.take(prefs, PI_DAY_2026, true));
         assertEquals("2026-03-14", prefs.getString(PersonalDays.CONFETTI_LAST, null));
-        assertFalse(ConfettiBurstView.due(prefs, World.CLEAN, PI_DAY_2026, true, false));
+        assertFalse(ConfettiBurstView.due(prefs, World.CLEAN, PI_DAY_2026, true, false, true));
+        assertFalse(ConfettiBurstView.take(prefs, PI_DAY_2026, true));
         // A world switch the same day does not play it again.
-        assertFalse(ConfettiBurstView.due(prefs, World.HOGWARTS, PI_DAY_2026, true, false));
+        assertFalse(ConfettiBurstView.due(prefs, World.HOGWARTS, PI_DAY_2026, true, false, true));
         SeasonsToday nextYear = on(2027, 3, 14, ALEX_BIRTHDAY);
-        assertTrue(ConfettiBurstView.due(prefs, World.HOGWARTS, nextYear, true, false));
+        assertTrue(ConfettiBurstView.due(prefs, World.HOGWARTS, nextYear, true, false, true));
+    }
+
+    @Test
+    public void confettiLeftBeforeItStartsIsStillDue() {
+        // Home paused in the short wait before the burst: nothing played, so the day is not used up.
+        FakePrefs prefs = new FakePrefs();
+        assertTrue(ConfettiBurstView.due(prefs, World.MARVEL, PI_DAY_2026, true, false, true));
+        assertTrue(ConfettiBurstView.due(prefs, World.MARVEL, PI_DAY_2026, true, false, true));
+        assertNull(prefs.getString(PersonalDays.CONFETTI_LAST, null));
     }
 
     @Test
     public void confettiNeedsAnEntryAndNeverPlaysInSeasons() {
         FakePrefs prefs = new FakePrefs();
-        assertFalse(ConfettiBurstView.due(prefs, World.CLEAN, on(2026, 3, 15, ALEX_BIRTHDAY), true, false));
-        assertFalse(ConfettiBurstView.due(prefs, World.CLEAN, null, true, false));
-        assertFalse(ConfettiBurstView.due(prefs, World.SEASONS, PI_DAY_2026, true, false));
+        assertFalse(ConfettiBurstView.due(prefs, World.CLEAN, on(2026, 3, 15, ALEX_BIRTHDAY), true, false, true));
+        assertFalse(ConfettiBurstView.due(prefs, World.CLEAN, null, true, false, true));
+        assertFalse(ConfettiBurstView.due(prefs, World.SEASONS, PI_DAY_2026, true, false, true));
+        assertFalse(ConfettiBurstView.take(prefs, null, true));
         assertNull(prefs.getString(PersonalDays.CONFETTI_LAST, null));
         // Seasons left the day untouched, so Clean still plays it later the same day.
-        assertTrue(ConfettiBurstView.due(prefs, World.CLEAN, PI_DAY_2026, true, false));
+        assertTrue(ConfettiBurstView.due(prefs, World.CLEAN, PI_DAY_2026, true, false, true));
     }
 
     @Test
     public void reducedMotionSkipsTheConfettiButCountsTheDay() {
         FakePrefs prefs = new FakePrefs();
-        assertFalse(ConfettiBurstView.due(prefs, World.MARVEL, PI_DAY_2026, true, true));
+        assertFalse(ConfettiBurstView.due(prefs, World.MARVEL, PI_DAY_2026, true, true, true));
         assertEquals("2026-03-14", prefs.getString(PersonalDays.CONFETTI_LAST, null));
-        assertFalse(ConfettiBurstView.due(prefs, World.MARVEL, PI_DAY_2026, true, false));
+        assertFalse(ConfettiBurstView.due(prefs, World.MARVEL, PI_DAY_2026, true, false, true));
         FakePrefs off = new FakePrefs();
-        assertFalse(ConfettiBurstView.due(off, World.MARVEL, PI_DAY_2026, false, false));
+        assertFalse(ConfettiBurstView.due(off, World.MARVEL, PI_DAY_2026, false, false, true));
         assertEquals("2026-03-14", off.getString(PersonalDays.CONFETTI_LAST, null));
+    }
+
+    @Test
+    public void aWrongClockNeitherPlaysNorCountsTheConfetti() {
+        FakePrefs prefs = new FakePrefs();
+        assertFalse(ConfettiBurstView.due(prefs, World.CLEAN, PI_DAY_2026, true, false, false));
+        assertFalse(ConfettiBurstView.due(prefs, World.CLEAN, PI_DAY_2026, true, true, false));
+        assertFalse(ConfettiBurstView.take(prefs, PI_DAY_2026, false));
+        assertNull(prefs.getString(PersonalDays.CONFETTI_LAST, null));
+        // With the right time it plays as usual.
+        assertTrue(ConfettiBurstView.due(prefs, World.CLEAN, PI_DAY_2026, true, false, true));
     }
 
     @Test

@@ -437,6 +437,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private final BroadcastReceiver timeReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            // A new time may be a new day: Seasons' look and the personal days first, before the greeting
+            // (updateClockVisibility) takes them.
+            refreshSeasons();
+            refreshPersonal();
             updateClockVisibility();
         }
     };
@@ -1351,10 +1355,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onPause() {
         super.onPause();
-        // Nothing of the crawl goes on behind another app; the day stays done.
-        stopCrawl();
-        crawlKeys.reset();
-        // Nor of the confetti; the day stays done.
+        // Nothing of the confetti goes on behind another app; the day stays done.
         handler.removeCallbacks(startConfetti);
         if (confetti != null) confetti.stop();
         root.removeCallbacks(showIdleClock);
@@ -1363,6 +1364,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         worldScene.stop();
         weather.stop();   // no new request in the background
         resumed = false;
+        // Nor of the crawl; the day stays done. Only now, so its end (onCrawlEnded) sees Home going.
+        stopCrawl();
+        crawlKeys.reset();
         updateWorldOverlay();
         stopAmbientAnimation();
         hero.animate().cancel();
@@ -2949,8 +2953,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Some TVs (Coocaa OS) set the network time without ACTION_TIME_CHANGED, so keep checking until it is valid. */
     private final Runnable clockCheck = this::updateClockVisibility;
 
+    /** Whether the clock can be trusted: past TIME_VALID_AFTER_MS, so the network time (or a set one) has come. */
+    private static boolean clockValid() {
+        return System.currentTimeMillis() >= TIME_VALID_AFTER_MS;
+    }
+
     private void updateClockVisibility() {
-        boolean valid = System.currentTimeMillis() >= TIME_VALID_AFTER_MS;
+        boolean valid = clockValid();
         clockBlock.setVisibility(valid ? View.VISIBLE : View.INVISIBLE);
         handler.removeCallbacks(clockCheck);
         if (valid) {
@@ -3039,7 +3048,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void playConfettiIfDue() {
         if (confetti != null) return;
         SharedPreferences prefs = getSharedPreferences(PersonalDays.PREFS, MODE_PRIVATE);
-        if (!ConfettiBurstView.due(prefs, world, personalToday, animations, reducedMotion)) return;
+        if (!ConfettiBurstView.due(prefs, world, personalToday, animations, reducedMotion, clockValid())) return;
         handler.removeCallbacks(startConfetti);
         handler.postDelayed(startConfetti, 450);
     }
@@ -3050,6 +3059,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         confetti = burst;
         root.addView(burst, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        // Only now, with the burst on screen, is the day used up (Home left in the wait before still plays it).
+        ConfettiBurstView.take(getSharedPreferences(PersonalDays.PREFS, MODE_PRIVATE), personalToday, clockValid());
         // Clean has no accent of its own: a festival's skin gives it one, else its key colour (colours).
         int accent = world.isClean() && festive ? festival.accentColor() : worldAccent();
         burst.play(ConfettiBurstView.colours(accent), () -> {
@@ -3391,7 +3402,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (world != World.SEASONS || seasonsToday == null || seasonsToday.look != Look.ANNIVERSARY
                 || crawl != null) return;
         SharedPreferences prefs = getSharedPreferences(PersonalDays.PREFS, MODE_PRIVATE);
-        if (!OncePerDay.take(prefs, PersonalDays.CRAWL_LAST, seasonsDate)) return;
+        // Not before the network time: a wrong clock would use up a wrong day.
+        if (!OncePerDay.take(prefs, PersonalDays.CRAWL_LAST, seasonsDate, clockValid())) return;
         if (!animations || reducedMotion) return;
         String text = CrawlView.fill(PersonalDays.crawlText(prefs, getString(R.string.seasons_crawl_default)),
                 seasonsToday.names(), seasonsToday.years());
@@ -3415,7 +3427,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         crawl = null;
         if (ended != null) root.removeView(ended);
         updateWorldOverlay();
-        showCardPrompt();
+        // Not while Home is going (onPause stops the crawl): the prompt and the overlay are for a Home that stays.
+        if (resumed) showCardPrompt();
     }
 
     /**

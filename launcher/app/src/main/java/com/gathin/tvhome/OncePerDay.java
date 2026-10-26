@@ -39,4 +39,12 @@ final class OncePerDay {
         prefs.edit().putString(key, mark(today)).commit();
         return true;
     }
+
+    /**
+     * The same, but only with a clock that can be trusted ({@code clockValid}, MainActivity.TIME_VALID_AFTER_MS):
+     * before the network time has come, today may be another day, so nothing shows and no day is used up.
+     */
+    static boolean take(SharedPreferences prefs, String key, LocalDate today, boolean clockValid) {
+        return clockValid && take(prefs, key, today);
+    }
 }

@@ -55,15 +55,24 @@ final class ConfettiBurstView extends View {
     }
 
     /**
-     * Whether the confetti plays now: outside Seasons, with an entry today, and not yet today
-     * ({@link PersonalDays#CONFETTI_LAST}, OncePerDay). The day counts as done the moment it is due, also with
-     * animations off or reduced motion, which skip it: it does not come back later the same day.
+     * Whether the confetti is to start: outside Seasons, with an entry today, not yet today
+     * ({@link PersonalDays#CONFETTI_LAST}, OncePerDay) and with a clock that can be trusted ({@code clockValid}).
+     * Being due does not use the day up; {@link #take} does as the burst starts, so Home left in the wait before it
+     * still plays it on the next return. Animations off or reduced motion skip it and count the day at once: it
+     * does not come back later the same day.
      */
     static boolean due(SharedPreferences prefs, World w, SeasonsToday today, boolean animations,
-                       boolean reducedMotion) {
-        if (w == World.SEASONS || today == null || today.personal.isEmpty()) return false;
-        if (!OncePerDay.take(prefs, PersonalDays.CONFETTI_LAST, today.date)) return false;
-        return animations && !reducedMotion;
+                       boolean reducedMotion, boolean clockValid) {
+        if (!clockValid || w == World.SEASONS || today == null || today.personal.isEmpty()) return false;
+        if (!OncePerDay.due(prefs.getString(PersonalDays.CONFETTI_LAST, null), today.date)) return false;
+        if (animations && !reducedMotion) return true;
+        OncePerDay.take(prefs, PersonalDays.CONFETTI_LAST, today.date);
+        return false;
+    }
+
+    /** Marks {@code today} as played as the burst starts; false when it already was (or there is no day). */
+    static boolean take(SharedPreferences prefs, SeasonsToday today, boolean clockValid) {
+        return today != null && OncePerDay.take(prefs, PersonalDays.CONFETTI_LAST, today.date, clockValid);
     }
 
     /**
