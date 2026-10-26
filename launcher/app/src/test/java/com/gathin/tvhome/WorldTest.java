@@ -57,9 +57,10 @@ public class WorldTest {
         assertEquals("", World.CLEAN.greetingSuffix(true));
     }
     /**
-     * Until the rest of its own skin arrives (Tasks 6 to 8) Supernatural takes the neutral paths everywhere a world
-     * branches: its own pictures (Task 3), its own overlay (Task 4) and its own pills, dock and frame (Task 5), but
-     * Clean's spring, no launch effect, a plain fade in; never another world's skin.
+     * Until the rest of its own skin arrives (Tasks 7 and 8) Supernatural takes the neutral paths everywhere a world
+     * branches: its own pictures (Task 3), its own overlay (Task 4), its own pills, dock and frame (Task 5) and its
+     * flicker (Task 6: it jumps, so no spring and no wait of its own), but no launch effect, a plain fade in; never
+     * another world's skin.
      */
     @Test public void supernaturalFallsBackToNeutralPaths() {
         World w = World.SUPERNATURAL;

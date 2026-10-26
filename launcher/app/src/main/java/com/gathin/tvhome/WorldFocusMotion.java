@@ -22,7 +22,9 @@ import androidx.dynamicanimation.animation.SpringForce;
  * (360 ms, MainActivity holds its spring back by {@link #frameDelayMs}), the brackets lock on (250 ms), a scan sweeps
  * the new tile (500 ms) and the reactor kicks. Star Wars: the frame moves in three hard steps then blips
  * (MainActivity, with {@link #stepsInterpolate}, {@link #blipScaleY} and {@link #blipAlpha}); the scale under the dock
- * follows on its own (WorldDockDecoration). The hero changes too: a fade, a fade with a flash, or typing.
+ * follows on its own (WorldDockDecoration). Supernatural: the frame jumps and flickers like an unsteady bulb, calm on
+ * key repeat (MainActivity, with {@link #flickerAlpha} and {@link FlickerGate}). The hero changes too: a fade, a fade
+ * with a flash, or typing.
  *
  * <p>Clean never gets here. Every effect restarts cleanly on the next move (fast D-pad, key repeat): what plays is
  * cancelled first, the brackets end locked, typing ends on the whole label. MainActivity calls in only with
@@ -37,6 +39,13 @@ final class WorldFocusMotion {
     /** Star Wars: the frame's three hard steps, 60 ms each, then the hologram blip. */
     static final int STEPS = 3;
     static final long STEPS_MS = 180, BLIP_MS = 300;
+    /** Supernatural: the frame jumps and flickers like an unsteady bulb, three dips in 150 ms, then steady (§ 4.3). */
+    static final long FLICKER_MS = 150;
+    static final int FLICKERS = 3;
+    /** How dark each dip goes, the first the deepest: the bulb catches, then settles. */
+    private static final float[] FLICKER_DEPTH = {0.7f, 0.5f, 0.3f};
+    /** A move this soon after the last one (a held key, a fast D-pad) jumps steady, so the frame never strobes. */
+    static final long FLICKER_CALM_MS = 300;
     /** The hero's fade out and in (Hogwarts, Marvel), and Star Wars' typing pace. */
     static final long HERO_FADE_MS = 220;
     static final long TYPING_MS = 45;
@@ -87,6 +96,46 @@ final class WorldFocusMotion {
     /** How long the frame waits before it moves: Marvel's brackets open first, on the dock only. */
     static long frameDelayMs(World w, boolean dockMove) {
         return w == World.MARVEL && dockMove ? BRACKET_OPEN_MS : 0L;
+    }
+
+    /** Whether the world's frame jumps and flickers instead of springing: Supernatural (MainActivity). */
+    static boolean flickers(World w) {
+        return w == World.SUPERNATURAL;
+    }
+
+    /**
+     * The frame's opacity {@code ms} after its jump: three dips of 50 ms each, down to 0.3, 0.5 and 0.7 and straight
+     * back up (a triangle, so every frame at 60 fps catches each dip), full from 150 ms on.
+     */
+    static float flickerAlpha(long ms) {
+        if (ms <= 0 || ms >= FLICKER_MS) return 1f;
+        float period = (float) FLICKER_MS / FLICKERS;
+        int i = Math.min(FLICKERS - 1, (int) (ms / period));
+        float phase = (ms - i * period) / period;            // 0..1 within this dip
+        float down = 1f - Math.abs(2f * phase - 1f);          // 0 at its ends, 1 halfway
+        return 1f - FLICKER_DEPTH[i] * down;
+    }
+
+    /**
+     * Decides which of Supernatural's moves flicker: the first, and each after a pause of {@link #FLICKER_CALM_MS};
+     * every move closer to the last one (key repeat, fast taps) jumps steady and keeps the calm going.
+     */
+    static final class FlickerGate {
+        private boolean moved;
+        private long lastMoveMs;
+
+        /** A move now ({@code nowMs}, a monotonic clock): true when the frame flickers on it. */
+        boolean onMove(long nowMs) {
+            boolean flicker = !moved || nowMs - lastMoveMs >= FLICKER_CALM_MS;
+            moved = true;
+            lastMoveMs = nowMs;
+            return flicker;
+        }
+
+        /** Focus left the tiles or Home paused: the next move is a first one. */
+        void reset() {
+            moved = false;
+        }
     }
 
     /** The blip's height over its 300 ms (holoblip): 0.2, 1.05 at 40 %, 1 at the end. */

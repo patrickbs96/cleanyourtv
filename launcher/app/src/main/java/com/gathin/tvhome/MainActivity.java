@@ -353,6 +353,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Star Wars: the frame's three hard steps, then its blip; both reused, null elsewhere. */
     private ValueAnimator glassSteps, glassBlip;
     private float stepFromX, stepFromY, stepToX, stepToY;
+    /** Supernatural: the frame's flicker after each jump (reused) and which moves get it; null elsewhere. */
+    private ValueAnimator glassFlicker;
+    private WorldFocusMotion.FlickerGate flickerGate;
     /** Marvel: the frame's move waiting for the brackets to open (WorldFocusMotion.frameDelayMs), in content space. */
     private float delayedGlassX, delayedGlassY;
     /** delayedGlassMove is posted and has not run: a held key only moves its target, it never waits anew. */
@@ -874,6 +877,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         }
         if (world == World.STARWARS && animations && !reducedMotion) setUpGlassSteps();
+        // Supernatural jumps and flickers instead (onTileFocused); reduced motion and animations off keep the spring.
+        if (WorldFocusMotion.flickers(world) && animations && !reducedMotion) setUpGlassFlicker();
 
         btnInputs = findViewById(R.id.btnInputs);
         View btnSettings = findViewById(R.id.btnSettings);
@@ -1383,6 +1388,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // enter half ends with the new skin in place.
         worldTransition.onPause();
         settleGlassSteps();
+        settleGlassFlicker();
         flushDelayedGlassMove();
         handler.removeCallbacks(minuteTick);
         // Back where it was laid out, without a move; the next shift comes a minute after the return.
@@ -1977,6 +1983,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         } else if (glassSteps != null) {
             // Star Wars: three hard steps instead of the spring, then the blip.
             stepGlassTo(x - glassScrollShiftX, y - glassScrollShift, moved);
+        } else if (glassFlicker != null) {
+            // Supernatural: the frame jumps onto the tile, then flickers like an unsteady bulb.
+            jumpGlassTo(x, y, moved);
         } else {
             if (delay > 0) {
                 // Marvel: the brackets open first, then the frame jumps. Already waiting: just the new target.
@@ -2129,6 +2138,55 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         stepToY = toY;
         glassSteps.start();
         if (stepping) glassSteps.setCurrentPlayTime(WorldFocusMotion.STEPS_MS / WorldFocusMotion.STEPS);
+    }
+
+    /**
+     * Supernatural's flicker (spec § 4.3): after the jump the frame's opacity dips three times in 150 ms
+     * (WorldFocusMotion.flickerAlpha), then stays full. Made once and restarted; it ends, or is cancelled, at full.
+     */
+    private void setUpGlassFlicker() {
+        flickerGate = new WorldFocusMotion.FlickerGate();
+        glassFlicker = ValueAnimator.ofFloat(0f, 1f);
+        glassFlicker.setDuration(WorldFocusMotion.FLICKER_MS);
+        glassFlicker.setInterpolator(new LinearInterpolator());
+        glassFlicker.addUpdateListener(a -> glass.setAlpha(WorldFocusMotion.flickerAlpha(a.getCurrentPlayTime())));
+        glassFlicker.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationCancel(Animator animation) {
+                glass.setAlpha(1f);
+            }
+
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                glass.setAlpha(1f);
+            }
+        });
+    }
+
+    /**
+     * Jumps the frame to this root position (no spring) and flickers it, unless the move follows the last one too
+     * closely (FlickerGate: a held key, a fast D-pad), when it jumps steady and any flicker still running ends at
+     * full. A refit of the same tile just follows it.
+     */
+    private void jumpGlassTo(float x, float y, boolean moved) {
+        springX.cancel();
+        springY.cancel();
+        glass.setTranslationX(x);
+        glass.setTranslationY(y);
+        if (!moved) return;
+        boolean flicker = flickerGate.onMove(SystemClock.uptimeMillis());
+        glassFlicker.cancel();
+        if (flicker) {
+            glass.animate().cancel();   // a first show's fade in would fight the flicker's opacity
+            glassFlicker.start();
+        }
+    }
+
+    /** Stops the flicker at full opacity; the next move is a first one again. Nothing outside Supernatural. */
+    private void settleGlassFlicker() {
+        if (glassFlicker == null) return;
+        glassFlicker.cancel();
+        flickerGate.reset();
     }
 
     /** Marvel's frame stops waiting for the brackets; nothing posted, nothing pending. */
@@ -2536,6 +2594,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cancelDelayedGlassMove();
         if (focusMotion != null) focusMotion.cancel();
         settleGlassSteps();
+        settleGlassFlicker();
         glass.animate().cancel();
         if (animations && !reducedMotion) glass.animate().alpha(0f).setDuration(160).start();
         else glass.setAlpha(0f);

@@ -5,6 +5,7 @@ import androidx.dynamicanimation.animation.SpringForce;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -82,6 +83,68 @@ public class WorldFocusMotionTest {
             assertEquals(WorldFocusMotion.typingDelayMs(i), WorldFocusMotion.typingCharDelayMs(i, 11));
         }
         assertEquals(0L, WorldFocusMotion.typingCharDelayMs(0, 40));
+    }
+
+    /** Supernatural's frame flickers like an unsteady bulb: three dips in at most 150 ms, then steady. */
+    @Test
+    public void supernaturalFlickerIsThreeDipsWithin150ms() {
+        assertTrue(WorldFocusMotion.FLICKER_MS <= 150L);
+        assertTrue(WorldFocusMotion.flickers(World.SUPERNATURAL));
+        int dips = 0;
+        float prev = WorldFocusMotion.flickerAlpha(0);
+        boolean falling = false;
+        float lowest = 1f;
+        for (long ms = 1; ms <= WorldFocusMotion.FLICKER_MS; ms++) {
+            float a = WorldFocusMotion.flickerAlpha(ms);
+            assertTrue(a >= 0f && a <= 1f);
+            lowest = Math.min(lowest, a);
+            if (a < prev) falling = true;
+            if (a > prev && falling) {
+                dips++;
+                falling = false;
+            }
+            prev = a;
+        }
+        assertEquals(3, dips);
+        assertTrue("a flicker you see", lowest <= 0.5f);
+        assertTrue("never quite out", lowest > 0f);
+        // Then steady: full opacity at the end and ever after.
+        assertEquals(1f, WorldFocusMotion.flickerAlpha(WorldFocusMotion.FLICKER_MS), 0f);
+        assertEquals(1f, WorldFocusMotion.flickerAlpha(400), 0f);
+        assertEquals(1f, WorldFocusMotion.flickerAlpha(-5), 0f);
+    }
+
+    /**
+     * A held key or a fast D-pad must not strobe: a move that follows the last one within the calm gap jumps steady,
+     * the frame flickers again only after a pause.
+     */
+    @Test
+    public void supernaturalFlickerSettlesOnRepeat() {
+        WorldFocusMotion.FlickerGate gate = new WorldFocusMotion.FlickerGate();
+        assertTrue("the first move flickers", gate.onMove(10_000L));
+        // Key repeat: a move every 50 ms for two seconds, none of them flickers.
+        for (long t = 10_050L; t <= 12_000L; t += 50L) assertFalse("repeat at " + t, gate.onMove(t));
+        // Taps closer than the calm gap stay steady too.
+        assertFalse(gate.onMove(12_000L + WorldFocusMotion.FLICKER_CALM_MS - 1));
+        // After a pause the next move flickers again, once.
+        long later = 12_000L + 3 * WorldFocusMotion.FLICKER_CALM_MS;
+        assertTrue(gate.onMove(later));
+        assertFalse(gate.onMove(later + 80L));
+        // The calm gap is longer than a whole flicker, so two flickers never run into each other.
+        assertTrue(WorldFocusMotion.FLICKER_CALM_MS > WorldFocusMotion.FLICKER_MS);
+        // reset (focus left the tiles, Home paused): the next move is a first move again.
+        gate.reset();
+        assertTrue(gate.onMove(later + 100L));
+    }
+
+    @Test
+    public void onlySupernaturalFlickers() {
+        for (World w : World.values()) {
+            if (w != World.SUPERNATURAL) assertFalse(w.name(), WorldFocusMotion.flickers(w));
+        }
+        // It jumps: no spring of its own, and no wait.
+        assertNull(WorldFocusMotion.springFor(World.SUPERNATURAL, false));
+        assertEquals(0L, WorldFocusMotion.frameDelayMs(World.SUPERNATURAL, true));
     }
 
     @Test
