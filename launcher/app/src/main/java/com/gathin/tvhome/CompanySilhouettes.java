@@ -38,11 +38,21 @@ final class CompanySilhouettes {
     /** One cell's size and where the feet stand in it, in sheet pixels; the figure height asked for. */
     private int cellW, cellH;
     private float anchorX, anchorY, drawnFor;
-    /** Screen pixels per sheet pixel: 1 unless the figures were too high for MAX_SHEET_W. */
-    private float scale = 1f;
+    /** Screen pixels per sheet pixel: 1 unless the figures were too high for MAX_SHEET_W; the height drawn at. */
+    private float scale = 1f, sheetHeight;
+
+    /**
+     * The night's back light (buildRim): the rim sheets hold only what lies outside each figure, a thin edge (blur
+     * {@link #RIM_EDGE} of a figure, at least 1 px: about 1 to 2 px) at full strength and a faint glow round it (blur
+     * {@link #RIM_GLOW}, at {@link #RIM_GLOW_ALPHA}). Drawn in warm orange over the dark figure, it outlines it.
+     */
+    static final float RIM_EDGE = 0.012f, RIM_GLOW = 0.05f, RIM_GLOW_ALPHA = 0.3f;
+    private final Bitmap[] rims = new Bitmap[CompanyMotion.KINDS];
 
     private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG), stroke = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint softFill = new Paint(Paint.ANTI_ALIAS_FLAG), softStroke = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint edgeFill = new Paint(Paint.ANTI_ALIAS_FLAG), edgeStroke = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint glowFill = new Paint(Paint.ANTI_ALIAS_FLAG), glowStroke = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Path path = new Path(), part = new Path();
     private final RectF oval = new RectF();
     private final Matrix turn = new Matrix();
@@ -51,12 +61,48 @@ final class CompanySilhouettes {
     private Paint f, k;
 
     CompanySilhouettes() {
-        for (Paint p : new Paint[]{fill, softFill}) p.setStyle(Paint.Style.FILL);
-        for (Paint p : new Paint[]{stroke, softStroke}) {
+        for (Paint p : new Paint[]{fill, softFill, edgeFill, glowFill}) p.setStyle(Paint.Style.FILL);
+        for (Paint p : new Paint[]{stroke, softStroke, edgeStroke, glowStroke}) {
             p.setStyle(Paint.Style.STROKE);
             p.setStrokeCap(Paint.Cap.ROUND);
             p.setStrokeJoin(Paint.Join.ROUND);
         }
+        glowFill.setAlpha(Math.round(255 * RIM_GLOW_ALPHA));
+        glowStroke.setAlpha(Math.round(255 * RIM_GLOW_ALPHA));
+    }
+
+    /**
+     * Draws the rim sheets (the night's back light) for the size the sheets are drawn for, once: the same cells,
+     * only the outside of each figure, a thin edge and a faint glow (OUTER blurs). Nothing before build().
+     */
+    void buildRim() {
+        if (!isBuilt() || rims[0] != null) return;
+        float h = sheetHeight;
+        BlurMaskFilter edge = new BlurMaskFilter(Math.max(1f, RIM_EDGE * h), BlurMaskFilter.Blur.OUTER);
+        BlurMaskFilter glow = new BlurMaskFilter(Math.max(1f, RIM_GLOW * h), BlurMaskFilter.Blur.OUTER);
+        edgeFill.setMaskFilter(edge);
+        edgeStroke.setMaskFilter(edge);
+        glowFill.setMaskFilter(glow);
+        glowStroke.setMaskFilter(glow);
+        for (int kind = 0; kind < CompanyMotion.KINDS; kind++) {
+            Bitmap rim = Bitmap.createBitmap(cellW * FRAMES, cellH, Bitmap.Config.ALPHA_8);
+            Canvas c = new Canvas(rim);
+            for (int frame = 0; frame < FRAMES; frame++) {
+                float ph = (float) (WorldOverlay.TAU * frame / FRAMES);
+                figure(c, frame * cellW + anchorX, anchorY, h, kind, ph, glowFill, glowStroke);
+                figure(c, frame * cellW + anchorX, anchorY, h, kind, ph, edgeFill, edgeStroke);
+            }
+            rims[kind] = rim;
+        }
+    }
+
+    boolean hasRim() {
+        return rims[0] != null;
+    }
+
+    /** Kind {@code kind}'s rim sheet (buildRim), cells as {@link #cell}. */
+    Bitmap rim(int kind) {
+        return rims[kind];
     }
 
     /** Draws the sheets for figures {@code height} pixels high, unless they are drawn for that already. */
@@ -68,6 +114,7 @@ final class CompanySilhouettes {
         float fit = (MAX_SHEET_W / (float) FRAMES - 2f) / CELL_W_PER_HEIGHT;
         scale = height > fit ? height / fit : 1f;
         height = Math.min(height, fit);
+        sheetHeight = height;
         float blur = Math.max(1f, 0.045f * height), pad = 2f * blur;
         BlurMaskFilter soft = new BlurMaskFilter(blur, BlurMaskFilter.Blur.NORMAL);
         softFill.setMaskFilter(soft);
@@ -123,6 +170,8 @@ final class CompanySilhouettes {
         for (int i = 0; i < sheets.length; i++) {
             if (sheets[i] != null) sheets[i].recycle();
             sheets[i] = null;
+            if (rims[i] != null) rims[i].recycle();
+            rims[i] = null;
         }
         drawnFor = 0f;
         scale = 1f;

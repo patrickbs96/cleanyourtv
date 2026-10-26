@@ -161,13 +161,37 @@ final class CompanyMotion {
      * the same pixels.
      */
     static float alphaAt(float x, float nameLeft, float nameRight, float width) {
+        return alphaAt(x, nameLeft, nameRight, width, DIM);
+    }
+
+    /** As {@link #alphaAt(float, float, float, float)}, dimmed to {@code dim} behind the name (dimFor). */
+    static float alphaAt(float x, float nameLeft, float nameRight, float width, float dim) {
         if (nameRight < 0f || nameRight <= nameLeft) return 1f;
         float margin = NAME_MARGIN * width, fade = NAME_FADE * width;
         float out = Math.max(Math.max(nameLeft - margin - x, x - nameRight - margin), 0f);
-        if (out <= 0f) return DIM;
+        if (out <= 0f) return dim;
         float t = Math.min(1f, out / fade);
-        return DIM + (1f - DIM) * t * t * (3f - 2f * t);
+        return dim + (1f - dim) * t * t * (3f - 2f * t);
     }
+
+    /**
+     * How far the company dims behind the name in a mood: {@link #DIM} in the morning and by day; not at all by
+     * night, where the dark figures before the dark picture would all but vanish (Patrick, TV, 27.10.).
+     */
+    static float dimFor(WorldScene.Mood mood) {
+        return mood == WorldScene.Mood.NIGHT ? 1f : DIM;
+    }
+
+    /**
+     * The warm back light's strength in a mood (CompanySilhouettes' rim sheets in MiddleEarthOverlay.COMPANY_RIM):
+     * only by night, as the crater's glow behind the figures; none in the morning and by day.
+     */
+    static float rimFor(WorldScene.Mood mood) {
+        return mood == WorldScene.Mood.NIGHT ? RIM_NIGHT : 0f;
+    }
+
+    /** The night's back light: the rim sheets' paint alpha, subtle (an outline, not glowing figures). */
+    static final float RIM_NIGHT = 0.7f;
 
     /**
      * The strength at {@code x} while the dimmed area goes over from the name {@code fromLeft}..{@code fromRight} to
@@ -175,9 +199,15 @@ final class CompanyMotion {
      */
     static float blendAlpha(float x, float fromLeft, float fromRight, float toLeft, float toRight, float width,
             float t) {
-        float to = alphaAt(x, toLeft, toRight, width);
+        return blendAlpha(x, fromLeft, fromRight, toLeft, toRight, width, t, DIM);
+    }
+
+    /** As {@link #blendAlpha(float, float, float, float, float, float, float)}, dimmed to {@code dim} (dimFor). */
+    static float blendAlpha(float x, float fromLeft, float fromRight, float toLeft, float toRight, float width,
+            float t, float dim) {
+        float to = alphaAt(x, toLeft, toRight, width, dim);
         if (t >= 1f) return to;
-        float from = alphaAt(x, fromLeft, fromRight, width);
+        float from = alphaAt(x, fromLeft, fromRight, width, dim);
         if (t <= 0f) return from;
         float e = t * t * (3f - 2f * t);
         return from + (to - from) * e;

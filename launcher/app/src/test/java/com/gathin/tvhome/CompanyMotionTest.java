@@ -208,6 +208,33 @@ public class CompanyMotionTest {
         assertTrue(CompanyMotion.NAME_BLEND_MS >= 150 && CompanyMotion.NAME_BLEND_MS <= 300);
     }
 
+    /**
+     * By night the dark figures are not dimmed behind the name (they would all but vanish before the dark picture,
+     * Patrick's TV check 27.10.) and get a subtle warm back light; morning and day stay as they were.
+     */
+    @Test public void nightCompanyIsNotDimmed() {
+        float left = 136f, right = 520f, x = 300f;
+        float night = CompanyMotion.dimFor(WorldScene.Mood.NIGHT);
+        assertEquals(1f, night, 0f);
+        assertEquals(1f, CompanyMotion.alphaAt(x, left, right, W, night), 0f);
+        for (float t = 0f; t <= 1f; t += 0.1f) {
+            assertEquals(1f, CompanyMotion.blendAlpha(x, left, right, -1f, -1f, W, t, night), 1e-6f);
+            assertEquals(1f, CompanyMotion.blendAlpha(x, -1f, -1f, left, right, W, t, night), 1e-6f);
+        }
+        for (WorldScene.Mood m : new WorldScene.Mood[]{WorldScene.Mood.MORNING, WorldScene.Mood.DAY}) {
+            assertEquals(CompanyMotion.DIM, CompanyMotion.dimFor(m), 0f);
+            assertEquals(0.6f, CompanyMotion.alphaAt(x, left, right, W, CompanyMotion.dimFor(m)), 1e-6f);
+            assertEquals(0f, CompanyMotion.rimFor(m), 0f);
+        }
+        float rim = CompanyMotion.rimFor(WorldScene.Mood.NIGHT);
+        assertTrue("" + rim, rim > 0.3f && rim <= 0.8f);
+        // A thin edge of 1 to 2 px at 1080 lines (figures 108 px high), a faint glow round it.
+        float edge = CompanySilhouettes.RIM_EDGE * 108f;
+        assertTrue("" + edge, edge >= 1f && edge <= 2f);
+        assertTrue(CompanySilhouettes.RIM_GLOW > CompanySilhouettes.RIM_EDGE);
+        assertTrue(CompanySilhouettes.RIM_GLOW_ALPHA <= 0.4f);
+    }
+
     /** Walks one motion through {@code n} cycles a frame at a time, returning each cycle's pause. */
     private static long[] pauses(CompanyMotion m, int n) {
         long[] out = new long[n];

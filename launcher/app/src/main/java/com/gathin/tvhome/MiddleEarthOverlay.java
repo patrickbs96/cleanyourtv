@@ -80,6 +80,12 @@ final class MiddleEarthOverlay extends WorldOverlay {
     private final CompanySilhouettes silhouettes = new CompanySilhouettes();
     /** The silhouettes' paint: the mood's darkest tone, its alpha the dimming at the figure. */
     private final Paint companyPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
+    /**
+     * The night's warm back light round the figures (CompanySilhouettes' rim sheets): the crater glow's orange, as if
+     * the volcano lit them from behind; its alpha CompanyMotion.rimFor times the figure's.
+     */
+    static final int COMPANY_RIM = 0xFFFF7828;
+    private final Paint rimPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
     private final Rect cell = new Rect();
     private final RectF place = new RectF();
     /** The focused app's name on screen, left and right in view pixels; -1 for none. */
@@ -158,6 +164,7 @@ final class MiddleEarthOverlay extends WorldOverlay {
         eyeRing.setColor(0xFFFFB040);
         eyeInner.setColor(0xFFFF6A10);
         eyeCore.setColor(0xFF100404);
+        rimPaint.setColor(COMPANY_RIM);
         // At most 85 % brightness (spec § 4.4): 216 / 255 is just under.
         logoPaint.setColorFilter(new LightingColorFilter(0xFFD8D8D8, 0));
     }
@@ -252,6 +259,8 @@ final class MiddleEarthOverlay extends WorldOverlay {
         // band over the dock's top edge it walks in, in every mood.
         silhouettes.build(COMPANY_S * unit);
         companyPaint.setColor(MiddleEarthScene.darkest(mood));
+        // By night the warm back light's rim sheets too, drawn once the first night comes (kept for later nights).
+        if (CompanyMotion.rimFor(mood) > 0f) silhouettes.buildRim();
         if (silhouettes.isBuilt()) {
             float top = dockPx - silhouettes.anchorY();
             regions[3].set(0, (int) Math.floor(top), w, (int) Math.ceil(top + silhouettes.placeH()));
@@ -327,14 +336,20 @@ final class MiddleEarthOverlay extends WorldOverlay {
         float cw = silhouettes.placeW(), top = dockPx - silhouettes.anchorY();
         // A new name's dimmed area comes in over NAME_BLEND_MS while the motion runs (its ticks draw it), at once else.
         float blend = isRunning() ? (now - nameAt) / (float) CompanyMotion.NAME_BLEND_MS : 1f;
+        // By night: not dimmed behind the name, and outlined by the warm back light of the rim sheets.
+        float dim = CompanyMotion.dimFor(mood), rim = silhouettes.hasRim() ? CompanyMotion.rimFor(mood) : 0f;
         for (int i = 0; i < CompanyMotion.COMPANY.length; i++) {
             float x = head - CompanyMotion.OFFSETS[i] * s, left = x - silhouettes.anchorX();
             if (left + cw < 0f || left > w) continue;
-            companyPaint.setAlpha(Math.round(255 * CompanyMotion.blendAlpha(x, fromLeft, fromRight, nameLeft,
-                    nameRight, w, blend)));
+            float alpha = CompanyMotion.blendAlpha(x, fromLeft, fromRight, nameLeft, nameRight, w, blend, dim);
+            companyPaint.setAlpha(Math.round(255 * alpha));
             silhouettes.cell(CompanyMotion.stepFrame(walked, i, CompanySilhouettes.FRAMES), cell);
             place.set(left, top, left + cw, top + silhouettes.placeH());
             c.drawBitmap(silhouettes.sheet(CompanyMotion.COMPANY[i]), cell, place, companyPaint);
+            if (rim > 0f) {
+                rimPaint.setAlpha(Math.round(255 * rim * alpha));
+                c.drawBitmap(silhouettes.rim(CompanyMotion.COMPANY[i]), cell, place, rimPaint);
+            }
         }
     }
 
