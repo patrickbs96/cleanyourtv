@@ -18,9 +18,13 @@ import java.util.Random;
  * The worlds' app-start overlay (spec § 4.7), drawn over all of Home: Hogwarts' white-gold glow round the tile, its
  * conic spark swirl and the black of "Nox"; Marvel's three reactor rings, the anamorphic light streak and the cut to
  * white; Star Wars' 70 hyperspace streaks and the white; Supernatural's headlights, the lamp and its two cones growing
- * out of the car's front till their light fills the screen, and the white. The tile's own growth, the frame's fade
- * and the scene's zoom
- * are WorldLaunchMotion's; this view only draws what lies over them, at the time {@link #setElapsed} gives it.
+ * out of the car's front till their light fills the screen, and the white; Middle-earth's lettering of fire running
+ * once round the tile's frame, and the white. The tile's own growth, the frame's fade and the scene's zoom are
+ * WorldLaunchMotion's; this view only draws what lies over them, at the time {@link #setElapsed} gives it.
+ *
+ * <p>Middle-earth's signs are made up for this launcher (Mittelerde spec § 4.3: no font, no real script, no
+ * inscription): seven strokes, hooks and rings of its own, built once as paths in a unit box and placed round the
+ * frame per launch.
  *
  * <p>Built like PetalShowerView: no focus, clicks or accessibility, every paint, shader and per-streak value made
  * once (the streaks' angles and delays are drawn anew per launch, into the same arrays), nothing allocated per
@@ -51,6 +55,17 @@ final class LaunchFxView extends View {
     private final float[] cos = new float[STREAKS], sin = new float[STREAKS];
     private final long[] delay = new long[STREAKS];
     private final RectF box = new RectF();
+    /** Middle-earth: the signs (unit box round the origin), their glow and core strokes, the spark at the fire's head. */
+    private final Path[] glyphs = new Path[WorldLaunchMotion.GLYPHS];
+    private final Paint fireGlow = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint fireCore = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint spark = new Paint(Paint.ANTI_ALIAS_FLAG);
+    /** The row round the frame, laid out once per launch (and view width): place, turn and share of the lap per sign. */
+    private final float[] gx = new float[WorldLaunchMotion.MAX_GLYPHS], gy = new float[WorldLaunchMotion.MAX_GLYPHS],
+            gdeg = new float[WorldLaunchMotion.MAX_GLYPHS], gpos = new float[WorldLaunchMotion.MAX_GLYPHS];
+    private final float[] track = new float[3];
+    private int glyphN, trackW = -1;
+    private float glyphSize, trackLeft, trackTop, trackRight, trackBottom;
 
     private World world = World.CLEAN;
     private float cx, cy, tileW, tileH, radius, s0x = 1f, s0y = 1f;
@@ -88,6 +103,55 @@ final class LaunchFxView extends View {
                 new float[]{0f, 0.35f, 1f}, Shader.TileMode.CLAMP));
         wash.setShader(new RadialGradient(0f, 0f, 1f, new int[]{0xFFFFF4DC, 0xB3FFF4DC, 0x00FFF4DC},
                 new float[]{0f, 0.5f, 1f}, Shader.TileMode.CLAMP));
+        // Middle-earth's fire: a wide soft stroke under a thin hot one, both round; the head's spark radius 1.
+        fireGlow.setStyle(Paint.Style.STROKE);
+        fireGlow.setStrokeCap(Paint.Cap.ROUND);
+        fireGlow.setStrokeJoin(Paint.Join.ROUND);
+        fireGlow.setStrokeWidth(0.34f);
+        fireCore.setStyle(Paint.Style.STROKE);
+        fireCore.setStrokeCap(Paint.Cap.ROUND);
+        fireCore.setStrokeJoin(Paint.Join.ROUND);
+        fireCore.setStrokeWidth(0.1f);
+        spark.setShader(new RadialGradient(0f, 0f, 1f, new int[]{0xFFFFF8E0, 0xCCFF9A2A, 0x00FF6A10},
+                new float[]{0f, 0.35f, 1f}, Shader.TileMode.CLAMP));
+        buildGlyphs();
+    }
+
+    /** The seven made-up signs, each in a unit box round the origin (y down): no letter of any real script. */
+    private void buildGlyphs() {
+        for (int i = 0; i < glyphs.length; i++) glyphs[i] = new Path();
+        // 0: a hook rising from the foot and curling over.
+        glyphs[0].moveTo(-0.25f, 0.45f);
+        glyphs[0].quadTo(-0.35f, -0.2f, 0.05f, -0.4f);
+        glyphs[0].quadTo(0.35f, -0.45f, 0.2f, -0.1f);
+        // 1: a zigzag of three strokes.
+        glyphs[1].moveTo(-0.35f, 0.4f);
+        glyphs[1].lineTo(-0.1f, -0.4f);
+        glyphs[1].lineTo(0.1f, 0.2f);
+        glyphs[1].lineTo(0.35f, -0.4f);
+        // 2: a ring above a slanting foot.
+        glyphs[2].addCircle(0.05f, -0.22f, 0.18f, Path.Direction.CW);
+        glyphs[2].moveTo(0.02f, -0.04f);
+        glyphs[2].lineTo(-0.2f, 0.45f);
+        // 3: a chevron pointing down under a dot.
+        glyphs[3].moveTo(-0.35f, -0.22f);
+        glyphs[3].lineTo(0f, 0.4f);
+        glyphs[3].lineTo(0.35f, -0.22f);
+        glyphs[3].addCircle(0f, -0.38f, 0.05f, Path.Direction.CW);
+        // 4: one long wave from top right to bottom left.
+        glyphs[4].moveTo(0.3f, -0.45f);
+        glyphs[4].cubicTo(-0.5f, -0.25f, 0.5f, 0.2f, -0.3f, 0.45f);
+        // 5: a stem forking into a bowl.
+        glyphs[5].moveTo(0f, 0.45f);
+        glyphs[5].lineTo(0f, -0.05f);
+        glyphs[5].moveTo(-0.3f, -0.4f);
+        glyphs[5].quadTo(0f, 0.05f, 0.3f, -0.4f);
+        // 6: a tick with a short bar beside it.
+        glyphs[6].moveTo(-0.32f, -0.1f);
+        glyphs[6].lineTo(-0.1f, 0.4f);
+        glyphs[6].lineTo(0.05f, -0.45f);
+        glyphs[6].moveTo(0.15f, 0.05f);
+        glyphs[6].lineTo(0.36f, 0.05f);
     }
 
     /**
@@ -113,6 +177,7 @@ final class LaunchFxView extends View {
                 delay[i] = 150 + (long) (rnd.nextFloat() * 350);
             }
         }
+        trackW = -1;   // the row round this tile is laid out at the first draw, when the view's width is known
         elapsed = 0;
         invalidate();
     }
@@ -146,6 +211,9 @@ final class LaunchFxView extends View {
                 break;
             case SUPERNATURAL:
                 drawSupernatural(c, t);
+                break;
+            case MIDDLE_EARTH:
+                drawMiddleEarth(c, t, k);
                 break;
             default:
                 break;
@@ -268,6 +336,59 @@ final class LaunchFxView extends View {
             cone(c, hx, hy, 3f, 1.1f * len, 0.10f + 1.0f * reach, 0.8f * reach);
         }
         glowAt(c, lamp, WorldLaunchMotion.lampGlow(t), hx, hy, 3.2f * u, 2.2f * u);
+    }
+
+    /**
+     * Middle-earth: the signs stand on a track just outside the tile's frame (at its focus zoom), as many as fit; each
+     * burns as the fire's head reaches it and glows on as an ember, a spark rides the head, and the ring flares up
+     * before the white. Glow and core are one path each per sign, coloured by its heat; nothing is allocated.
+     */
+    private void drawMiddleEarth(Canvas c, long t, float k) {
+        if (trackW != getWidth()) layoutTrack(k);
+        float tw = trackRight - trackLeft, th = trackBottom - trackTop;
+        for (int i = 0; i < glyphN; i++) {
+            float heat = WorldLaunchMotion.glyphHeat(gpos[i], t);
+            if (heat <= 0f) continue;
+            // A light flicker per sign, as a flame's, on a fixed phase each.
+            float lit = heat * (0.9f + 0.1f * (float) Math.sin(t * 0.031f + i * 1.7f));
+            int color = WorldLaunchMotion.fireColor(heat);
+            c.save();
+            c.translate(gx[i], gy[i]);
+            c.rotate(gdeg[i]);
+            c.scale(glyphSize, glyphSize);
+            fireGlow.setColor(color);
+            fireGlow.setAlpha(Math.round(255 * 0.4f * WorldLaunchMotion.clamp(lit)));
+            c.drawPath(glyphs[WorldLaunchMotion.glyphAt(i)], fireGlow);
+            fireCore.setColor(color);
+            fireCore.setAlpha(Math.round(255 * WorldLaunchMotion.clamp(lit)));
+            c.drawPath(glyphs[WorldLaunchMotion.glyphAt(i)], fireCore);
+            c.restore();
+        }
+        if (t < WorldLaunchMotion.FIRE_LAP_MS) {
+            WorldLaunchMotion.trackAt(tw, th, WorldLaunchMotion.fireHead(t), track);
+            float r = 0.9f * glyphSize;
+            glowAt(c, spark, 1f, trackLeft + track[0], trackTop + track[1], r, r);
+        }
+    }
+
+    /** Places the row round this launch's tile: once per launch and view width, into the arrays made at the start. */
+    private void layoutTrack(float k) {
+        trackW = getWidth();
+        glyphSize = 16f * k;
+        float hw = tileW * s0x / 2f, hh = tileH * s0y / 2f, gap = 0.75f * glyphSize;
+        trackLeft = cx - hw - gap;
+        trackTop = cy - hh - gap;
+        trackRight = cx + hw + gap;
+        trackBottom = cy + hh + gap;
+        float tw = trackRight - trackLeft, th = trackBottom - trackTop;
+        glyphN = WorldLaunchMotion.glyphCount(2f * (tw + th), 1.3f * glyphSize);
+        for (int i = 0; i < glyphN; i++) {
+            gpos[i] = (i + 0.5f) / glyphN;
+            WorldLaunchMotion.trackAt(tw, th, gpos[i], track);
+            gx[i] = trackLeft + track[0];
+            gy[i] = trackTop + track[1];
+            gdeg[i] = track[2];
+        }
     }
 
     /**

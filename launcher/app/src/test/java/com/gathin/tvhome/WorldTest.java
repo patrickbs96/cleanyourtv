@@ -84,10 +84,11 @@ public class WorldTest {
         }
     }
     /**
-     * Until its own skin arrives (Tasks 7 and 8) Middle-earth takes the neutral paths everywhere a world branches:
+     * Until its own transition arrives (Task 8) Middle-earth takes the neutral paths everywhere a world branches:
      * no fixed picture (its three are found by name, WorldSceneTest.middleEarthPicturesAreThere), Clean's network
-     * icon, Clean's spring, no flicker, no launch effect, a plain fade in; never another world's skin. Its overlay
-     * (Task 4, MiddleEarthOverlayTest) and its pills, dock and frame (Task 6) are its own.
+     * icon, Clean's spring, no flicker, a plain fade in; never another world's skin. Its overlay (Task 4,
+     * MiddleEarthOverlayTest), its pills, dock and frame (Task 6) and its fire lettering at an app start (Task 7,
+     * LaunchGuardTest), which leaves the tile and the scene as they are, are its own.
      */
     @Test public void middleEarthFallsBackToNeutralPaths() {
         World w = World.MIDDLE_EARTH;
@@ -98,8 +99,8 @@ public class WorldTest {
         assertNull(WorldFocusMotion.springFor(w, false));
         assertEquals(0L, WorldFocusMotion.frameDelayMs(w, true));
         assertFalse(WorldFocusMotion.flickers(w));
-        assertEquals(0L, WorldLaunchMotion.durationMs(w));
-        assertFalse(WorldLaunchMotion.shouldPlay(w, true, false));
+        assertEquals(1200L, WorldLaunchMotion.durationMs(w));
+        assertTrue(WorldLaunchMotion.shouldPlay(w, true, false));
         assertEquals(0f, WorldLaunchMotion.blendAlpha(w, 1000), 0f);
         assertEquals(1f, WorldLaunchMotion.sceneZoom(w, 500), 0f);
         assertEquals(1f, WorldLaunchMotion.tileAlpha(w, 500), 0f);

@@ -2,6 +2,7 @@ package com.gathin.tvhome;
 
 import org.junit.Test;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -33,6 +34,125 @@ public class LaunchGuardTest {
         assertEquals(1200, WorldLaunchMotion.durationMs(World.MARVEL));
         assertEquals(1200, WorldLaunchMotion.durationMs(World.STARWARS));
         assertEquals(1200, WorldLaunchMotion.durationMs(World.SUPERNATURAL));
+        assertEquals(1200, WorldLaunchMotion.durationMs(World.MIDDLE_EARTH));
+    }
+
+    /**
+     * Middle-earth (Mittelerde spec § 4.3): a lettering of fire runs once round the tile's frame, then the white
+     * (200 ms from 1.0 s) and the app at 1.2 s; the tile stays as it is. Reduced motion and animations off start the
+     * app at once, as everywhere.
+     */
+    @Test
+    public void middleEarthFireLetteringRunsOnceRoundTheTile() {
+        World w = World.MIDDLE_EARTH;
+        assertTrue(WorldLaunchMotion.shouldPlay(w, true, false));
+        assertFalse(WorldLaunchMotion.shouldPlay(w, true, true));
+        assertFalse(WorldLaunchMotion.shouldPlay(w, false, false));
+        // The fire's head goes round once, steadily, and is all the way round before the white.
+        assertEquals(0f, WorldLaunchMotion.fireHead(0), 1e-6);
+        assertEquals(1f, WorldLaunchMotion.fireHead(WorldLaunchMotion.FIRE_LAP_MS), 1e-6);
+        assertTrue(WorldLaunchMotion.FIRE_LAP_MS < 1000);
+        float last = 0f;
+        for (long t = 0; t <= 1200; t += 33) {
+            float h = WorldLaunchMotion.fireHead(t);
+            assertTrue("head runs back at " + t, h >= last - 1e-6f);
+            last = h;
+        }
+        assertEquals(0.5f, WorldLaunchMotion.fireHead(WorldLaunchMotion.FIRE_LAP_MS / 2), 1e-3);
+        // A sign not yet reached is dark; where the head is it burns full, behind it glows on as an ember.
+        long mid = WorldLaunchMotion.FIRE_LAP_MS / 2;
+        assertEquals(0f, WorldLaunchMotion.glyphHeat(0.6f, mid), 1e-6);
+        assertEquals(1f, WorldLaunchMotion.glyphHeat(0.5f, mid), 1e-3);
+        assertEquals(WorldLaunchMotion.EMBER, WorldLaunchMotion.glyphHeat(0.05f, mid), 1e-3);
+        float near = WorldLaunchMotion.glyphHeat(0.45f, mid);
+        assertTrue(near > WorldLaunchMotion.EMBER && near < 1f);
+        // Once round, the whole ring flares up to full by the white.
+        assertEquals(1f, WorldLaunchMotion.glyphHeat(0.05f, 1000), 1e-6);
+        assertEquals(1f, WorldLaunchMotion.glyphHeat(0.99f, 1000), 1e-6);
+        for (float pos = 0.01f; pos < 1f; pos += 0.07f) {
+            assertTrue(WorldLaunchMotion.glyphHeat(pos, 1200) <= 1f);
+            assertTrue(WorldLaunchMotion.glyphHeat(pos, 0) >= 0f);
+        }
+        // The white as the others', and nothing else of the screen changes.
+        assertEquals(0f, WorldLaunchMotion.blendAlpha(w, 999), 1e-6);
+        assertTrue(WorldLaunchMotion.blendAlpha(w, 1100) < 1f);
+        assertEquals(1f, WorldLaunchMotion.blendAlpha(w, 1200), 1e-6);
+        assertEquals(0xFFFFFFFF, WorldLaunchMotion.blendColor(w));
+        assertEquals(1.07f, WorldLaunchMotion.tileScaleX(w, 600, 1.07f), 1e-6);
+        assertEquals(1.07f, WorldLaunchMotion.tileScaleY(w, 600, 1.07f), 1e-6);
+        assertEquals(1f, WorldLaunchMotion.tileAlpha(w, 600), 1e-6);
+        assertEquals(1f, WorldLaunchMotion.sceneZoom(w, 600), 1e-6);
+    }
+
+    /** The fire's colour: deep red as an ember, through orange to a pale yellow-white where it burns hottest. */
+    @Test
+    public void fireColourGoesFromEmberToWhiteHot() {
+        assertEquals(WorldLaunchMotion.FIRE_EMBER, WorldLaunchMotion.fireColor(0f));
+        assertEquals(WorldLaunchMotion.FIRE_FLAME, WorldLaunchMotion.fireColor(0.6f));
+        assertEquals(WorldLaunchMotion.FIRE_HOT, WorldLaunchMotion.fireColor(1f));
+        assertEquals(WorldLaunchMotion.FIRE_HOT, WorldLaunchMotion.fireColor(2f));
+        int c = WorldLaunchMotion.fireColor(0.8f);
+        assertEquals(0xFF, c >>> 24);
+        // Red stays high, blue grows with the heat.
+        assertTrue((c & 0xFF) > (WorldLaunchMotion.FIRE_FLAME & 0xFF));
+        assertTrue((c & 0xFF) < (WorldLaunchMotion.FIRE_HOT & 0xFF));
+    }
+
+    /**
+     * The track the signs run on: once round a w × h frame clockwise from its top left, the signs upright along each
+     * side (0° on top, 90° down the right, 180° along the bottom, 270° up the left).
+     */
+    @Test
+    public void fireTrackGoesClockwiseRoundTheFrame() {
+        float[] p = new float[3];
+        float w = 300f, h = 100f, round = 2 * (w + h);
+        WorldLaunchMotion.trackAt(w, h, 0f, p);
+        assertArrayEquals(new float[]{0f, 0f, 0f}, p, 1e-4f);
+        WorldLaunchMotion.trackAt(w, h, 150f / round, p);
+        assertArrayEquals(new float[]{150f, 0f, 0f}, p, 1e-3f);
+        WorldLaunchMotion.trackAt(w, h, 350f / round, p);
+        assertArrayEquals(new float[]{300f, 50f, 90f}, p, 1e-3f);
+        WorldLaunchMotion.trackAt(w, h, 550f / round, p);
+        assertArrayEquals(new float[]{150f, 100f, 180f}, p, 1e-3f);
+        WorldLaunchMotion.trackAt(w, h, 750f / round, p);
+        assertArrayEquals(new float[]{0f, 50f, 270f}, p, 1e-3f);
+        WorldLaunchMotion.trackAt(w, h, 1f, p);
+        assertArrayEquals(new float[]{0f, 0f, 270f}, p, 1e-3f);
+    }
+
+    /**
+     * The lettering is made up (spec: no real script, no inscription): a fixed row of its own few signs, as many as fit
+     * round the frame, never the same sign twice in a row.
+     */
+    @Test
+    public void fireLetteringIsAFixedRowOfOwnSigns() {
+        assertEquals(WorldLaunchMotion.MIN_GLYPHS, WorldLaunchMotion.glyphCount(10f, 20f));
+        assertEquals(WorldLaunchMotion.MAX_GLYPHS, WorldLaunchMotion.glyphCount(1e6f, 20f));
+        assertEquals(40, WorldLaunchMotion.glyphCount(800f, 20f));
+        for (int i = 0; i < WorldLaunchMotion.MAX_GLYPHS; i++) {
+            int g = WorldLaunchMotion.glyphAt(i);
+            assertTrue(g >= 0 && g < WorldLaunchMotion.GLYPHS);
+            if (i > 0) assertTrue("same sign twice at " + i, g != WorldLaunchMotion.glyphAt(i - 1));
+        }
+        // Every sign shows up in a row of the smallest length.
+        boolean[] seen = new boolean[WorldLaunchMotion.GLYPHS];
+        for (int i = 0; i < WorldLaunchMotion.MIN_GLYPHS; i++) seen[WorldLaunchMotion.glyphAt(i)] = true;
+        for (int g = 0; g < seen.length; g++) assertTrue("sign " + g, seen[g]);
+    }
+
+    /** Back while the fire runs: the app does not start, nothing of the effect stays, the next OK plays anew. */
+    @Test
+    public void backCancelsTheFireLettering() {
+        WorldLaunchMotion m = new WorldLaunchMotion();
+        int[] starts = {0};
+        assertTrue(m.begin(World.MIDDLE_EARTH, () -> starts[0]++));
+        m.cancel();
+        m.finish();
+        assertEquals(0, starts[0]);
+        assertFalse(m.isBusy());
+        assertTrue(m.begin(World.MIDDLE_EARTH, () -> starts[0]++));
+        m.finish();
+        assertEquals(1, starts[0]);
     }
 
     /**
@@ -147,8 +267,6 @@ public class LaunchGuardTest {
         // Home. Clean and Seasons have none (shouldPlay skips them).
         for (World w : World.values()) {
             if (!w.hasOwnMotion()) continue;
-            // Middle-earth's fire lettering comes with its launch task: none until Task 7, which drops this line.
-            if (w == World.MIDDLE_EARTH) continue;
             assertTrue(w.name(), WorldLaunchMotion.durationMs(w) > 0);
             assertEquals(w.name(), 1f, WorldLaunchMotion.blendAlpha(w, WorldLaunchMotion.durationMs(w)), 1e-6);
         }

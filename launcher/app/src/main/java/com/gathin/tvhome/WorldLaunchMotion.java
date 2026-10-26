@@ -24,8 +24,11 @@ import java.util.function.Consumer;
  * 1.4× in 1.1 s, the tile stretches to 6×1.6 from 100 ms for 1 s and fades, white at 1.0 s (200 ms), then the app at
  * 1.2 s. Supernatural (its own spec § 4.3): the car's headlights flare up, the lamp in 250 ms, and from 100 ms its
  * two light cones grow out of the car's front until, at 1.0 s, they and their light fill the screen; the white
- * (200 ms) and the app at 1.2 s; the tile stays as it is. No effect runs longer than 1.2 s (the mockup's whites were
- * 300 and 250 ms).
+ * (200 ms) and the app at 1.2 s; the tile stays as it is. Middle-earth (Mittelerde spec § 4.3): a lettering of fire,
+ * a made-up row of signs drawn as LaunchFxView's own paths (no font, no real script, no inscription), runs once round
+ * the tile's frame in 850 ms, each sign flaring as the fire's head reaches it and glowing on as an ember, the whole
+ * ring flares up from 900 ms; the white (200 ms) and the app at 1.2 s; the tile stays as it is. No effect runs longer
+ * than 1.2 s (the mockup's whites were 300 and 250 ms).
  *
  * <p>Clean, reduced motion and animations off never get here: MainActivity starts the app at once
  * ({@link #shouldPlay}), so Clean adds no view. While an effect plays a second OK is swallowed ({@link #begin} and
@@ -42,9 +45,20 @@ final class WorldLaunchMotion {
     /** All at most 1.2 s, the limit for every effect (ruling R12 revised): the white cut is 200 ms. */
     static final long WHITE_MS = 200;
     static final long HOGWARTS_MS = 1200, MARVEL_MS = 1000 + WHITE_MS, STARWARS_MS = 1000 + WHITE_MS,
-            SUPERNATURAL_MS = 1000 + WHITE_MS;
+            SUPERNATURAL_MS = 1000 + WHITE_MS, MIDDLE_EARTH_MS = 1000 + WHITE_MS;
     /** Supernatural: the lamp flares up in LAMP_MS; the cones grow from BEAM_FROM_MS until the white starts. */
     static final long LAMP_MS = 250, BEAM_FROM_MS = 100;
+    /**
+     * Middle-earth: the fire's head goes round the frame once in FIRE_LAP_MS; from FIRE_FLARE_MS the whole ring flares
+     * up, full at the white (1.0 s).
+     */
+    static final long FIRE_LAP_MS = 850, FIRE_FLARE_MS = 900;
+    /** A sign the fire has passed glows on at this heat; the flame behind the head cools to it over FIRE_TRAIL of a lap. */
+    static final float EMBER = 0.45f, FIRE_TRAIL = 0.2f;
+    /** The fire's colours by heat: ember (0), flame (0.6), white-hot (1). */
+    static final int FIRE_EMBER = 0xFFA8280A, FIRE_FLAME = 0xFFFF7A1A, FIRE_HOT = 0xFFFFF2C0;
+    /** The made-up lettering: GLYPHS own signs (LaunchFxView's paths), MIN_GLYPHS to MAX_GLYPHS of them round a tile. */
+    static final int GLYPHS = 7, MIN_GLYPHS = 12, MAX_GLYPHS = 64;
     /** The app starts at the latest this long after the effect should have ended (a stalled frame, a lost tick). */
     static final long TIMEOUT_GRACE_MS = 200;
     /** The blend stays this long after the start: the app's window is in front by then. */
@@ -63,6 +77,7 @@ final class WorldLaunchMotion {
             case MARVEL: return MARVEL_MS;
             case STARWARS: return STARWARS_MS;
             case SUPERNATURAL: return SUPERNATURAL_MS;
+            case MIDDLE_EARTH: return MIDDLE_EARTH_MS;
             default: return 0L;
         }
     }
@@ -89,9 +104,82 @@ final class WorldLaunchMotion {
             }
             case MARVEL:
             case STARWARS:
-            case SUPERNATURAL: return t < 1000 ? 0f : ease(clamp((t - 1000) / (float) WHITE_MS));
+            case SUPERNATURAL:
+            case MIDDLE_EARTH: return t < 1000 ? 0f : ease(clamp((t - 1000) / (float) WHITE_MS));
             default: return 0f;
         }
+    }
+
+    /** How far Middle-earth's fire has run round the frame at {@code t} ms, 0 to 1: steadily, once. */
+    static float fireHead(long t) {
+        return clamp(t / (float) FIRE_LAP_MS);
+    }
+
+    /**
+     * The heat of the sign at {@code pos} (0 to 1 round the frame) at {@code t} ms: dark until the head reaches it,
+     * full there, then cooling to an {@link #EMBER} over {@link #FIRE_TRAIL}; from {@link #FIRE_FLARE_MS} every sign
+     * flares up to full by the white.
+     */
+    static float glyphHeat(float pos, long t) {
+        float head = fireHead(t);
+        if (pos > head) return 0f;
+        float flame = 1f - clamp((head - pos) / FIRE_TRAIL);
+        float heat = EMBER + (1f - EMBER) * flame;
+        float flare = ease(clamp((t - FIRE_FLARE_MS) / (float) (1000 - FIRE_FLARE_MS)));
+        return heat + (1f - heat) * flare;
+    }
+
+    /** The fire's colour at {@code heat}: ember red, through orange, to a pale white-hot; opaque. */
+    static int fireColor(float heat) {
+        float h = clamp(heat);
+        return h <= 0.6f ? lerpColor(FIRE_EMBER, FIRE_FLAME, h / 0.6f) : lerpColor(FIRE_FLAME, FIRE_HOT, (h - 0.6f) / 0.4f);
+    }
+
+    private static int lerpColor(int a, int b, float f) {
+        int r = Math.round(((a >> 16) & 0xFF) + (((b >> 16) & 0xFF) - ((a >> 16) & 0xFF)) * f);
+        int g = Math.round(((a >> 8) & 0xFF) + (((b >> 8) & 0xFF) - ((a >> 8) & 0xFF)) * f);
+        int bl = Math.round((a & 0xFF) + ((b & 0xFF) - (a & 0xFF)) * f);
+        return 0xFF000000 | (r << 16) | (g << 8) | bl;
+    }
+
+    /**
+     * The point {@code s} (0 to 1) of the way clockwise round a {@code w} × {@code h} frame from its top left, into
+     * {@code out}: x, y (from the top left) and the sign's turn in degrees, upright along each side (0 on top, 90 down
+     * the right, 180 along the bottom, 270 up the left).
+     */
+    static void trackAt(float w, float h, float s, float[] out) {
+        float d = clamp(s) * 2f * (w + h);
+        if (d < w) {
+            out[0] = d;
+            out[1] = 0f;
+            out[2] = 0f;
+        } else if (d < w + h) {
+            out[0] = w;
+            out[1] = d - w;
+            out[2] = 90f;
+        } else if (d < 2f * w + h) {
+            out[0] = w - (d - w - h);
+            out[1] = h;
+            out[2] = 180f;
+        } else {
+            out[0] = 0f;
+            out[1] = h - (d - 2f * w - h);
+            out[2] = 270f;
+        }
+    }
+
+    /** How many signs fit round a frame of {@code perimeter} px, one each {@code pitch} px. */
+    static int glyphCount(float perimeter, float pitch) {
+        int n = pitch > 0f ? Math.round(perimeter / pitch) : MIN_GLYPHS;
+        return Math.max(MIN_GLYPHS, Math.min(MAX_GLYPHS, n));
+    }
+
+    /**
+     * Which of the {@link #GLYPHS} signs stands at place {@code i} of the row: a fixed order (steps of 3, one more
+     * after each run of seven), never the same sign twice in a row.
+     */
+    static int glyphAt(int i) {
+        return (i * 3 + i / GLYPHS) % GLYPHS;
     }
 
     /** Supernatural's headlamp at {@code t} ms, 0 to 1: it flares up first, then holds. */
