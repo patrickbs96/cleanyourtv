@@ -3196,7 +3196,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // dropped that many characters at its end ("… RAN"). In capitals already, the transformation keeps
             // the length; it looks the same, as the view writes in capitals anyway.
             greeting.setText(world.isClean() ? base
-                    : WorldTypography.greetingText(world, base, worldDay()).toUpperCase(Locale.getDefault()));
+                    : WorldTypography.greetingText(world, base, worldDay(), this::getString)
+                            .toUpperCase(Locale.getDefault()));
             greeting.setTextColor(WorldTypography.greetingColor(world, greetingColor, worldAccent()));
         }
         if (shamsi) shamsiDate.setText(Shamsi.today(getResources()));

@@ -3,9 +3,12 @@ package com.gathin.tvhome;
 import android.content.SharedPreferences;
 import android.view.KeyEvent;
 
+import java.util.function.IntFunction;
+
 /**
  * The worlds the colour keys and digits switch between: Clean (green) is today's launcher unchanged, Hogwarts
- * (yellow), Marvel (red), Star Wars (blue) and Supernatural (digit 5 only) lay a skin over it. Seasons
+ * (yellow), Marvel (red), Star Wars (blue), Supernatural (digit 5 only) and Middle-earth (digit 6 only) lay a skin
+ * over it. Seasons
  * (Jahreskreis, digit 1 only, no colour key) brings its own scene and overlay but moves like Clean: dock, app start,
  * fonts and hero are Clean's ({@link #hasOwnMotion()}). Only plain values live here, so the class loads in JVM tests; the skins read them. Every
  * caller checks {@link #isClean()} or {@link #hasOwnMotion()} first and then takes exactly the old path.
@@ -17,12 +20,13 @@ enum World {
             R.string.world_hog_hero_prefix),
     MARVEL("marvel", R.string.world_marvel, 0xFFE03131, 0xFF9FDCFF, 0xFFE6B85A, 30, 0xFF120306, 0),
     STARWARS("starwars", R.string.world_starwars, 0xFF2F6FE0, 0xFFCFE0FF, 0xFF5B8CFF, 25, 0xFF000000, 0),
-    SUPERNATURAL("supernatural", R.string.world_supernatural, 0xFFE0A24A, 0xFFE0A24A, 0xFFE0A24A, 30, 0xFF0B0D10, 0);
+    SUPERNATURAL("supernatural", R.string.world_supernatural, 0xFFE0A24A, 0xFFE0A24A, 0xFFE0A24A, 30, 0xFF0B0D10, 0),
+    MIDDLE_EARTH("middleearth", R.string.world_middleearth, 0xFFD9B56A, 0xFFD9B56A, 0xFFD9B56A, 30, 0xFF0C0D0B, 0);
 
     /** The chosen world's id in the launcher's preferences. */
     static final String PREF_KEY = "world";
 
-    /** Saved under {@link #PREF_KEY}: clean, seasons, hogwarts, marvel, starwars or supernatural. */
+    /** Saved under {@link #PREF_KEY}: clean, seasons, hogwarts, marvel, starwars, supernatural or middleearth. */
     final String id;
     final int labelRes;
     /** The colour of the remote key that picks this world. */
@@ -71,9 +75,9 @@ enum World {
 
     /**
      * The world a colour key or a digit picks, or null for any other key. The digits follow this enum's order
-     * (0 Clean, 1 Seasons, 2 Hogwarts, 3 Marvel, 4 Star Wars, 5 Supernatural), so a world added at the end takes the
-     * next one, up to 9. They are the clean way to Star Wars on the Philips: its firmware also opens the TV help on
-     * blue. Seasons and Supernatural have no colour key.
+     * (0 Clean, 1 Seasons, 2 Hogwarts, 3 Marvel, 4 Star Wars, 5 Supernatural, 6 Middle-earth), so a world added at
+     * the end takes the next one, up to 9. They are the clean way to Star Wars on the Philips: its firmware also opens
+     * the TV help on blue. Seasons, Supernatural and Middle-earth have no colour key.
      */
     static World forKeyCode(int keyCode) {
         switch (keyCode) {
@@ -105,11 +109,19 @@ enum World {
 
     /**
      * Whether the world has its own motion and style: dock move, app start, dock skin, hero and fonts (Hogwarts,
-     * Marvel, Star Wars, Supernatural). False for Clean and for Seasons, which takes Clean's for all of them
-     * (Jahreskreis spec § 4.8) and keeps only its scene, overlay, accent and icon-only pills.
+     * Marvel, Star Wars, Supernatural, Middle-earth). False for Clean and for Seasons, which takes Clean's for all of
+     * them (Jahreskreis spec § 4.8) and keeps only its scene, overlay, accent and icon-only pills.
      */
     boolean hasOwnMotion() {
-        return this == HOGWARTS || this == MARVEL || this == STARWARS || this == SUPERNATURAL;
+        return this == HOGWARTS || this == MARVEL || this == STARWARS || this == SUPERNATURAL || this == MIDDLE_EARTH;
+    }
+
+    /**
+     * Whether the world splits the day in three, a morning before its day and night (Mittelerde spec § 4.1): only
+     * Middle-earth. The others know day and night.
+     */
+    boolean hasMorning() {
+        return this == MIDDLE_EARTH;
     }
 
     /**
@@ -129,7 +141,9 @@ enum World {
 
     /**
      * The words after the greeting: Äußerer Rand in Star Wars, Back on the road by day and Something's out there by
-     * night in Supernatural (own lines, the same in every language, Supernatural spec § 4.3).
+     * night in Supernatural (own lines, the same in every language, Supernatural spec § 4.3). Only the words in the
+     * code: Middle-earth's are strings ({@link #greetingSuffixRes}), so "" here; callers that show a greeting take
+     * {@link #greetingSuffix(boolean, IntFunction)}.
      */
     String greetingSuffix(boolean day) {
         if (this == STARWARS) return "Äußerer Rand";
@@ -144,6 +158,27 @@ enum World {
      */
     boolean showsAmbientGlow(boolean configured) {
         return configured && this != SEASONS;
+    }
+
+    /**
+     * The words after the greeting that come in the app's language, as a string: Middle-earth's Weit ist der Weg by
+     * day and Das Auge wacht by night (Mittelerde spec § 4.3; its morning's words, world_middleearth_greeting_morning,
+     * come with the third mood). 0 for every other world, whose words are {@link #greetingSuffix(boolean)}.
+     */
+    int greetingSuffixRes(boolean day) {
+        if (this == MIDDLE_EARTH) {
+            return day ? R.string.world_middleearth_greeting_day : R.string.world_middleearth_greeting_night;
+        }
+        return 0;
+    }
+
+    /**
+     * The words after the greeting in every world: {@link #greetingSuffixRes} looked up through {@code strings}
+     * (Resources::getString on the TV), else the words in the code. Home and the personal greeting take this one.
+     */
+    String greetingSuffix(boolean day, IntFunction<String> strings) {
+        int res = greetingSuffixRes(day);
+        return res != 0 ? strings.apply(res) : greetingSuffix(day);
     }
 
     /** Every world but Clean shows the top pills as icons only. */

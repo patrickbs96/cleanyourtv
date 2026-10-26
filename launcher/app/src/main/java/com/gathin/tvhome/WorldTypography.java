@@ -20,11 +20,12 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import java.util.Locale;
+import java.util.function.IntFunction;
 
 /**
  * The header and the hero name in a world's type (spec § 4.4): Cormorant Garamond in Hogwarts, Oswald in Marvel,
- * Michroma in Star Wars, Courier Prime in Supernatural, with each world's colours, spacing and hero style, and the
- * greeting words of § 4.9.
+ * Michroma in Star Wars, Courier Prime in Supernatural, Cinzel in Middle-earth, with each world's colours, spacing
+ * and hero style, and the greeting words of § 4.9.
  * Clean returns before touching anything, so its views keep what the layout and Config gave them.
  */
 final class WorldTypography {
@@ -37,6 +38,10 @@ final class WorldTypography {
     /** Supernatural's amber (its accent) and the warm paper white of its clock and hero. */
     static final int SUPERNATURAL_AMBER = 0xFFE0A24A;
     static final int SUPERNATURAL_PAPER = 0xFFF2E6CF;
+    /** Middle-earth's gold (its accent), the parchment of its clock and hero and the stone of its date (mockup). */
+    static final int MIDDLE_EARTH_GOLD = 0xFFD9B56A;
+    static final int MIDDLE_EARTH_PARCHMENT = 0xFFF1EAD6;
+    static final int MIDDLE_EARTH_STONE = 0xFFD8D0BB;
 
     /** The greeting's size and spacing next to Clean's 12sp/0.22, from the mockup (vier-welten-v3). */
     private static final float HOG_GREETING_SCALE = 1.27f;
@@ -154,6 +159,26 @@ final class WorldTypography {
                 heroMeta.setTypeface(regular);
                 break;
             }
+            case MIDDLE_EARTH: {
+                // Cinzel, Roman capitals cut in stone: the clock and the hero in bold on parchment, greeting and date
+                // in the regular cut, the greeting in gold (Mittelerde spec § 3; spacing and colours from the mockup).
+                // Hebrew has no glyphs in Cinzel and comes from the system font (spec § 4.4).
+                Typeface regular = UiFont.get(c, R.string.font_world_middleearth_regular);
+                Typeface bold = UiFont.get(c, R.string.font_world_middleearth_bold);
+                clock.setTypeface(bold);
+                clock.setLetterSpacing(0f);
+                clock.setTextColor(MIDDLE_EARTH_PARCHMENT);
+                greeting.setTypeface(regular);
+                greeting.setLetterSpacing(0.22f);
+                date.setTypeface(regular);
+                date.setTextColor(MIDDLE_EARTH_STONE);
+                clockDivider.setBackgroundColor(0x66D9B56A);   // gold, 40 %
+                heroName.setTypeface(bold);
+                heroName.setLetterSpacing(0.08f);
+                heroName.setTextColor(MIDDLE_EARTH_PARCHMENT);
+                heroMeta.setTypeface(regular);
+                break;
+            }
             default:
                 break;
         }
@@ -238,8 +263,16 @@ final class WorldTypography {
      * around the day's greeting.
      */
     static String greetingText(World w, String base, boolean day) {
+        return greetingText(w, base, day, res -> "");
+    }
+
+    /**
+     * The same with the words that are strings looked up through {@code strings} (Resources::getString): "Guten Tag ·
+     * Weit ist der Weg" in Middle-earth. Home takes this one; the one above leaves Middle-earth's words out.
+     */
+    static String greetingText(World w, String base, boolean day, IntFunction<String> strings) {
         String prefix = w.greetingPrefix(day);
-        String suffix = w.greetingSuffix(day);
+        String suffix = w.greetingSuffix(day, strings);
         String text = prefix.isEmpty() ? base : prefix + " · " + base;
         return suffix.isEmpty() ? text : text + " · " + suffix;
     }
@@ -251,6 +284,7 @@ final class WorldTypography {
             case MARVEL: return MARVEL_GOLD;
             case STARWARS: return STARWARS_HOLO;
             case SUPERNATURAL: return SUPERNATURAL_AMBER;
+            case MIDDLE_EARTH: return MIDDLE_EARTH_GOLD;
             default: return fallback;
         }
     }

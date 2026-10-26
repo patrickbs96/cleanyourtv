@@ -135,15 +135,16 @@ public class KeyBindingsTest {
     @Test public void theColourButtonsAndSettingsAreTakenAndNeverLearned() {
         int[] taken = {KeyEvent.KEYCODE_PROG_RED, KeyEvent.KEYCODE_PROG_GREEN, KeyEvent.KEYCODE_PROG_YELLOW,
                 KeyEvent.KEYCODE_PROG_BLUE, KeyEvent.KEYCODE_SETTINGS, KeyEvent.KEYCODE_0, KeyEvent.KEYCODE_1,
-                KeyEvent.KEYCODE_2, KeyEvent.KEYCODE_3, KeyEvent.KEYCODE_4, KeyEvent.KEYCODE_5};
+                KeyEvent.KEYCODE_2, KeyEvent.KEYCODE_3, KeyEvent.KEYCODE_4, KeyEvent.KEYCODE_5,
+                KeyEvent.KEYCODE_6};
         for (int code : taken) {
             assertTrue(String.valueOf(code), KeyBindings.taken(code));
             assertFalse(String.valueOf(code), KeyBindings.learnable(code, 400));
         }
         assertFalse(KeyBindings.taken(KeyEvent.KEYCODE_UNKNOWN));
         assertFalse(KeyBindings.taken(KeyEvent.KEYCODE_BUTTON_3));
-        assertFalse(KeyBindings.taken(KeyEvent.KEYCODE_6));   // learnable while there are six worlds
-        assertTrue(KeyBindings.learnable(KeyEvent.KEYCODE_6, 400));
+        assertFalse(KeyBindings.taken(KeyEvent.KEYCODE_7));   // learnable while there are seven worlds
+        assertTrue(KeyBindings.learnable(KeyEvent.KEYCODE_7, 400));
         assertFalse(KeyBindings.taken(KeyEvent.KEYCODE_HOME));   // never learnable, but for another reason
     }
 

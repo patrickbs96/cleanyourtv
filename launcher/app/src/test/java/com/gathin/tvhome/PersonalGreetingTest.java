@@ -79,6 +79,36 @@ public class PersonalGreetingTest {
                 PersonalGreeting.text(DE, World.SUPERNATURAL, anniversary, false));
     }
 
+    /** Middle-earth's words as values-de and values have them (world_middleearth_greeting_day/_night). */
+    private static String middleEarthDe(int res) {
+        if (res == R.string.world_middleearth_greeting_day) return "Weit ist der Weg";
+        if (res == R.string.world_middleearth_greeting_night) return "Das Auge wacht";
+        throw new AssertionError(res);
+    }
+
+    private static String middleEarthEn(int res) {
+        if (res == R.string.world_middleearth_greeting_day) return "The road goes far";
+        if (res == R.string.world_middleearth_greeting_night) return "The eye is watching";
+        throw new AssertionError(res);
+    }
+
+    /** Middle-earth is a themed world: the plain wish, then its day or night words in the app's language. */
+    @Test
+    public void birthdayInMiddleEarthTakesItsWordsInTheAppsLanguage() {
+        assertEquals("Alles Gute, Alex · Weit ist der Weg",
+                PersonalGreeting.text(DE, World.MIDDLE_EARTH, PI_DAY_2026, true, PersonalGreetingTest::middleEarthDe));
+        assertEquals("Happy birthday, Alex · The eye is watching",
+                PersonalGreeting.text(EN, World.MIDDLE_EARTH, PI_DAY_2026, false, PersonalGreetingTest::middleEarthEn));
+        SeasonsToday anniversary = on(2026, 3, 14, ANNIVERSARY);
+        assertEquals("7 Jahre · Alex & Robin · Das Auge wacht",
+                PersonalGreeting.text(DE, World.MIDDLE_EARTH, anniversary, false, PersonalGreetingTest::middleEarthDe));
+        // Without an entry nothing, as everywhere; the other worlds' words need no lookup.
+        assertEquals("", PersonalGreeting.text(DE, World.MIDDLE_EARTH, on(2026, 3, 15), true,
+                PersonalGreetingTest::middleEarthDe));
+        assertEquals("Alles Gute, Alex · Back on the road",
+                PersonalGreeting.text(DE, World.SUPERNATURAL, PI_DAY_2026, true, PersonalGreetingTest::middleEarthDe));
+    }
+
     @Test
     public void twoBirthdaysShareOneGreeting() {
         SeasonsToday both = on(2026, 3, 14, ALEX_BIRTHDAY, ROBIN_BIRTHDAY);

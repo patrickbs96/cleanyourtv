@@ -11,7 +11,7 @@
     <string name="font_bold" translatable="false">@font/outfit_bold</string>
     <!-- The worlds' fonts (WorldTypography), static Latin instances cut from the variable upstream files:
          Cormorant Garamond for Hogwarts, Oswald for Marvel, Michroma for Star Wars; Courier Prime for Supernatural
-         (the upstream static files). -->
+         and Cinzel for Middle-earth (the upstream static files). -->
     <string name="font_world_hog_light" translatable="false">@font/cormorant_garamond_light</string>
     <string name="font_world_hog_regular" translatable="false">@font/cormorant_garamond_regular</string>
     <string name="font_world_hog_italic" translatable="false">@font/cormorant_garamond_italic</string>
@@ -21,4 +21,6 @@
     <string name="font_world_starwars" translatable="false">@font/michroma</string>
     <string name="font_world_supernatural_regular" translatable="false">@font/courier_prime_regular</string>
     <string name="font_world_supernatural_bold" translatable="false">@font/courier_prime_bold</string>
+    <string name="font_world_middleearth_regular" translatable="false">@font/cinzel_regular</string>
+    <string name="font_world_middleearth_bold" translatable="false">@font/cinzel_bold</string>
 </resources>

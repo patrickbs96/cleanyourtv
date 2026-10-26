@@ -26,8 +26,91 @@ public class WorldTest {
         assertSame(World.MARVEL, World.forKeyCode(KeyEvent.KEYCODE_3));
         assertSame(World.STARWARS, World.forKeyCode(KeyEvent.KEYCODE_4));
         assertSame(World.SUPERNATURAL, World.forKeyCode(KeyEvent.KEYCODE_5));
-        assertNull(World.forKeyCode(KeyEvent.KEYCODE_6));   // free for the next world
+        assertSame(World.MIDDLE_EARTH, World.forKeyCode(KeyEvent.KEYCODE_6));
+        assertNull(World.forKeyCode(KeyEvent.KEYCODE_7));   // free for the next world
         assertNull(World.forKeyCode(KeyEvent.KEYCODE_9));
+    }
+    @Test public void middleEarthHasNoColourKey() {
+        for (int k = KeyEvent.KEYCODE_PROG_RED; k <= KeyEvent.KEYCODE_PROG_BLUE; k++) assertNotSame(World.MIDDLE_EARTH, World.forKeyCode(k));
+        for (int scan = 398; scan <= 401; scan++) assertNotSame(World.MIDDLE_EARTH, World.forScanCode(scan));
+    }
+    @Test public void middleEarthValuesAsSpecified() {
+        assertSame(World.MIDDLE_EARTH, World.parse("middleearth"));
+        assertEquals("middleearth", World.MIDDLE_EARTH.id);
+        assertEquals(R.string.world_middleearth, World.MIDDLE_EARTH.labelRes);
+        assertEquals(0xFFD9B56A, World.MIDDLE_EARTH.keyColor);
+        assertEquals(0xFFD9B56A, World.MIDDLE_EARTH.accent);
+        assertEquals(0xFFD9B56A, World.MIDDLE_EARTH.ambientColor);
+        assertEquals(30, World.MIDDLE_EARTH.ambientAlphaPercent);
+        assertEquals(0xFF0C0D0B, World.MIDDLE_EARTH.backgroundColor);
+        assertEquals(0, World.MIDDLE_EARTH.heroPrefixRes);
+        assertTrue(World.MIDDLE_EARTH.forcesIconOnlyPills());
+        assertEquals(World.MIDDLE_EARTH.accent, World.MIDDLE_EARTH.accentFor(Look.HALLOWEEN));
+    }
+    /** Only Middle-earth splits the day in three (spec § 4.1); the others keep day and night. */
+    @Test public void onlyMiddleEarthHasAMorning() {
+        assertTrue(World.MIDDLE_EARTH.hasMorning());
+        for (World w : World.values()) {
+            if (w != World.MIDDLE_EARTH) assertFalse(w.name(), w.hasMorning());
+        }
+    }
+    /**
+     * Middle-earth's words come after the day's greeting, in the app's language (spec § 4.3): its own strings, the
+     * road by day and the eye by night. The morning's words are a string already; Task 2's third mood picks them.
+     */
+    @Test public void middleEarthGreetsAfterTheGreetingInTheAppsLanguage() {
+        World w = World.MIDDLE_EARTH;
+        assertEquals("", w.greetingPrefix(true));
+        assertEquals("", w.greetingPrefix(false));
+        assertEquals(R.string.world_middleearth_greeting_day, w.greetingSuffixRes(true));
+        assertEquals(R.string.world_middleearth_greeting_night, w.greetingSuffixRes(false));
+        java.util.function.IntFunction<String> de = res -> res == R.string.world_middleearth_greeting_day
+                ? "Weit ist der Weg" : res == R.string.world_middleearth_greeting_night ? "Das Auge wacht" : "?";
+        assertEquals("Weit ist der Weg", w.greetingSuffix(true, de));
+        assertEquals("Das Auge wacht", w.greetingSuffix(false, de));
+        // The other worlds' words are in the code: no string to look up, the lookup is never asked.
+        java.util.function.IntFunction<String> never = res -> { throw new AssertionError(res); };
+        for (World other : World.values()) {
+            if (other == w) continue;
+            assertEquals(other.name(), 0, other.greetingSuffixRes(true));
+            assertEquals(other.name(), 0, other.greetingSuffixRes(false));
+            assertEquals(other.name(), other.greetingSuffix(true), other.greetingSuffix(true, never));
+            assertEquals(other.name(), other.greetingSuffix(false), other.greetingSuffix(false, never));
+        }
+    }
+    /**
+     * Until its own skin arrives (Tasks 2 to 8) Middle-earth takes the neutral paths everywhere a world branches:
+     * no picture, no overlay, Clean's pills and gear, no warm glow, Clean's spring, no flicker, no launch effect, a
+     * plain fade in; never another world's skin.
+     */
+    @Test public void middleEarthFallsBackToNeutralPaths() {
+        World w = World.MIDDLE_EARTH;
+        assertEquals(0, WorldScene.resFor(w, true));
+        assertEquals(0, WorldScene.resFor(w, false));
+        assertFalse(WorldOverlay.hasOverlay(w, true));
+        assertNull(WorldOverlay.create(null, w, true, null));
+        assertEquals(R.drawable.pill_bg, WorldChrome.pillBackground(w));
+        assertEquals(0, WorldChrome.settingsIcon(w));
+        assertFalse(WorldChrome.warmFocusGlow(w));
+        assertFalse(WorldChrome.ownsNetworkIcon(w));
+        assertNull(WorldFocusMotion.springFor(w, false));
+        assertEquals(0L, WorldFocusMotion.frameDelayMs(w, true));
+        assertFalse(WorldFocusMotion.flickers(w));
+        assertEquals(0L, WorldLaunchMotion.durationMs(w));
+        assertFalse(WorldLaunchMotion.shouldPlay(w, true, false));
+        assertEquals(0f, WorldLaunchMotion.blendAlpha(w, 1000), 0f);
+        assertEquals(1f, WorldLaunchMotion.sceneZoom(w, 500), 0f);
+        assertEquals(1f, WorldLaunchMotion.tileAlpha(w, 500), 0f);
+        assertEquals(1.07f, WorldLaunchMotion.tileScaleX(w, 500, 1.07f), 0f);
+        assertEquals(WorldTransition.peak(World.CLEAN), WorldTransition.peak(w), 0f);
+        assertEquals(WorldTransition.leaveMs(World.CLEAN), WorldTransition.leaveMs(w));
+        assertEquals(WorldTransition.enterMs(World.CLEAN), WorldTransition.enterMs(w));
+        assertEquals(0f, WorldTransition.flashFor(w, WorldTransition.leaveMs(w) + 100), 0f);
+        assertEquals(0f, WorldTransition.raysFor(w, WorldTransition.leaveMs(w) + 100), 0f);
+        assertEquals(0f, WorldTransition.revealLine(w, 400), 0f);
+        assertEquals(1f, WorldTransition.sceneZoom(w, 400, true), 0f);
+        assertEquals(0xFF0C0D0B, WorldTransition.coverColor(w));
+        assertEquals("Netflix", WorldTypography.heroLabel(w, "Netflix"));
     }
     @Test public void supernaturalHasNoColourKey() {
         for (int k = KeyEvent.KEYCODE_PROG_RED; k <= KeyEvent.KEYCODE_PROG_BLUE; k++) assertNotSame(World.SUPERNATURAL, World.forKeyCode(k));
@@ -113,6 +196,7 @@ public class WorldTest {
         assertTrue(World.MARVEL.hasOwnMotion());
         assertTrue(World.STARWARS.hasOwnMotion());
         assertTrue(World.SUPERNATURAL.hasOwnMotion());
+        assertTrue(World.MIDDLE_EARTH.hasOwnMotion());
     }
     @Test public void seasonsValuesAsSpecified() {
         assertEquals(0xFFE8A33D, World.SEASONS.keyColor);

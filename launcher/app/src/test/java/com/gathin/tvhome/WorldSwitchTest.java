@@ -17,7 +17,9 @@ public class WorldSwitchTest {
     @Test public void fourSwitchesToStarWars() { assertSame(World.STARWARS, up(KeyEvent.KEYCODE_4, World.CLEAN, false)); }
     @Test public void fiveSwitchesToSupernatural() { assertSame(World.SUPERNATURAL, up(KeyEvent.KEYCODE_5, World.CLEAN, false)); }
     @Test public void fiveInSupernaturalIsNoop() { assertNull(up(KeyEvent.KEYCODE_5, World.SUPERNATURAL, false)); }
-    @Test public void sixIsNoWorld() { assertNull(up(KeyEvent.KEYCODE_6, World.CLEAN, false)); }
+    @Test public void sixSwitchesToMiddleEarth() { assertSame(World.MIDDLE_EARTH, up(KeyEvent.KEYCODE_6, World.CLEAN, false)); }
+    @Test public void sixInMiddleEarthIsNoop() { assertNull(up(KeyEvent.KEYCODE_6, World.MIDDLE_EARTH, false)); }
+    @Test public void sevenIsNoWorld() { assertNull(up(KeyEvent.KEYCODE_7, World.CLEAN, false)); }
     @Test public void oneSwitchesToSeasons() { assertSame(World.SEASONS, up(KeyEvent.KEYCODE_1, World.CLEAN, false)); }
     @Test public void oneInSeasonsIsNoop() { assertNull(up(KeyEvent.KEYCODE_1, World.SEASONS, false)); }
     @Test public void zeroGoesBackToClean() { assertSame(World.CLEAN, up(KeyEvent.KEYCODE_0, World.MARVEL, false)); }

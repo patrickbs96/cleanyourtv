@@ -64,7 +64,7 @@ $clearWallpapers = "mkdir -p $dir/wallpapers 2>/dev/null; rm -f $dir/wallpapers/
 # Neither a theme push nor -Reset touches that folder, and a logo is no theme push either: it writes no
 # theme_revision, so the on-TV layout and motion choices stay. Home restarts so the world shows it at once.
 # The worlds as World.java names them (tests/test_theme_world_logos.py keeps the lists together).
-$worlds = @('clean', 'seasons', 'hogwarts', 'marvel', 'starwars', 'supernatural')
+$worlds = @('clean', 'seasons', 'hogwarts', 'marvel', 'starwars', 'supernatural', 'middleearth')
 if ($Logo) {
     if ($worlds -cnotcontains $Logo) { throw "unknown world: $Logo (one of: $($worlds -join ' '))" }
     $name = "world_logos/world_logo_$Logo.png"

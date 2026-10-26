@@ -153,7 +153,12 @@
     <string name="world_marvel">Marvel</string>
     <string name="world_starwars">Star Wars</string>
     <string name="world_supernatural">Supernatural</string>
-    <string name="world_hint">מקשי הצבע או 0 עד 5 בשלט מחליפים ישירות</string>
+    <!-- Middle-earth keeps its English name and lines in Hebrew (Mittelerde spec § 4.4). -->
+    <string name="world_middleearth">Middle-earth</string>
+    <string name="world_middleearth_greeting_morning">A new day in the hill country</string>
+    <string name="world_middleearth_greeting_day">The road goes far</string>
+    <string name="world_middleearth_greeting_night">The eye is watching</string>
+    <string name="world_hint">מקשי הצבע או 0 עד 6 בשלט מחליפים ישירות</string>
     <string name="seasons_settings_hint">ימי הולדת, ימי שנה וימי נישואין שמעגל השנה חוגג, טקסט הפתיחה ליום השנה, יום האם ויום האב</string>
     <string name="seasons_hint">הרשומות נשמרות רק בטלוויזיה הזו. OK על רשומה משנה או מסיר אותה.</string>
     <string name="seasons_add">הוספת רשומה</string>

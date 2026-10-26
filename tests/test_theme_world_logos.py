@@ -253,8 +253,10 @@ class WorldLogoScriptsTest(unittest.TestCase):
 
     def test_the_scripts_know_every_world(self):
         java = (ROOT / "launcher/app/src/main/java/com/gathin/tvhome/World.java").read_text(encoding="utf-8")
-        worlds = re.findall(r'^\s+[A-Z]+\("([a-z]+)", R\.string', java, re.MULTILINE)
+        # MIDDLE_EARTH carries an underscore: the constant's name may, its id never does.
+        worlds = re.findall(r'^\s+[A-Z_]+\("([a-z]+)", R\.string', java, re.MULTILINE)
         self.assertIn("supernatural", worlds)
+        self.assertIn("middleearth", worlds)
         sh = (TOOLS / "theme.sh").read_text(encoding="utf-8")
         listed = re.search(r'^WORLDS="([a-z ]+)"', sh, re.MULTILINE)
         self.assertIsNotNone(listed, "theme.sh names the worlds a logo may be for")

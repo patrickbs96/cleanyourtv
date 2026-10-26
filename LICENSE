@@ -34,3 +34,7 @@ launcher/FONT-LICENSE-OFL-oswald.txt and launcher/FONT-LICENSE-OFL-michroma.txt.
 The Courier Prime typeface in launcher/app/src/main/res/font/ (courier_prime_*.ttf) is
 copyright The Courier Prime Project Authors and licensed under the SIL Open Font License 1.1,
 see launcher/FONT-LICENSE-OFL-courierprime.txt.
+
+The Cinzel typeface in launcher/app/src/main/res/font/ (cinzel_*.ttf) is copyright The Cinzel
+Project Authors and licensed under the SIL Open Font License 1.1, see
+launcher/FONT-LICENSE-OFL-cinzel.txt.

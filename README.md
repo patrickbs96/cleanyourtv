@@ -1054,6 +1054,6 @@ The people whose work is in this repo:
 ## Licence
 
 MIT, see [`LICENSE`](LICENSE). The Outfit typeface is under the SIL Open Font License, see
-`launcher/FONT-LICENSE-OFL.txt`. The worlds' typefaces Cormorant Garamond, Oswald, Michroma and Courier Prime are
-under the same licence, see `launcher/FONT-LICENSE-OFL-cormorant.txt`, `-oswald.txt`, `-michroma.txt` and
-`-courierprime.txt`.
+`launcher/FONT-LICENSE-OFL.txt`. The worlds' typefaces Cormorant Garamond, Oswald, Michroma, Courier Prime and
+Cinzel are under the same licence, see `launcher/FONT-LICENSE-OFL-cormorant.txt`, `-oswald.txt`, `-michroma.txt`,
+`-courierprime.txt` and `-cinzel.txt`.

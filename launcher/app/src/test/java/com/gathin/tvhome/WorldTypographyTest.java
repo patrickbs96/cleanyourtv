@@ -22,6 +22,25 @@ public class WorldTypographyTest {
         assertEquals("Guten Abend · Äußerer Rand", WorldTypography.greetingText(World.STARWARS, "Guten Abend", false));
     }
 
+    /** Middle-earth's words follow the day's greeting in the app's language: the road by day, the eye by night. */
+    @Test public void middleEarthWordsFollowTheGreeting() {
+        java.util.function.IntFunction<String> de = res -> res == R.string.world_middleearth_greeting_day
+                ? "Weit ist der Weg" : res == R.string.world_middleearth_greeting_night ? "Das Auge wacht" : "?";
+        assertEquals("Guten Tag · Weit ist der Weg",
+                WorldTypography.greetingText(World.MIDDLE_EARTH, "Guten Tag", true, de));
+        assertEquals("Guten Abend · Das Auge wacht",
+                WorldTypography.greetingText(World.MIDDLE_EARTH, "Guten Abend", false, de));
+        // The others keep their words with the lookup too.
+        assertEquals("Nox · Guten Abend", WorldTypography.greetingText(World.HOGWARTS, "Guten Abend", false, de));
+        assertEquals("Guten Abend · Äußerer Rand", WorldTypography.greetingText(World.STARWARS, "Guten Abend", false, de));
+        assertEquals("Guten Abend", WorldTypography.greetingText(World.CLEAN, "Guten Abend", false, de));
+    }
+
+    @Test public void middleEarthGreetsInGold() {
+        assertEquals(0xFFD9B56A, WorldTypography.greetingColor(World.MIDDLE_EARTH, 0x12345678));
+        assertEquals(0xFFD9B56A, WorldTypography.greetingColor(World.MIDDLE_EARTH, 0x12345678, Look.HALLOWEEN.accent));
+    }
+
     @Test public void supernaturalGreetsInAmber() {
         assertEquals(0xFFE0A24A, WorldTypography.greetingColor(World.SUPERNATURAL, 0x12345678));
         assertEquals(0xFFE0A24A, WorldTypography.greetingColor(World.SUPERNATURAL, 0x12345678, Look.HALLOWEEN.accent));

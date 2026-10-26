@@ -82,7 +82,7 @@ CLEAR_WALLPAPERS="mkdir -p $DIR/wallpapers 2>/dev/null; rm -f $DIR/wallpapers/*.
 # Neither a theme push nor --reset touches that folder, and a logo is no theme push either: it writes no
 # theme_revision, so the on-TV layout and motion choices stay. Home restarts so the world shows it at once.
 # The worlds as World.java names them (tests/test_theme_world_logos.py keeps the two lists together).
-WORLDS="clean seasons hogwarts marvel starwars supernatural"
+WORLDS="clean seasons hogwarts marvel starwars supernatural middleearth"
 if [ "${1:-}" = --logo ]; then
   WORLD="${2:-}"
   [ -n "$WORLD" ] && [ -n "$LOGO_ARG" ] || { echo "usage: theme.sh --logo <world> <picture.png> | --logo <world> --remove" >&2; exit 1; }
