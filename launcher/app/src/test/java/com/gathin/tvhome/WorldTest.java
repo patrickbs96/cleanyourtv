@@ -18,13 +18,12 @@ public class WorldTest {
         assertSame(World.STARWARS, World.forKeyCode(KeyEvent.KEYCODE_PROG_BLUE));
         assertNull(World.forKeyCode(KeyEvent.KEYCODE_DPAD_CENTER));
     }
-    @Test public void digitsOneToFourPickTheWorldsInMenuOrder() {
-        assertSame(World.CLEAN, World.forKeyCode(KeyEvent.KEYCODE_1));
-        assertSame(World.HOGWARTS, World.forKeyCode(KeyEvent.KEYCODE_2));
-        assertSame(World.MARVEL, World.forKeyCode(KeyEvent.KEYCODE_3));
-        assertSame(World.STARWARS, World.forKeyCode(KeyEvent.KEYCODE_4));
-        assertNull(World.forKeyCode(KeyEvent.KEYCODE_0));
-        assertNull(World.forKeyCode(KeyEvent.KEYCODE_5));   // free for a fifth world
+    @Test public void digitsPickTheWorldsInMenuOrderCleanOnZero() {
+        assertSame(World.CLEAN, World.forKeyCode(KeyEvent.KEYCODE_0));
+        assertSame(World.HOGWARTS, World.forKeyCode(KeyEvent.KEYCODE_1));
+        assertSame(World.MARVEL, World.forKeyCode(KeyEvent.KEYCODE_2));
+        assertSame(World.STARWARS, World.forKeyCode(KeyEvent.KEYCODE_3));
+        assertNull(World.forKeyCode(KeyEvent.KEYCODE_4));   // free for the next world
         assertNull(World.forKeyCode(KeyEvent.KEYCODE_9));
     }
     @Test public void scanCodesMapLikeKeys() { assertSame(World.MARVEL, World.forScanCode(398)); assertSame(World.CLEAN, World.forScanCode(399)); assertSame(World.HOGWARTS, World.forScanCode(400)); assertSame(World.STARWARS, World.forScanCode(401)); assertNull(World.forScanCode(1)); }

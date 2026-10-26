@@ -74,7 +74,7 @@
     <string name="world_hogwarts">Hogwarts</string>
     <string name="world_marvel">Marvel</string>
     <string name="world_starwars">Star Wars</string>
-    <string name="world_hint">Farbtasten oder 1 bis 4 der Fernbedienung wechseln direkt</string>
+    <string name="world_hint">Farbtasten oder 0 bis 3 der Fernbedienung wechseln direkt</string>
     <string name="world_scene">Szene</string>
     <string name="world_scene_auto">Auto (nach der Sonne)</string>
     <string name="world_scene_day">Tag</string>

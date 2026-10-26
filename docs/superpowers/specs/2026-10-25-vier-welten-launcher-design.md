@@ -69,10 +69,10 @@ bleiben: nerdig in Licht, Farbe, Schrift und Bewegung, nicht in Logos.
   Blau `key=186 scan=401` – Android liefert die `KEYCODE_PROG_*`-Codes, der Scancode-Pfad ist nur Reserve.
   Blau öffnet zusätzlich die Philips-Hilfe (`org.droidtv.eum`): der Firmware-Dienst `GlobalKeyRcv` liest die
   Taste selbst mit (Scancode 401 → `org.droidtv.action.HELP`), unabhängig davon, ob Home sie verbraucht.
-  **Deshalb (Patrick, 26.10.):** zusätzlich wechseln die Zifferntasten, 1 Clean, 2 Hogwarts, 3 Marvel, 4 Star Wars
-  (die Firmware tut bei Ziffern auf Home nichts, am TV geprüft). Die Ziffer folgt der Reihenfolge im `World`-Enum,
-  eine weitere Welt bekommt also die nächste freie Ziffer (bis 9). Ziffern 1 bis Anzahl der Welten sind in der
-  Tastenbelegung nicht lernbar. Die Farbtasten bleiben.
+  **Deshalb (Patrick, 26.10.):** zusätzlich wechseln die Zifferntasten, 0 Clean, 1 Hogwarts, 2 Marvel, 3 Star Wars
+  (die Firmware tut bei Ziffern auf Home nichts, am TV geprüft; Clean auf 0 nach Patricks Wunsch, 26.10.). Die
+  Ziffer folgt der Reihenfolge im `World`-Enum, eine weitere Welt bekommt also die nächste freie Ziffer (bis 9,
+  höchstens zehn Welten). Die belegten Ziffern sind in der Tastenbelegung nicht lernbar. Die Farbtasten bleiben.
 - Vorhandene Bausteine, auf denen gebaut wird: `Festival` (Haut mit eigenen Pill-Icons, Begrüßung, Akzentfarbe),
   `GlassView.setAccent/setStyle` (Fokusrahmen), `DockDecoration` (Dock-Band), `HeroArt`/Hero-Titel, `UiFont` +
   `res/values/fonts.xml` (Schrift-Indirektion), `WallpaperPlayer` + `WallpaperMood` (Tag/Abend/Nacht nach Sonnenstand),

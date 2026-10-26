@@ -157,7 +157,7 @@
     <string name="world_hogwarts">Hogwarts</string>
     <string name="world_marvel">Marvel</string>
     <string name="world_starwars">Star Wars</string>
-    <string name="world_hint">The remote\'s colour keys or 1 to 4 switch directly</string>
+    <string name="world_hint">The remote\'s colour keys or 0 to 3 switch directly</string>
     <!-- Hidden test switch (long OK on the World row): the scene's day or night picture, until the launcher restarts. -->
     <string name="world_scene">Scene</string>
     <string name="world_scene_auto">Auto (by the sun)</string>
