@@ -116,8 +116,8 @@ public class WorldSceneTest {
     }
 
     /**
-     * Middle-earth's three pictures are found by name (world_middleearth_&lt;mood&gt;, made in Task 3): until they are
-     * there the lookup gives 0 and the world's plain colour stays. The other worlds keep their fixed pictures.
+     * Middle-earth's three pictures are found by name (world_middleearth_&lt;mood&gt;): a lookup that gives 0 keeps the
+     * world's plain colour. The other worlds keep their fixed pictures.
      */
     @Test
     public void middleEarthPicturesGoByMood() {
@@ -136,6 +136,35 @@ public class WorldSceneTest {
         assertEquals(R.drawable.world_hogwarts_day, WorldScene.resFor(World.HOGWARTS, WorldScene.Mood.MORNING));
         assertEquals(R.drawable.world_supernatural_night, WorldScene.resFor(World.SUPERNATURAL, WorldScene.Mood.NIGHT));
         assertEquals(0, WorldScene.resFor(World.CLEAN, WorldScene.Mood.DAY));
+    }
+
+    /**
+     * The three pictures are there (launcher/worlds/middleearth/make_scene.py): the lookup by name, here through R,
+     * finds each mood's own picture.
+     */
+    @Test
+    public void middleEarthPicturesAreThere() {
+        java.util.function.ToIntFunction<String> byR = name -> {
+            try {
+                return R.drawable.class.getField(name).getInt(null);
+            } catch (ReflectiveOperationException e) {
+                return 0;
+            }
+        };
+        assertEquals(R.drawable.world_middleearth_morning,
+                WorldScene.resFor(World.MIDDLE_EARTH, WorldScene.Mood.MORNING, null, byR));
+        assertEquals(R.drawable.world_middleearth_day,
+                WorldScene.resFor(World.MIDDLE_EARTH, WorldScene.Mood.DAY, null, byR));
+        assertEquals(R.drawable.world_middleearth_night,
+                WorldScene.resFor(World.MIDDLE_EARTH, WorldScene.Mood.NIGHT, null, byR));
+    }
+
+    /** The company walks in each scene's darkest tone (MiddleEarthScene, make_scene.py DARKEST_*). */
+    @Test
+    public void middleEarthDarkestToneGoesByMood() {
+        assertEquals(MiddleEarthScene.DARKEST_MORNING, MiddleEarthScene.darkest(WorldScene.Mood.MORNING));
+        assertEquals(MiddleEarthScene.DARKEST_DAY, MiddleEarthScene.darkest(WorldScene.Mood.DAY));
+        assertEquals(MiddleEarthScene.DARKEST_NIGHT, MiddleEarthScene.darkest(WorldScene.Mood.NIGHT));
     }
 
     @Test

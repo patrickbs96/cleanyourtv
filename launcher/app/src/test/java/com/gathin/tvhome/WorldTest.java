@@ -84,8 +84,9 @@ public class WorldTest {
     }
     /**
      * Until its own skin arrives (Tasks 2 to 8) Middle-earth takes the neutral paths everywhere a world branches:
-     * no picture, no overlay, Clean's pills and gear, no warm glow, Clean's spring, no flicker, no launch effect, a
-     * plain fade in; never another world's skin.
+     * no fixed picture (its three are found by name, WorldSceneTest.middleEarthPicturesAreThere), no overlay,
+     * Clean's pills and gear, no warm glow, Clean's spring, no flicker, no launch effect, a plain fade in; never
+     * another world's skin.
      */
     @Test public void middleEarthFallsBackToNeutralPaths() {
         World w = World.MIDDLE_EARTH;

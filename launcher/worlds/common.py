@@ -5,7 +5,8 @@ Every scene is drawn from code alone, at twice the size and scaled down for clea
 coordinates: 192 x 108 units for a 16:9 screen (vier-welten-v3.html draws its scenes in that viewBox), so a
 shape can be copied from the mockup and drawn here with the same numbers.
 
-    python launcher/worlds/common.py     # checks every generated picture (world_*_day/night, world_seasons_*)
+    python launcher/worlds/common.py     # checks every generated picture (world_*_day/night, Middle-earth's morning
+                                         # too, world_seasons_*)
                                          # and prints their numbers
 
 A scene must stay under the launcher's UI: 1920 x 1080, a JPEG of at most 300 KB, and dark where the text and the
@@ -25,7 +26,8 @@ U = w / 192                             # pixels per mockup unit at the drawing 
 MAX_BYTES = 300 * 1024
 MAX_LUMA = 40
 OUT = Path(__file__).resolve().parent.parent / "app" / "src" / "main" / "res" / "drawable-nodpi"
-WORLDS = ("hogwarts", "marvel", "starwars", "supernatural")
+WORLDS = ("hogwarts", "marvel", "starwars", "supernatural", "middleearth")
+MOODS = {"middleearth": ("morning", "day", "night")}   # a world's pictures; the others have a day and a night
 SEASONS = ("winter", "spring", "summer", "autumn")   # Jahreskreis' seasons, a day and a night picture each
 
 
@@ -200,10 +202,10 @@ def export(img, name, seed=1):
 
 
 def check_all():
-    """Checks the themed worlds' six pictures, the four seasons' eight (all required) and every other
-    world_seasons_*.jpg that is there (the occasions' and personal days' looks)."""
+    """Checks the themed worlds' pictures (a day and a night each, Middle-earth's morning too), the four seasons'
+    eight (all required) and every other world_seasons_*.jpg that is there (the occasions' and personal days' looks)."""
     ok = True
-    required = [OUT / f"world_{world}_{mood}.jpg" for world in WORLDS for mood in ("day", "night")]
+    required = [OUT / f"world_{world}_{mood}.jpg" for world in WORLDS for mood in MOODS.get(world, ("day", "night"))]
     required += [OUT / f"world_seasons_{season}_{mood}.jpg" for season in SEASONS for mood in ("day", "night")]
     others = sorted(p for p in OUT.glob("world_seasons_*.jpg") if p not in required)
     for path in required + others:

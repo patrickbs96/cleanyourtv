@@ -407,9 +407,9 @@ final class WorldScene {
         Context context = root.getContext();
         int res = resFor(context, world, mood, look);
         if (res == 0) {
-            // A look or mood without a picture (Seasons' plain looks, Middle-earth before its pictures) keeps the
-            // plain colour, and is marked shown: no lookup or decode a minute. The themed worlds' fixed pictures are
-            // never 0.
+            // A look or mood without a picture (Seasons' plain looks, a picture missing by name) keeps the plain
+            // colour, and is marked shown: no lookup or decode a minute. The themed worlds' fixed pictures are never
+            // 0.
             showPlainColour(mood);
             return;
         }
