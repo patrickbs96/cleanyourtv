@@ -3,6 +3,7 @@ package com.gathin.tvhome;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RadialGradient;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Shader;
 
@@ -79,6 +80,15 @@ final class SeasonMotions {
         return Math.max(0f, Math.min(1f, (FALL_END - y) / FALL_FADE));
     }
 
+    /**
+     * The band falling things move in, into {@code r}: the whole width from above the top to just above the dock,
+     * widened by {@code reach} (a particle's size in view pixels).
+     */
+    static void fallRegion(SeasonsOverlay o, int w, int h, float reach, Rect r) {
+        r.set(0, Math.max(0, (int) Math.floor(o.uy(FALL_START * 108) - reach)), w,
+                Math.min(h, (int) Math.ceil(o.uy(FALL_END * 108) + reach)));
+    }
+
     /** Snow, blossoms or leaves falling: the mockup's fall() with its sway, each kind with its look and count. */
     static final class Fall implements LookMotion {
         static final int SNOW = 0, BLOSSOM = 1, LEAF = 2;
@@ -107,8 +117,13 @@ final class SeasonMotions {
         private float bright = 1f;
 
         Fall(int kind) {
+            this(kind, COUNT[kind], SEED[kind]);
+        }
+
+        /** This kind with another count and seed: the occasions' snow (OccasionMotionsB), as their mockup draws it. */
+        Fall(int kind, int count, long seed) {
             this.kind = kind;
-            q = particles(COUNT[kind], SEED[kind]);
+            q = particles(count, seed);
             x = new float[q.length];
             y = new float[q.length];
             alpha = new float[q.length];
@@ -131,8 +146,7 @@ final class SeasonMotions {
             float rx = size[0] * 192 * o.unit, ry = size[1] * 192 * o.unit;
             oval.set(-rx, -ry, rx, ry);
             float reach = kind == SNOW ? (size[0] + size[1]) * 192 * o.unit : rx;
-            o.regions[0].set(0, Math.max(0, (int) Math.floor(o.uy(FALL_START * 108) - reach)), w,
-                    Math.min(h, (int) Math.ceil(o.uy(FALL_END * 108) + reach)));
+            fallRegion(o, w, h, reach, o.regions[0]);
         }
 
         @Override public void frame(long now) {

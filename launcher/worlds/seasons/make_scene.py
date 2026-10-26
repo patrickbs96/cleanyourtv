@@ -5,8 +5,8 @@
     python launcher/worlds/seasons/make_scene.py winter autumn # only these
 
 Writes world_seasons_<look>_day.jpg and world_seasons_<look>_night.jpg for the four seasons (seasons.py) and one
-world_seasons_<look>.jpg for each occasion (occasions_a.py, New Year to Father's Day) to
-app/src/main/res/drawable-nodpi/; WorldScene finds them by name (drawableName). Each picture is checked as it is
+world_seasons_<look>.jpg for each occasion (occasions_a.py, New Year to Father's Day; occasions_b.py, Halloween to
+Christmas) to app/src/main/res/drawable-nodpi/; WorldScene finds them by name (drawableName). Each picture is checked as it is
 written (common.py: 1920 x 1080, at most 300 KB, dark top corners and bottom third); the script exits with 1 when one
 fails, and with 2 for a look it does not know.
 """
@@ -19,11 +19,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import common as c  # noqa: E402
 import occasions_a  # noqa: E402
+import occasions_b  # noqa: E402
 import seasons  # noqa: E402
 
 # look id (Look.id in Look.java): the seasons as (painter(day, rng), shape seed, grain seed by day, grain seed by
 # night), the occasions as (painter(rng), shape seed, grain seed)
-LOOKS = {**seasons.SEASONS, **occasions_a.OCCASIONS}
+LOOKS = {**seasons.SEASONS, **occasions_a.OCCASIONS, **occasions_b.OCCASIONS}
 
 
 def draw(look):

@@ -4,7 +4,6 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RadialGradient;
-import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Shader;
 
@@ -82,12 +81,6 @@ final class OccasionMotionsA {
                 // A piece of paper turning over as it falls: its height shrinks and grows again.
                 flip[i] = 0.35f + 0.65f * Math.abs((float) Math.cos(t * 2.1 + p[3] * 9));
             }
-        }
-
-        /** The band falling things move in: the whole width from above the top to just above the dock. */
-        static void region(SeasonsOverlay o, int w, int h, float reach, Rect r) {
-            r.set(0, Math.max(0, (int) Math.floor(o.uy(SeasonMotions.FALL_START * 108) - reach)), w,
-                    Math.min(h, (int) Math.ceil(o.uy(SeasonMotions.FALL_END * 108) + reach)));
         }
     }
 
@@ -309,7 +302,7 @@ final class OccasionMotionsA {
             }
             streamer.setStrokeWidth(Math.max(1.5f, 0.003f * 192 * o.unit));
             rect.set(-BIT_W * 192 * o.unit, -BIT_H * 192 * o.unit, BIT_W * 192 * o.unit, BIT_H * 192 * o.unit);
-            Falling.region(o, w, h, BIT_W * 192 * o.unit + 2, o.regions[0]);
+            SeasonMotions.fallRegion(o, w, h, BIT_W * 192 * o.unit + 2, o.regions[0]);
         }
 
         @Override public void frame(long now) {
@@ -405,7 +398,7 @@ final class OccasionMotionsA {
             float rx = 0.006f * 192 * o.unit, ry = 0.004f * 192 * o.unit;
             oval.set(-rx, -ry, rx, ry);
             // The petals' band reaches from the top to just above the dock and holds the candle as well.
-            Falling.region(o, w, h, rx + 2, o.regions[0]);
+            SeasonMotions.fallRegion(o, w, h, rx + 2, o.regions[0]);
         }
 
         @Override public void frame(long now) {

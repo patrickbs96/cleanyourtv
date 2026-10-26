@@ -25,7 +25,8 @@ public class SeasonMotionsTest {
             // A new motion each time, so a look change never shares one between overlays.
             assertNotSame(look.id, LookMotion.forLook(look, TODAY), LookMotion.forLook(look, TODAY));
         }
-        assertSame(LookMotion.NONE, LookMotion.forLook(Look.ADVENT, TODAY));
+        assertNull(SeasonMotions.of(Look.ADVENT));
+        assertSame(LookMotion.NONE, LookMotion.forLook(Look.BIRTHDAY, TODAY));
         assertSame(LookMotion.NONE, LookMotion.forLook(null, TODAY));
         assertNull(SeasonMotions.of(Look.BIRTHDAY));
     }
