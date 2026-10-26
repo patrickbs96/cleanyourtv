@@ -7,7 +7,8 @@ import android.view.View;
 
 /**
  * A world's continuous motion over its scene (WorldScene): Hogwarts' candles and stars, Marvel's reactor, streak and
- * beacon, Star Wars' hyperspace streaks and stars. One transparent full-screen view per world, built like
+ * beacon, Star Wars' hyperspace streaks and stars, Supernatural's rain and lightning, Middle-earth's smoke, mist and
+ * watching eye. One transparent full-screen view per world, built like
  * PetalShowerView: no focus, clicks or accessibility, nothing allocated per frame. It ticks every 33 ms (30 fps at
  * most) and invalidates the regions that move. Clean has none; Seasons' follows the day's look (SeasonsOverlay).
  *
@@ -53,6 +54,7 @@ abstract class WorldOverlay extends View {
             case MARVEL: return new MarvelOverlay(context, day);
             case STARWARS: return new StarWarsOverlay(context, day);
             case SUPERNATURAL: return new SupernaturalOverlay(context, day);
+            case MIDDLE_EARTH: return new MiddleEarthOverlay(context, day);
             case SEASONS: return new SeasonsOverlay(context, day, today);
             default: return null;
         }
@@ -65,6 +67,7 @@ abstract class WorldOverlay extends View {
             case MARVEL:
             case STARWARS:
             case SUPERNATURAL:
+            case MIDDLE_EARTH:
                 return true;
             case SEASONS:
                 return seasonsToday;
