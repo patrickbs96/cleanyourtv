@@ -113,10 +113,14 @@ public class KeyBindingsTest {
 
     @Test public void theCaughtPressIsKnownByItsDownTime() {
         KeyBindings.catchPress(0, 695, 1000);
-        assertTrue(KeyBindings.caughtPress(0, 695, 1000));    // its repeated DOWNs and its release
+        assertTrue(KeyBindings.caughtPress(0, 695, 1000));    // its repeated DOWNs
+        // Its release, once for each key service that filters it (learn's catch branch is exactly this check and
+        // changes nothing on an UP): the first service does not clear it for the second.
+        assertTrue(KeyBindings.caughtPress(0, 695, 1000));
+        assertTrue(KeyBindings.caughtPress(0, 695, 1000));
         assertFalse(KeyBindings.caughtPress(0, 695, 2000));   // a later press of the same button is not swallowed
         assertFalse(KeyBindings.caughtPress(0, 779, 1000));
-        KeyBindings.releaseCaught();
+        KeyBindings.catchPress(0, 779, 3000);                 // the next catch replaces it
         assertFalse(KeyBindings.caughtPress(0, 695, 1000));
     }
 

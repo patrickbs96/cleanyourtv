@@ -197,11 +197,6 @@ final class KeyBindings {
                 && downTime == caughtDownTime;
     }
 
-    /** The caught press's release came: nothing more is swallowed. */
-    static void releaseCaught() {
-        caughtKeycode = -1;
-    }
-
     /** Learn mode for LEARN_MS, until a press is caught or stopLearning. Main thread. */
     static void startLearning(Learner waiting) {
         learner = waiting;
@@ -219,9 +214,10 @@ final class KeyBindings {
      */
     static boolean learn(KeyEvent event) {
         if (caughtPress(event.getKeyCode(), event.getScanCode(), event.getDownTime())) {
-            // Every event of the caught press is swallowed, repeated DOWNs too, and its release ends it. A press whose
-            // release never comes does not swallow the next one: that has another downTime.
-            if (event.getAction() == KeyEvent.ACTION_UP) releaseCaught();
+            // Every event of the caught press is swallowed, repeated DOWNs and the release too, and by every key
+            // service: Android hands each event to each filtering service, so the release is not cleared here (the
+            // second service would then act on it). The catch stays until the next one; a later press of the same
+            // button has another downTime and is not swallowed.
             return true;
         }
         Learner waiting = learner;
