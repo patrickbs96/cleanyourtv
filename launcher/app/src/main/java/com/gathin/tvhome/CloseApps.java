@@ -8,6 +8,7 @@ import android.content.pm.ResolveInfo;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
+import android.util.Log;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -24,7 +25,8 @@ import java.util.Set;
  * The limit without root: Android ends only processes it counts as background. The app on screen, and any app with a
  * foreground service (Spotify while it plays, a Plex server), keep running, and the call says nothing about what it
  * ended (it returns void), so the toast gives no count. A hung app is no exception: Home's first press sends it to
- * the background, the second closes it, which is the case this is for.
+ * the background, the second closes it, which is the case this is for. From Android 14 the call ends only this app's
+ * own processes for an app that is not a system app, so there it does nothing (the TV this is for runs Android 11).
  */
 final class CloseApps {
 
@@ -37,6 +39,8 @@ final class CloseApps {
     private static final String[] SYSTEM = {
             "com.google.android.gms", "com.google.android.gsf", "com.android.vending", "com.google.android.tts",
             "com.google.android.katniss", "com.google.android.apps.mediashell"};
+
+    private static final String TAG = "CloseApps";
 
     /** The last run (uptime), for ONCE_MS; main thread only. */
     private static long lastRun;
@@ -83,17 +87,34 @@ final class CloseApps {
         Context app = ctx.getApplicationContext() != null ? ctx.getApplicationContext() : ctx;
         Handler main = new Handler(Looper.getMainLooper());
         main.postDelayed(() -> new Thread(() -> {
-            run(app, candidates(app));
+            // This thread shares the process with Home and the key services: an uncaught exception here would end
+            // them all, so anything that goes wrong only skips the toast.
+            try {
+                run(app, candidates(app));
+            } catch (RuntimeException e) {
+                Log.w(TAG, "close all apps failed: " + e.getClass().getSimpleName());
+                return;
+            }
             main.post(() -> Toast.makeText(app, R.string.close_apps_done, Toast.LENGTH_LONG).show());
         }, "close-apps").start(), SETTLE_MS);
     }
 
-    /** The installed apps with a TV or a phone entry, as candidates; Live TV is live_tv_package. */
+    /**
+     * The installed apps with a TV or a phone entry, as candidates. Live TV is the config's live_tv_package, which a
+     * theme can change (another TV's is com.mediatek.wwtv.tvcenter), so it is read with Config, off the main thread.
+     * An app with an accessibility service (a button mapper) stays a candidate: the system binds that service, so
+     * Android does not count its process as background and leaves it running.
+     */
     static List<String> candidates(Context ctx) {
         PackageManager pm = ctx.getPackageManager();
-        String liveTv = ctx.getString(R.string.live_tv_package).trim();
         return candidates(launchable(pm, Intent.CATEGORY_LEANBACK_LAUNCHER), launchable(pm, Intent.CATEGORY_LAUNCHER),
-                ctx.getPackageName(), liveTv.isEmpty() ? Set.of() : Set.of(liveTv));
+                ctx.getPackageName(), keep(Config.load(ctx).liveTvPackage));
+    }
+
+    /** The packages kept running besides the fixed list: the Live TV app, when there is one. */
+    static Set<String> keep(String liveTv) {
+        String pkg = liveTv == null ? "" : liveTv.trim();
+        return pkg.isEmpty() ? Set.of() : Set.of(pkg);
     }
 
     private static List<String> launchable(PackageManager pm, String category) {

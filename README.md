@@ -653,7 +653,8 @@ and a wallpaper.
     default (`double:KEYCODE_HOME:close_apps` in `app_keys`; the first press still goes home at once), and Nothing
     on the Home row turns that off. Without root it cannot end the app on screen or an app with a foreground
     service (Spotify while it plays, a Plex server); a hung app is first sent away by Home's first press and then
-    ended. Android does not report what it ended, so the toast gives no count.
+    ended. Android does not report what it ended, so the toast gives no count. From Android 14 Android lets an app
+    that is not a system app end only its own processes, so there Close all apps does nothing.
   - **Choose default home** opens Android's home picker, and **TV system settings** the TV's own settings
     page.
 - **Change the default home:** Launcher settings and the optional Default-home tile

@@ -28,6 +28,16 @@ public class CloseAppsTest {
         assertEquals(List.of("com.google.android.youtube.tv"), c);
     }
 
+    @Test public void theConfigsLiveTvIsKept() {
+        // A theme's live_tv_package, not only config.xml's: another TV's Live TV must not be closed.
+        Set<String> keep = CloseApps.keep(" com.mediatek.wwtv.tvcenter ");
+        assertEquals(Set.of("com.mediatek.wwtv.tvcenter"), keep);
+        assertEquals(List.of("com.netflix.ninja"), CloseApps.candidates(
+                List.of("com.mediatek.wwtv.tvcenter", "com.netflix.ninja"), List.of(), "com.gathin.tvhome", keep));
+        assertTrue(CloseApps.keep("").isEmpty());
+        assertTrue(CloseApps.keep(null).isEmpty());
+    }
+
     @Test public void closeAppsIsAnActionWord() {
         assertTrue(RemoteKeys.isAction("close_apps"));
         assertEquals(0, RemoteKeys.globalAction("close_apps", 30));
