@@ -544,7 +544,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // The glow is one bitmap, so its alpha can be applied while drawing it. Otherwise every frame of
         // a fade renders it into a full-screen offscreen buffer first.
         ambient.forceHasOverlappingRendering(false);
-        ambientGlow = cfg.ambientGlow;
+        ambientGlow = world.showsAmbientGlow(cfg.ambientGlow);
         appGlow = cfg.appGlow;
         if (!ambientGlow) ambient.setVisibility(View.GONE);
         heroName = findViewById(R.id.heroName);
@@ -2445,7 +2445,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         glow.setTint(0xFF000000 | color);
     }
 
-    /** The glow's colour for this tile: the app's in Clean and Seasons (Clean's dock), the world's own in a world. */
+    /** The glow's colour for this tile: the app's in Clean, the world's own in a themed world. Seasons draws none. */
     private int glowColorAt(int position) {
         return !world.hasOwnMotion() ? adapter.ambientColorAt(position) : world.ambientColor;
     }

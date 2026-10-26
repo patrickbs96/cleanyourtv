@@ -131,6 +131,15 @@ enum World {
         return this == STARWARS ? "Äußerer Rand" : "";
     }
 
+    /**
+     * Whether Home draws the glow behind the dock, given config's ambient_glow: as configured in Clean and the themed
+     * worlds, never in Seasons. There the scene is the background, and the focused app's colour (Netflix red) washed
+     * the whole picture.
+     */
+    boolean showsAmbientGlow(boolean configured) {
+        return configured && this != SEASONS;
+    }
+
     /** Every world but Clean shows the top pills as icons only. */
     boolean forcesIconOnlyPills() {
         return this != CLEAN;

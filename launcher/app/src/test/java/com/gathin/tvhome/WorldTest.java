@@ -52,6 +52,16 @@ public class WorldTest {
     }
     /** Seasons is a world with its own scene: icon-only pills as in the others. */
     @Test public void seasonsShowsIconOnlyPills() { assertTrue(World.SEASONS.forcesIconOnlyPills()); }
+    /** The scene is Seasons' background: no app-colour glow over it. Every other world keeps config's ambient_glow. */
+    @Test public void seasonsDrawsNoAmbientGlow() {
+        assertFalse(World.SEASONS.showsAmbientGlow(true));
+        assertFalse(World.SEASONS.showsAmbientGlow(false));
+        for (World w : World.values()) {
+            if (w == World.SEASONS) continue;
+            assertTrue(w.showsAmbientGlow(true));
+            assertFalse(w.showsAmbientGlow(false));
+        }
+    }
     @Test public void scanCodesMapLikeKeys() { assertSame(World.MARVEL, World.forScanCode(398)); assertSame(World.CLEAN, World.forScanCode(399)); assertSame(World.HOGWARTS, World.forScanCode(400)); assertSame(World.STARWARS, World.forScanCode(401)); assertNull(World.forScanCode(1)); }
     @Test public void hogwartsGreetsLumosByDayNoxByNight() { assertEquals("Lumos", World.HOGWARTS.greetingPrefix(true)); assertEquals("Nox", World.HOGWARTS.greetingPrefix(false)); assertEquals("", World.CLEAN.greetingPrefix(true)); assertEquals("Äußerer Rand", World.STARWARS.greetingSuffix()); }
     @Test public void onlyCleanKeepsTextPills() { assertFalse(World.CLEAN.forcesIconOnlyPills()); assertTrue(World.MARVEL.forcesIconOnlyPills()); }
