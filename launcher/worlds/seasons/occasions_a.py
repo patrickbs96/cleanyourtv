@@ -309,13 +309,14 @@ def valentine(rng):
         c.add(img, c.shape(lambda p: p.circle(x - 0.8, y - 0.9, 0.9), blur=0.4) * 0.25, "#FF8A96")
         c.blend(img, c.shape(lambda p: line(p, spiral(x, y, 0.15, 1.3, 1.7, squash=0.9, n=40), 0.18), blur=0.03)
                 * 0.6, "#3C0008")
-    # two glasses of red wine
+    # two glasses of red wine. The bowl's lowest point is y - 10.25 (halfway along its curve): the stem runs from
+    # there down to the foot, and the wine is the same curve cut at its surface (y - 11.9), so it stays in the bowl.
     for gx in (157.4, 167.0):
         y = VASE_Y
         bowl = bezier((gx - 2.3, y - 14), (gx, y - 6.5), (gx + 2.3, y - 14), n=24)
-        wine = bezier((gx - 1.73, y - 11.9), (gx, y - 7.0), (gx + 1.73, y - 11.9), n=24)
+        wine = bezier((gx - 1.53, y - 11.9), (gx, y - 8.6), (gx + 1.53, y - 11.9), n=24)
         c.blend(img, c.shape(lambda p: p.poly(wine), blur=0.04) * 0.75, "#A0142A")
-        glass = c.shape(lambda p: (line(p, bowl, 0.22), line(p, [(gx, y - 8.1), (gx, y - 1.1)], 0.22),
+        glass = c.shape(lambda p: (line(p, bowl, 0.22), line(p, [(gx, y - 10.3), (gx, y)], 0.22),
                                    line(p, [(gx - 1.9, y), (gx + 1.9, y)], 0.22)), blur=0.03)
         c.blend(img, glass * 0.6, "#E6F0FF")
         c.add(img, c.shape(lambda p: p.ellipse(gx - 1.2, y - 12, 0.25, 0.9), blur=0.15) * 0.3, "#FFFFFF")
