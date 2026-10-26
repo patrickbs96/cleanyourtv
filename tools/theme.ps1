@@ -3,9 +3,13 @@
 #
 # Usage: tools\theme.ps1 -TvHost 192.168.1.50 themes\aurora
 #        tools\theme.ps1 -TvHost 192.168.1.50 -Reset
+#        tools\theme.ps1 -TvHost 192.168.1.50 -Logo supernatural my-logo.png   # a world's own logo picture
+#        tools\theme.ps1 -TvHost 192.168.1.50 -Logo supernatural -Remove      # back to the drawn lettering
 param(
     [Parameter(Position = 0)][string]$Theme,
     [switch]$Reset,
+    [string]$Logo,
+    [switch]$Remove,
     [string]$TvHost = $env:TV_HOST
 )
 $ErrorActionPreference = 'Stop'
@@ -13,6 +17,7 @@ $OutputEncoding = New-Object System.Text.UTF8Encoding $false
 if (-not $TvHost) { throw 'pass -TvHost <tv ip> or set $env:TV_HOST' }
 $env:TV_HOST = $TvHost
 # Resolve the theme folder against the caller's directory before moving into tools\.
+# With -Logo the positional argument is the logo picture, resolved the same way.
 if ($Theme) { $Theme = (Resolve-Path $Theme).Path }
 Set-Location $PSScriptRoot
 $py = 'venv\Scripts\python.exe'
@@ -54,6 +59,36 @@ function Drop($name) { "rm -f $dir/$name 2>/dev/null; content delete --uri $uri/
 # pictures is read back from it, so a reset that left the pictures behind still shows the theme it just removed.
 # Both paths use this one string (the same one theme.sh has).
 $clearWallpapers = "mkdir -p $dir/wallpapers 2>/dev/null; rm -f $dir/wallpapers/*.jpg $dir/wallpapers/*.jpeg $dir/wallpapers/*.png $dir/wallpapers/*.webp $dir/wallpapers/*.JPG $dir/wallpapers/*.JPEG $dir/wallpapers/*.PNG $dir/wallpapers/*.WEBP 2>/dev/null; content delete --uri $uri/wallpapers 2>/dev/null"
+
+# A world's own logo picture (WorldLogo): world_logos/world_logo_<world>.png, beside the theme rather than in it.
+# Neither a theme push nor -Reset touches that folder, and a logo is no theme push either: it writes no
+# theme_revision, so the on-TV layout and motion choices stay. Home restarts so the world shows it at once.
+# The worlds as World.java names them (tests/test_theme_world_logos.py keeps the lists together).
+$worlds = @('clean', 'seasons', 'hogwarts', 'marvel', 'starwars', 'supernatural')
+if ($Logo) {
+    if ($worlds -cnotcontains $Logo) { throw "unknown world: $Logo (one of: $($worlds -join ' '))" }
+    $name = "world_logos/world_logo_$Logo.png"
+    if ($Remove) {
+        & $py -I tv.py "$(Drop $name); $restart; echo removed"
+        Write-Host "The $Logo logo is off the TV; the world draws its own lettering again."
+        exit 0
+    }
+    if (-not $Theme) { throw 'usage: theme.ps1 -Logo <world> <picture.png> | -Logo <world> -Remove' }
+    # The launcher reads at most 2 MB of PNG (WorldLogo.acceptable); refuse anything else before the transfer.
+    $png = [byte[]](0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
+    $head = New-Object byte[] 8
+    $stream = [System.IO.File]::OpenRead($Theme)
+    try { $read = $stream.Read($head, 0, 8); $size = $stream.Length } finally { $stream.Close() }
+    if ($read -lt 8 -or (Compare-Object $head $png -SyncWindow 0)) { throw "$Theme is not a PNG" }
+    if ($size -gt 2097152) { throw "$Theme is larger than 2 MB" }
+    $logoDir = "mkdir -p $dir/world_logos 2>/dev/null"
+    & $py -I tv.py $logoDir | Out-Null
+    & $py -I b64push.py $Theme (Stage $name)
+    & $py -I tv.py (Put $name) | Out-Null
+    & $py -I tv.py "$restart; echo applied"
+    Write-Host "The $Logo logo is on the TV. Undo with: tools\theme.ps1 -TvHost $TvHost -Logo $Logo -Remove"
+    exit 0
+}
 
 if ($Reset) {
     & $py -I tv.py "mkdir -p $dir 2>/dev/null; $(Drop 'config.json'); $(Drop 'wallpaper.jpg'); $(Drop 'wallpapers/captions.txt'); $clearWallpapers; printf '%s' '$revision' > $tmp-theme_revision; $(Put 'theme_revision'); $restart; echo reset"

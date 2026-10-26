@@ -44,6 +44,26 @@ public class ThemeFilesTest {
         assertNull(ThemeFiles.path(Arrays.asList("wallpapers", "sub", "dusk.jpg")));
     }
 
+    @Test public void aWorldsLogoIsAllowed() {
+        assertEquals("world_logos/world_logo_supernatural.png",
+                ThemeFiles.path(Arrays.asList("world_logos", "world_logo_supernatural.png")));
+        assertEquals("world_logos/world_logo_clean.png",
+                ThemeFiles.path(Arrays.asList("world_logos", "world_logo_clean.png")));
+    }
+
+    @Test public void onlyTheExactLogoNameIsAllowed() {
+        assertNull("no such world", ThemeFiles.path(Arrays.asList("world_logos", "world_logo_supernatral.png")));
+        assertNull(ThemeFiles.path(Arrays.asList("world_logos", "world_logo_supernatural.jpg")));
+        assertNull(ThemeFiles.path(Arrays.asList("world_logos", "world_logo_SUPERNATURAL.png")));
+        assertNull(ThemeFiles.path(Arrays.asList("world_logos", "world_logo_.png")));
+        assertNull(ThemeFiles.path(Arrays.asList("world_logos", "logo.png")));
+        assertNull(ThemeFiles.path(Arrays.asList("world_logos", "..")));
+        assertNull("not in the theme's own folders", ThemeFiles.path(Collections.singletonList("world_logo_supernatural.png")));
+        assertNull(ThemeFiles.path(Arrays.asList("wallpapers", "world_logos", "world_logo_supernatural.png")));
+        assertNull("the folder as a whole is never written", ThemeFiles.path(Collections.singletonList("world_logos")));
+        assertFalse("nor cleared like the collection", ThemeFiles.isCollection(Collections.singletonList("world_logos")));
+    }
+
     @Test public void onlyTheBareFolderIsTheCollection() {
         assertTrue(ThemeFiles.isCollection(Collections.singletonList("wallpapers")));
         assertFalse(ThemeFiles.isCollection(Arrays.asList("wallpapers", "dusk.jpg")));

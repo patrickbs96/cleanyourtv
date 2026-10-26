@@ -9,6 +9,7 @@ using `tools/theme.sh --reset` also clears those on-TV column and motion choices
 ```bash
 TV_HOST=192.168.1.50 tools/theme.sh themes/aurora          # push a theme and restart Home
 TV_HOST=192.168.1.50 tools/theme.sh --reset                # back to the built-in config.xml
+TV_HOST=192.168.1.50 tools/theme.sh --logo supernatural my-logo.png   # a world's own logo, see below
 powershell -ExecutionPolicy Bypass -File tools\theme.ps1 -TvHost 192.168.1.50 themes\aurora
 ```
 
@@ -185,6 +186,25 @@ The original system idle screensaver is left unchanged.
 On the TV, Launcher settings has a Wallpaper row: pick one picture from the collection (or the theme's
 `wallpaper.jpg`), or None. A pick shows that one picture and stops the rotation until you choose Theme
 default, press Follow theme, or push a theme again.
+
+## A world's own logo
+
+A world can show your own logo picture instead of the lettering it draws, Supernatural over its motel for a
+start. The picture is yours and stays on your TV: it is not part of a theme and never goes into this
+repository. Put it there, or take it off again, with:
+
+```bash
+TV_HOST=192.168.1.50 tools/theme.sh --logo supernatural my-logo.png   # show my-logo.png in that world
+TV_HOST=192.168.1.50 tools/theme.sh --logo supernatural --remove      # back to the drawn lettering
+powershell -ExecutionPolicy Bypass -File tools\theme.ps1 -TvHost 192.168.1.50 -Logo supernatural my-logo.png
+```
+
+The world is named by its id: `clean`, `seasons`, `hogwarts`, `marvel`, `starwars` or `supernatural`. The
+picture lands as `world_logos/world_logo_<id>.png` beside the theme files, so pushing a theme or
+`--reset` leaves it where it is, and the on-TV layout and motion choices stay as they were; Home restarts
+so the logo shows at once. It has to be a PNG of at most 2 MB (a transparent background suits the dark
+scenes best); the script refuses anything else before it sends a byte, and the launcher draws its own
+lettering whenever the file is missing or unreadable. Whether the file is there is the on/off switch.
 
 ## Reduced motion
 

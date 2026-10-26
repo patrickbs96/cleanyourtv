@@ -18,6 +18,11 @@ import java.io.FileNotFoundException;
  *   content write --uri content://com.gathin.tvhome.theme/wallpapers/dusk.jpg < /data/local/tmp/dusk.jpg
  *   content delete --uri content://com.gathin.tvhome.theme/config.json
  *   content delete --uri content://com.gathin.tvhome.theme/wallpapers      (every image in the collection)
+ *   content write --uri content://com.gathin.tvhome.theme/world_logos/world_logo_supernatural.png < ...
+ *
+ * A world's logo (tools/theme.sh --logo) takes the same way but is no theme file: nothing here clears
+ * world_logos/ as a folder. A write cannot be cut off at a size, so the 2 MB PNG rule is kept by theme.sh
+ * before the transfer and by {@link WorldLogo#load} when it reads the picture back.
  */
 public class ThemeProvider extends ContentProvider {
 

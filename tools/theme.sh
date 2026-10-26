@@ -5,6 +5,8 @@
 #
 # Usage: TV_HOST=192.168.1.50 tools/theme.sh themes/aurora
 #        TV_HOST=192.168.1.50 tools/theme.sh --reset        # remove the overlay, back to config.xml
+#        TV_HOST=192.168.1.50 tools/theme.sh --logo supernatural my-logo.png   # a world's own logo picture
+#        TV_HOST=192.168.1.50 tools/theme.sh --logo supernatural --remove      # back to the drawn lettering
 set -euo pipefail
 # Resolve the theme folder against the caller's directory before moving into tools/.
 # Git Bash's pwd says /c/Users/..., which the Windows Python cannot open; pwd -W gives C:/Users/... (as in disable.sh).
@@ -13,10 +15,20 @@ set -euo pipefail
 # so the "no config.json" message names what the caller gave.
 THEME_ARG="${1:-}"
 case "$THEME_ARG" in
-  --reset|"") ;;
+  --reset|--logo|"") ;;
   /*) THEME_ARG="$(cd "$THEME_ARG" 2>/dev/null && { pwd -W 2>/dev/null || pwd; } || printf '%s' "$THEME_ARG")" ;;
   *) THEME_ARG="$(pwd -W 2>/dev/null || pwd)/$THEME_ARG" ;;
 esac
+# The same for --logo's picture, by its folder: Python opens it below.
+LOGO_ARG=""
+if [ "$THEME_ARG" = --logo ]; then
+  LOGO_ARG="${3:-}"
+  case "$LOGO_ARG" in
+    --remove|"") ;;
+    *) LOGO_DIR="$(dirname "$LOGO_ARG")"
+       LOGO_ARG="$(cd "$LOGO_DIR" 2>/dev/null && { pwd -W 2>/dev/null || pwd; } || printf '%s' "$LOGO_DIR")/$(basename "$LOGO_ARG")" ;;
+  esac
+fi
 cd "$(dirname "$0")"
 : "${TV_HOST:?set TV_HOST to the TV IP address, e.g. TV_HOST=192.168.1.50 $0 themes/aurora}"
 PY=venv/bin/python
@@ -65,6 +77,47 @@ del() { echo "rm -f $DIR/$1 2>/dev/null; content delete --uri $URI/$1 2>/dev/nul
 # itself, and an on-TV pick of one of its pictures is read back from it (WallpaperRotation.chosen), so a reset
 # that left the pictures behind still shows the theme it just removed. Both paths use this one string.
 CLEAR_WALLPAPERS="mkdir -p $DIR/wallpapers 2>/dev/null; rm -f $DIR/wallpapers/*.[jJ][pP][gG] $DIR/wallpapers/*.[jJ][pP][eE][gG] $DIR/wallpapers/*.[pP][nN][gG] $DIR/wallpapers/*.[wW][eE][bB][pP] 2>/dev/null; content delete --uri $URI/wallpapers 2>/dev/null"
+
+# A world's own logo picture (WorldLogo): world_logos/world_logo_<world>.png, beside the theme rather than in it.
+# Neither a theme push nor --reset touches that folder, and a logo is no theme push either: it writes no
+# theme_revision, so the on-TV layout and motion choices stay. Home restarts so the world shows it at once.
+# The worlds as World.java names them (tests/test_theme_world_logos.py keeps the two lists together).
+WORLDS="clean seasons hogwarts marvel starwars supernatural"
+if [ "${1:-}" = --logo ]; then
+  WORLD="${2:-}"
+  [ -n "$WORLD" ] && [ -n "$LOGO_ARG" ] || { echo "usage: theme.sh --logo <world> <picture.png> | --logo <world> --remove" >&2; exit 1; }
+  case " $WORLDS " in
+    *" $WORLD "*) ;;
+    *) echo "unknown world: $WORLD (one of: $WORLDS)" >&2; exit 1 ;;
+  esac
+  LOGO=world_logos/world_logo_$WORLD.png
+  if [ "$LOGO_ARG" = --remove ]; then
+    tv "$(del "$LOGO"); $RESTART; echo removed" | tail -n 1
+    echo "The $WORLD logo is off the TV; the world draws its own lettering again."
+    exit 0
+  fi
+  # The launcher reads at most 2 MB of PNG (WorldLogo.acceptable); refuse anything else before the transfer.
+  CHECK=0
+  "$PY" -I -c 'import os,sys
+try:
+    with open(sys.argv[1], "rb") as f: head = f.read(8)
+    size = os.path.getsize(sys.argv[1])
+except OSError: sys.exit(3)
+sys.exit(4 if head != b"\x89PNG\r\n\x1a\n" else 5 if size > 2097152 else 0)' "$LOGO_ARG" || CHECK=$?
+  case "$CHECK" in
+    0) ;;
+    3) echo "cannot read $LOGO_ARG" >&2; exit 1 ;;
+    4) echo "$LOGO_ARG is not a PNG" >&2; exit 1 ;;
+    5) echo "$LOGO_ARG is larger than 2 MB" >&2; exit 1 ;;
+    *) echo "cannot check $LOGO_ARG" >&2; exit 1 ;;
+  esac
+  tv "mkdir -p $DIR/world_logos" >/dev/null 2>&1 || true
+  "$PY" -I b64push.py "$LOGO_ARG" "$(stage "$LOGO")"
+  tv "$(put "$LOGO")" >/dev/null
+  tv "$RESTART; echo applied" | tail -n 1
+  echo "The $WORLD logo is on the TV. Undo with: tools/theme.sh --logo $WORLD --remove"
+  exit 0
+fi
 
 if [ "${1:-}" = --reset ]; then
   tv "mkdir -p $DIR 2>/dev/null; $(del config.json); $(del wallpaper.jpg); $(del wallpapers/captions.txt); $CLEAR_WALLPAPERS; printf '%s' '$REVISION' > $TMP-theme_revision; $(put theme_revision); $RESTART; echo reset" | tail -n 1

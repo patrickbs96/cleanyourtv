@@ -24,6 +24,20 @@ final class ThemeFiles {
                 && (collectionImage(segments.get(1)) || WallpaperCaptions.FILE_NAME.equals(segments.get(1)))) {
             return WALLPAPERS + "/" + segments.get(1);
         }
+        if (segments.size() == 2 && WorldLogo.DIR.equals(segments.get(0))) {
+            return worldLogo(segments.get(1));
+        }
+        return null;
+    }
+
+    /**
+     * "world_logos/world_logo_<id>.png" for exactly a world's logo name (tools/theme.sh --logo), else null. The
+     * logos sit beside the theme rather than in it; WorldLogo reads at most 2 MB of PNG back.
+     */
+    private static String worldLogo(String name) {
+        for (World w : World.values()) {
+            if (WorldLogo.fileName(w).equals(name)) return WorldLogo.path(w);
+        }
         return null;
     }
 
