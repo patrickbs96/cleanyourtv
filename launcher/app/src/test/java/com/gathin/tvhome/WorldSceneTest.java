@@ -23,6 +23,13 @@ public class WorldSceneTest {
         assertNotEquals(0, WorldScene.resFor(World.HOGWARTS, false));
     }
 
+    /** Until its looks arrive (Jahreskreis Task 4) Seasons shows only its background colour. */
+    @Test
+    public void seasonsHasNoPictureYet() {
+        assertEquals(0, WorldScene.resFor(World.SEASONS, true));
+        assertEquals(0, WorldScene.resFor(World.SEASONS, false));
+    }
+
     @Test
     public void everyWorldHasItsOwnDayAndNightPicture() {
         assertEquals(R.drawable.world_hogwarts_day, WorldScene.resFor(World.HOGWARTS, true));

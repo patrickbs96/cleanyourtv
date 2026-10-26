@@ -29,6 +29,8 @@ public class WorldFocusMotionTest {
     public void cleanAndStarWarsHaveNoSpringOverride() {
         assertNull(WorldFocusMotion.springFor(World.CLEAN, false));
         assertNull(WorldFocusMotion.springFor(World.STARWARS, false));
+        assertNull(WorldFocusMotion.springFor(World.SEASONS, false));   // Seasons keeps Clean's spring
+        assertEquals(0L, WorldFocusMotion.frameDelayMs(World.SEASONS, true));
         assertNotNull(WorldFocusMotion.springFor(World.HOGWARTS, false));
     }
 

@@ -524,8 +524,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             worldScene.setListener(() -> worldOverlay.setDay(worldScene.isDay()));
         }
         // The world's dock move: its sparks and scan go over the dock and the frame, added once and reused. The frame
-        // is in oledLayer, so they go right above that layer.
-        if (!world.isClean()) {
+        // is in oledLayer, so they go right above that layer. Seasons moves and starts apps as Clean does: neither.
+        if (world.hasOwnMotion()) {
             SparkTrailView sparks = null;
             ScanSweepView scan = null;
             if (world == World.HOGWARTS) {
@@ -693,7 +693,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         });
         // A world draws its own dock, but only on the layout it was made for; elsewhere it keeps Clean's (spec § 4.1).
-        if (dockRow && !world.isClean() && World.dockStyleSupported(cfg)) {
+        // Seasons always keeps Clean's.
+        if (dockRow && world.hasOwnMotion() && World.dockStyleSupported(cfg)) {
             worldDock = new WorldDockDecoration(world, COLUMNS, density, cfg.dockOpacity);
             grid.addItemDecoration(worldDock);
         } else if (dockRow) grid.addItemDecoration(new DockDecoration(COLUMNS, density, cinematic, cfg.alwaysShowNames, cfg.dockOpacity, cfg.dockGlass, cfg.dockEvenPadding, cfg.dockBand,
@@ -2370,16 +2371,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             glow.setGravity(Gravity.FILL);
             // A world's glow strength: the mask is drawn for Clean's 35 % (the mockup's opacity), so a world's
             // ambientAlphaPercent scales it relative to that. On the paint, not the view, whose alpha fades.
-            if (!world.isClean()) glow.setAlpha(Math.min(255, Math.round(255f * world.ambientAlphaPercent / 35f)));
+            if (world.hasOwnMotion()) glow.setAlpha(Math.min(255, Math.round(255f * world.ambientAlphaPercent / 35f)));
             ambient.setBackground(glow);
         }
         // The default tint mode, SRC_IN, keeps the mask's alpha and takes the colour from the tint.
         glow.setTint(0xFF000000 | color);
     }
 
-    /** The glow's colour for this tile: the app's in Clean, the world's own in a world. */
+    /** The glow's colour for this tile: the app's in Clean and Seasons (Clean's dock), the world's own in a world. */
     private int glowColorAt(int position) {
-        return world.isClean() ? adapter.ambientColorAt(position) : world.ambientColor;
+        return !world.hasOwnMotion() ? adapter.ambientColorAt(position) : world.ambientColor;
     }
 
     private void transitionAmbient(int color) {

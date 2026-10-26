@@ -4,6 +4,7 @@ import android.view.KeyEvent;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -18,14 +19,39 @@ public class WorldTest {
         assertSame(World.STARWARS, World.forKeyCode(KeyEvent.KEYCODE_PROG_BLUE));
         assertNull(World.forKeyCode(KeyEvent.KEYCODE_DPAD_CENTER));
     }
-    @Test public void digitsPickTheWorldsInMenuOrderCleanOnZero() {
+    @Test public void digitsFollowTheEnumWithSeasonsOnOne() {
         assertSame(World.CLEAN, World.forKeyCode(KeyEvent.KEYCODE_0));
-        assertSame(World.HOGWARTS, World.forKeyCode(KeyEvent.KEYCODE_1));
-        assertSame(World.MARVEL, World.forKeyCode(KeyEvent.KEYCODE_2));
-        assertSame(World.STARWARS, World.forKeyCode(KeyEvent.KEYCODE_3));
-        assertNull(World.forKeyCode(KeyEvent.KEYCODE_4));   // free for the next world
+        assertSame(World.SEASONS, World.forKeyCode(KeyEvent.KEYCODE_1));
+        assertSame(World.HOGWARTS, World.forKeyCode(KeyEvent.KEYCODE_2));
+        assertSame(World.MARVEL, World.forKeyCode(KeyEvent.KEYCODE_3));
+        assertSame(World.STARWARS, World.forKeyCode(KeyEvent.KEYCODE_4));
+        assertNull(World.forKeyCode(KeyEvent.KEYCODE_5));   // free for the next world
         assertNull(World.forKeyCode(KeyEvent.KEYCODE_9));
     }
+    @Test public void seasonsHasNoColourKey() {
+        for (int k = KeyEvent.KEYCODE_PROG_RED; k <= KeyEvent.KEYCODE_PROG_BLUE; k++) assertNotSame(World.SEASONS, World.forKeyCode(k));
+        for (int scan = 398; scan <= 401; scan++) assertNotSame(World.SEASONS, World.forScanCode(scan));
+    }
+    @Test public void unknownIdStaysClean() { assertSame(World.CLEAN, World.parse("narnia")); assertSame(World.SEASONS, World.parse("seasons")); }
+    @Test public void onlyTheThemedWorldsHaveOwnMotion() {
+        assertFalse(World.CLEAN.hasOwnMotion());
+        assertFalse(World.SEASONS.hasOwnMotion());
+        assertTrue(World.HOGWARTS.hasOwnMotion());
+        assertTrue(World.MARVEL.hasOwnMotion());
+        assertTrue(World.STARWARS.hasOwnMotion());
+    }
+    @Test public void seasonsValuesAsSpecified() {
+        assertEquals(0xFFE8A33D, World.SEASONS.keyColor);
+        assertEquals(0, World.SEASONS.accent);
+        assertEquals(0, World.SEASONS.ambientColor);
+        assertEquals(0, World.SEASONS.ambientAlphaPercent);
+        assertEquals(0xFF0D0F14, World.SEASONS.backgroundColor);
+        assertEquals(0, World.SEASONS.heroPrefixRes);
+        assertEquals("", World.SEASONS.greetingPrefix(true));
+        assertEquals("", World.SEASONS.greetingSuffix());
+    }
+    /** Seasons is a world with its own scene: icon-only pills as in the others. */
+    @Test public void seasonsShowsIconOnlyPills() { assertTrue(World.SEASONS.forcesIconOnlyPills()); }
     @Test public void scanCodesMapLikeKeys() { assertSame(World.MARVEL, World.forScanCode(398)); assertSame(World.CLEAN, World.forScanCode(399)); assertSame(World.HOGWARTS, World.forScanCode(400)); assertSame(World.STARWARS, World.forScanCode(401)); assertNull(World.forScanCode(1)); }
     @Test public void hogwartsGreetsLumosByDayNoxByNight() { assertEquals("Lumos", World.HOGWARTS.greetingPrefix(true)); assertEquals("Nox", World.HOGWARTS.greetingPrefix(false)); assertEquals("", World.CLEAN.greetingPrefix(true)); assertEquals("Äußerer Rand", World.STARWARS.greetingSuffix()); }
     @Test public void onlyCleanKeepsTextPills() { assertFalse(World.CLEAN.forcesIconOnlyPills()); assertTrue(World.MARVEL.forcesIconOnlyPills()); }

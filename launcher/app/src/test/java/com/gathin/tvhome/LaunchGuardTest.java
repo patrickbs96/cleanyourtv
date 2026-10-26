@@ -17,6 +17,13 @@ public class LaunchGuardTest {
         assertTrue(WorldLaunchMotion.shouldPlay(World.MARVEL, true, false));
     }
 
+    /** Seasons starts apps as Clean does (Jahreskreis spec § 4.8): no effect, no length. */
+    @Test
+    public void seasonsStartsLikeClean() {
+        assertFalse(WorldLaunchMotion.shouldPlay(World.SEASONS, true, false));
+        assertEquals(0L, WorldLaunchMotion.durationMs(World.SEASONS));
+    }
+
     @Test
     public void durationsStayUnderLimit() {
         // Every effect at most 1.2 s (ruling R12 revised): the whites are cut to 200 ms.
@@ -89,9 +96,9 @@ public class LaunchGuardTest {
         assertEquals(1f, WorldLaunchMotion.blendAlpha(World.STARWARS, 1200), 1e-6);
         assertEquals(0xFF000000, WorldLaunchMotion.blendColor(World.HOGWARTS));
         assertEquals(0xFFFFFFFF, WorldLaunchMotion.blendColor(World.MARVEL));
-        // Every effect is full at its own end: the app never comes up over a half-faded Home.
+        // Every effect is full at its own end: the app never comes up over a half-faded Home. Clean and Seasons have none.
         for (World w : World.values()) {
-            if (!w.isClean()) assertEquals(1f, WorldLaunchMotion.blendAlpha(w, WorldLaunchMotion.durationMs(w)), 1e-6);
+            if (w.hasOwnMotion()) assertEquals(1f, WorldLaunchMotion.blendAlpha(w, WorldLaunchMotion.durationMs(w)), 1e-6);
         }
     }
 

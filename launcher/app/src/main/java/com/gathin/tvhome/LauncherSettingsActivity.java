@@ -247,7 +247,8 @@ public final class LauncherSettingsActivity extends Activity {
     }
 
     /**
-     * The four worlds, each behind a dot in its remote key's colour, the same choice the colour keys make on Home.
+     * The worlds, each behind a dot in its remote key's colour (Seasons, which has no colour key, in its amber), the
+     * same choice the colour keys and digits make on Home.
      * Not a theme choice: Follow theme leaves it alone.
      */
     private void showWorldPicker() {

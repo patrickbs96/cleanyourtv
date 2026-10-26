@@ -30,6 +30,13 @@ public class WorldTypographyTest {
         assertEquals("Netflix", WorldTypography.heroLabel(World.HOGWARTS, "Netflix"));
     }
 
+    /** Seasons writes like Clean: the greeting, its colour and the hero label stay as they are. */
+    @Test public void seasonsKeepsCleansType() {
+        assertEquals("Guten Abend", WorldTypography.greetingText(World.SEASONS, "Guten Abend", false));
+        assertEquals(0x12345678, WorldTypography.greetingColor(World.SEASONS, 0x12345678));
+        assertEquals("Netflix", WorldTypography.heroLabel(World.SEASONS, "Netflix"));
+    }
+
     @Test public void dayIsSevenToEighteen() {
         assertEquals(false, WorldTypography.isDayHour(6));
         assertEquals(true, WorldTypography.isDayHour(7));

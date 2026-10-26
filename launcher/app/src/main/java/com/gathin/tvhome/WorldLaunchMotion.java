@@ -64,9 +64,12 @@ final class WorldLaunchMotion {
         return durationMs(w) + TIMEOUT_GRACE_MS;
     }
 
-    /** Whether a launch plays the world's effect: never in Clean, with animations off or with reduced motion. */
+    /**
+     * Whether a launch plays the world's effect: never in Clean or Seasons (which starts apps as Clean does), with
+     * animations off or with reduced motion.
+     */
     static boolean shouldPlay(World w, boolean animations, boolean reducedMotion) {
-        return !w.isClean() && animations && !reducedMotion && durationMs(w) > 0;
+        return w.hasOwnMotion() && animations && !reducedMotion && durationMs(w) > 0;
     }
 
     /** The black (Hogwarts) or white blend over everything at {@code t} ms, 0 to 1. */

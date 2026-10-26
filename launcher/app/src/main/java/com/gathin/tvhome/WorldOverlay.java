@@ -42,7 +42,7 @@ abstract class WorldOverlay extends View {
         setWillNotDraw(false);
     }
 
-    /** The overlay for this world; null for Clean, which has none. */
+    /** The overlay for this world; null for Clean, which has none, and for Seasons until its looks arrive. */
     static WorldOverlay create(Context context, World w, boolean day) {
         switch (w) {
             case HOGWARTS: return new HogwartsOverlay(context, day);

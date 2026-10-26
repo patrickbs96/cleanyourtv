@@ -111,7 +111,7 @@ final class LaunchFxView extends View {
 
     @Override
     protected void onDraw(Canvas c) {
-        if (elapsed < 0 || world.isClean()) return;
+        if (elapsed < 0 || !world.hasOwnMotion()) return;
         long t = elapsed;
         float k = getWidth() / MOCKUP_W;
         switch (world) {

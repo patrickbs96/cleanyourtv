@@ -4,12 +4,15 @@ import android.content.SharedPreferences;
 import android.view.KeyEvent;
 
 /**
- * The four worlds the colour keys switch between: Clean (green) is today's launcher unchanged, Hogwarts (yellow),
- * Marvel (red) and Star Wars (blue) lay a skin over it. Only plain values live here, so the class loads in JVM tests;
- * the skins read them. Every caller checks {@link #isClean()} first and then takes exactly the old path.
+ * The worlds the colour keys and digits switch between: Clean (green) is today's launcher unchanged, Hogwarts
+ * (yellow), Marvel (red) and Star Wars (blue) lay a skin over it. Seasons (Jahreskreis, digit 1 only, no colour key)
+ * brings its own scene and overlay but moves like Clean: dock, app start, fonts and hero are Clean's
+ * ({@link #hasOwnMotion()}). Only plain values live here, so the class loads in JVM tests; the skins read them. Every
+ * caller checks {@link #isClean()} or {@link #hasOwnMotion()} first and then takes exactly the old path.
  */
 enum World {
     CLEAN("clean", R.string.world_clean, 0xFF2ECC40, 0, 0, 0, 0, 0),
+    SEASONS("seasons", R.string.world_seasons, 0xFFE8A33D, 0, 0, 0, 0xFF0D0F14, 0),
     HOGWARTS("hogwarts", R.string.world_hogwarts, 0xFFF1C40F, 0xFFE8C87A, 0xFFD9A441, 35, 0xFF141020,
             R.string.world_hog_hero_prefix),
     MARVEL("marvel", R.string.world_marvel, 0xFFE03131, 0xFF9FDCFF, 0xFFE6B85A, 30, 0xFF120306, 0),
@@ -18,7 +21,7 @@ enum World {
     /** The chosen world's id in the launcher's preferences. */
     static final String PREF_KEY = "world";
 
-    /** Saved under {@link #PREF_KEY}: clean, hogwarts, marvel or starwars. */
+    /** Saved under {@link #PREF_KEY}: clean, seasons, hogwarts, marvel or starwars. */
     final String id;
     final int labelRes;
     /** The colour of the remote key that picks this world. */
@@ -67,8 +70,9 @@ enum World {
 
     /**
      * The world a colour key or a digit picks, or null for any other key. The digits follow this enum's order
-     * (0 Clean, 1 Hogwarts, 2 Marvel, 3 Star Wars), so a world added at the end takes the next one, up to 9.
-     * They are the clean way to Star Wars on the Philips: its firmware also opens the TV help on blue.
+     * (0 Clean, 1 Seasons, 2 Hogwarts, 3 Marvel, 4 Star Wars), so a world added at the end takes the next one, up to
+     * 9. They are the clean way to Star Wars on the Philips: its firmware also opens the TV help on blue. Seasons has
+     * no colour key.
      */
     static World forKeyCode(int keyCode) {
         switch (keyCode) {
@@ -96,6 +100,15 @@ enum World {
 
     boolean isClean() {
         return this == CLEAN;
+    }
+
+    /**
+     * Whether the world has its own motion and style: dock move, app start, dock skin, hero and fonts (Hogwarts,
+     * Marvel, Star Wars). False for Clean and for Seasons, which takes Clean's for all of them (Jahreskreis spec
+     * § 4.8) and keeps only its scene, overlay, accent and icon-only pills.
+     */
+    boolean hasOwnMotion() {
+        return this == HOGWARTS || this == MARVEL || this == STARWARS;
     }
 
     /** The word in front of the greeting: Lumos by day and Nox by night in Hogwarts, Suit up in Marvel. */

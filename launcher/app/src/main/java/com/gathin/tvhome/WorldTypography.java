@@ -44,10 +44,10 @@ final class WorldTypography {
     private static final float HOG_PREFIX_SIZE = 0.3f;
     private static final float HOG_PREFIX_SPACING = 0.3f;
 
-    /** Fonts, colours, spacing and the hero's style for this world; nothing at all for Clean. */
+    /** Fonts, colours, spacing and the hero's style for this world; nothing at all for Clean and Seasons. */
     static void apply(World w, TextView greeting, TextView clock, TextView date, View clockDivider,
                       TextView heroName, TextView heroMeta) {
-        if (w.isClean()) return;
+        if (!w.hasOwnMotion()) return;
         Context c = clock.getContext();
         float dp = c.getResources().getDisplayMetrics().density;
         greeting.setTextColor(greetingColor(w, greeting.getCurrentTextColor()));
@@ -138,10 +138,10 @@ final class WorldTypography {
 
     /**
      * The weather line (Weather, spec § 4.10c) in the date's type, colour, size and spacing, once the world has styled
-     * the date (and shamsi_date has resized it); Clean returns and keeps the layout's stats look.
+     * the date (and shamsi_date has resized it); Clean and Seasons return and keep the layout's stats look.
      */
     static void applyWeather(World w, TextView date, TextView weather) {
-        if (w.isClean()) return;
+        if (!w.hasOwnMotion()) return;
         weather.setTypeface(date.getTypeface());
         weather.setTextColor(date.getCurrentTextColor());
         weather.setTextSize(TypedValue.COMPLEX_UNIT_PX, date.getTextSize());

@@ -84,7 +84,7 @@ public class WorldDockDecoration extends DockDecoration {
             fill.setColor(0xFFE6B85A);
             // Drawn round (0,0) and moved there with the canvas, so the shader never changes.
             rivet.setShader(new RadialGradient(0, 0, 2.5f * density, 0xFF777777, 0xFF222222, Shader.TileMode.CLAMP));
-        } else {
+        } else if (world == World.STARWARS) {
             line.setStrokeWidth(density);
             line.setColor(0x998FB3FF);
             lineLit.setStrokeWidth(density);
@@ -163,7 +163,7 @@ public class WorldDockDecoration extends DockDecoration {
         float tileRadius = AppAdapter.cornerRadius(cardWidth, density);
         if (world == World.HOGWARTS) drawHogwarts(c, tileRadius);
         else if (world == World.MARVEL) drawMarvel(c, tileRadius);
-        else drawStarWars(c, focusFound, focusL, focusR);
+        else if (world == World.STARWARS) drawStarWars(c, focusFound, focusL, focusR);
     }
 
     /** Stretches the band's 0..1 gradient over the band; the shader only changes when the band moves. */

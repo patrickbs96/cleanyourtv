@@ -131,7 +131,10 @@ final class WorldScene {
         return isDay(minuteOfDay, sunrise, sunset);
     }
 
-    /** The world's picture for day or night, R.drawable.world_<id>_<day|night>; 0 for Clean, which has none. */
+    /**
+     * The world's picture for day or night, R.drawable.world_<id>_<day|night>; 0 for Clean, which has none, and for
+     * Seasons until its looks arrive (it shows its background colour).
+     */
     static int resFor(World w, boolean day) {
         switch (w) {
             case HOGWARTS: return day ? R.drawable.world_hogwarts_day : R.drawable.world_hogwarts_night;
@@ -186,6 +189,8 @@ final class WorldScene {
         boolean day = isDay();
         if (shownDay != null && shownDay == day) return;
         int res = resFor(world, day);
+        // A world without a picture (Seasons until its looks arrive) keeps its plain colour: no decode thread a minute.
+        if (res == 0) return;
         Context context = root.getContext();
         fading = true;
         // Decoded off the UI thread; it happens twice a day.
