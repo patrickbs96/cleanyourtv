@@ -9,10 +9,13 @@
 > **Was der Launcher ins Netz sendet.** Anders als der Original-Launcher hat dieser Fork die Berechtigung `INTERNET`,
 > nur für die Wetterzeile unter dem Datum („12° · Bewölkt“, Spec § 4.10c). Er sendet genau eine Anfrage: ein HTTPS-GET
 > an `api.open-meteo.com/v1/forecast` mit `latitude` und `longitude` aus `config.xml`, auf zwei Nachkommastellen
-> gerundet (etwa 1 km), und den Feldern `current=temperature_2m,weather_code&timezone=auto`. Das passiert alle
-> 30 Minuten, solange Home im Vordergrund ist, 5 Minuten nach einem Fehler und nie im Hintergrund. Sonst nichts: keine
-> weiteren Verbindungen, keine Telemetrie, keine Kennung, kein Konto. Open-Meteo sieht dabei wie jeder Server die
-> IP-Adresse des Anschlusses. Der Schalter `weather=false` (in `config.xml` oder im Theme) schaltet die Zeile ab, dann
+> gerundet (etwa 1 km), und den Feldern `current=temperature_2m,weather_code&timezone=auto`, dazu ein neutraler
+> User-Agent `tvhome` (statt Androids Standard, der Modell und Firmware-Build nennen würde). Die übrigen Header sind
+> die üblichen des HTTP-Stacks (`Host`, `Accept: application/json`, `Accept-Encoding: gzip`, `Connection`), ohne
+> Geräte- oder Sprachangaben. Das passiert alle 30 Minuten, solange Home im Vordergrund ist, 5 Minuten nach einem
+> Fehler; im Hintergrund gibt es keinen neuen Abruf (ein beim Verlassen schon gesendeter läuft noch zu Ende). Sonst
+> nichts: keine weiteren Verbindungen, keine Telemetrie, keine Kennung, kein Konto. Open-Meteo sieht dabei wie jeder
+> Server die IP-Adresse des Anschlusses. Der Schalter `weather=false` (in `config.xml` oder im Theme) schaltet die Zeile ab, dann
 > gibt es keinen Netzzugriff. Ohne `latitude` oder `longitude` ist sie ebenfalls aus.
 
 <p align="center">

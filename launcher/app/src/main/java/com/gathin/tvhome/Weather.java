@@ -18,14 +18,17 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
  * The weather line under the date (spec § 4.10c): "12° · Bewölkt" from Open-Meteo for latitude and longitude in
- * config.xml. The launcher's only network access: one HTTPS GET to api.open-meteo.com, every 30 minutes while Home is in
- * front, 5 minutes after a failure, never in the background. The last reading is kept in SharedPreferences "weather" and
+ * config.xml. The launcher's only network access: one HTTPS GET to api.open-meteo.com with the neutral User-Agent "tvhome",
+ * every 30 minutes while Home is in front, 5 minutes after a failure, no new request in the background (one already
+ * sent when Home is left still finishes). The last reading is kept in SharedPreferences "weather" and
  * shown at once on a start within 2 hours of it. A failure leaves the line as it was (the last value, or gone when there
  * is none). Off with weather=false, or without coordinates, and then nothing is fetched at all.
  */
@@ -37,6 +40,8 @@ final class Weather {
     private static final int TIMEOUT_MS = 5000;
     /** Open-Meteo's answer is about 400 bytes; anything far longer is not it. */
     private static final int MAX_BODY = 16 * 1024;
+    /** The only identification the request carries (README, "Was der Launcher ins Netz sendet"). */
+    static final String USER_AGENT = "tvhome";
     private static final String PREFS = "weather";
     private static final String KEY_TEMP = "temp";
     private static final String KEY_CODE = "code";
@@ -53,18 +58,35 @@ final class Weather {
         }
     }
 
+    /** The main thread's handler and the worker, made on first use: the JVM tests load this class without a Looper. */
+    private static final class Threads {
+        static final Handler MAIN = new Handler(Looper.getMainLooper());
+        /** One worker thread at most, gone 30 s after the last request; never interrupted, so every request ends. */
+        static final ExecutorService WORKER = new ThreadPoolExecutor(0, 1, 30, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(), r -> {
+                    Thread t = new Thread(r, "weather");
+                    t.setPriority(Thread.MIN_PRIORITY);
+                    return t;
+                });
+    }
+
+    // Process-wide, touched on the main thread only: a world switch (recreate) or a quick trip away from Home makes a
+    // new Weather or a new start() while a request may still be on its way. That request is never dropped or
+    // repeated: its answer is saved and goes to whichever Weather runs by then, and the next one is planned from it.
+    /** When the last request was sent, 0 for none in this process. */
+    private static long lastAttemptAt;
+    /** When the last request failed, 0 when the last one worked. */
+    private static long failedAt;
+    /** A request is on its way; its answer goes to whichever Weather is running by then. */
+    private static boolean inFlight;
+    /** The started Weather (Home in front), null while none is. */
+    private static Weather active;
+
     private final Context context;
     private final TextView line;
     /** The request, or null when the line is off (weather false, no or broken coordinates). */
     private final String url;
-    private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable fetch = this::fetch;
-    private ExecutorService executor;
-    private boolean running;
-    /** Counts starts and stops, so an answer that arrives after stop() changes nothing on screen. */
-    private int generation;
-    /** When the last fetch failed, 0 when the last one worked; kept for this process only. */
-    private long failedAt;
 
     Weather(Context context, TextView line, String latitude, String longitude, boolean enabled) {
         this.context = context.getApplicationContext();
@@ -76,9 +98,9 @@ final class Weather {
 
     /** Shows the saved reading while it is fresh and plans the next fetch; nothing when the line is off. */
     void start() {
-        if (url == null || running) return;
-        running = true;
-        generation++;
+        if (url == null || active == this) return;
+        if (active != null) active.stop();
+        active = this;
         SharedPreferences prefs = prefs();
         long now = System.currentTimeMillis();
         long at = prefs.getLong(KEY_AT, 0);
@@ -88,34 +110,22 @@ final class Weather {
             // Older than 2 hours (Home was away that long): no stale value; the fetch below brings a new one.
             line.setVisibility(View.GONE);
         }
-        boolean lastFailed = failedAt > at;
-        handler.postDelayed(fetch, firstDelayMs(Math.max(at, failedAt), lastFailed, now));
+        long delay = startDelayMs(at, failedAt, lastAttemptAt, inFlight, now);
+        if (delay >= 0) Threads.MAIN.postDelayed(fetch, delay);
     }
 
-    /** No more fetches until the next start; an answer still on its way is dropped. */
+    /** No more fetches until the next start. A request on its way still finishes; its reading is saved. */
     void stop() {
-        if (!running) return;
-        running = false;
-        generation++;
-        handler.removeCallbacks(fetch);
-        if (executor != null) {
-            executor.shutdownNow();
-            executor = null;
-        }
+        Threads.MAIN.removeCallbacks(fetch);
+        if (active == this) active = null;
     }
 
     private void fetch() {
-        if (!running) return;
-        if (executor == null) {
-            executor = Executors.newSingleThreadExecutor(r -> {
-                Thread t = new Thread(r, "weather");
-                t.setPriority(Thread.MIN_PRIORITY);
-                return t;
-            });
-        }
-        final int gen = generation;
+        if (active != this || inFlight) return;
+        inFlight = true;
+        lastAttemptAt = System.currentTimeMillis();
         final String request = url;
-        executor.execute(() -> {
+        Threads.WORKER.execute(() -> {
             long started = SystemClock.elapsedRealtime();
             int status = -1;
             String error = null;
@@ -128,6 +138,9 @@ final class Weather {
                 c.setUseCaches(false);
                 c.setInstanceFollowRedirects(false);
                 c.setRequestProperty("Accept", "application/json");
+                // A neutral name instead of Android's default "Dalvik/2.1.0 (Linux; U; Android 11; <model> Build/<id>)",
+                // which would tell Open-Meteo the TV's model and firmware build every half hour (README: nothing else).
+                c.setRequestProperty("User-Agent", USER_AGENT);
                 status = c.getResponseCode();
                 if (status == HttpURLConnection.HTTP_OK) {
                     try (InputStream in = c.getInputStream()) {
@@ -145,23 +158,28 @@ final class Weather {
             Log.i(TAG, "fetch " + (reading != null ? "ok" : "failed") + ", HTTP " + status + ", " + ms + " ms"
                     + (error != null ? ", " + error : ""));
             final Reading result = reading;
-            handler.post(() -> done(gen, result));
+            final Context app = context;
+            Threads.MAIN.post(() -> done(app, result));
         });
     }
 
-    private void done(int gen, Reading reading) {
+    /** The answer, on the main thread: saved, and shown by the Weather running now, which plans the next fetch. */
+    private static void done(Context app, Reading reading) {
+        inFlight = false;
         long now = System.currentTimeMillis();
         if (reading != null) {
-            prefs().edit().putInt(KEY_TEMP, reading.temperature).putInt(KEY_CODE, reading.code)
-                    .putLong(KEY_AT, now).apply();
+            app.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putInt(KEY_TEMP, reading.temperature)
+                    .putInt(KEY_CODE, reading.code).putLong(KEY_AT, now).apply();
             failedAt = 0;
         } else {
             failedAt = now;
         }
-        if (gen != generation || !running) return;
+        Weather w = active;
+        if (w == null) return;   // Home is away: the next start() plans from these times
         // A failure leaves the line alone: the last value stays, or it stays gone.
-        if (reading != null) show(reading.temperature, reading.code);
-        handler.postDelayed(fetch, nextDelayMs(reading == null));
+        if (reading != null) w.show(reading.temperature, reading.code);
+        Threads.MAIN.removeCallbacks(w.fetch);
+        Threads.MAIN.postDelayed(w.fetch, nextDelayMs(reading == null));
     }
 
     private void show(int temperature, int code) {
@@ -252,5 +270,16 @@ final class Weather {
         long elapsed = nowMs - lastAttemptMs;
         if (elapsed < 0) return period;
         return Math.max(0, period - elapsed);
+    }
+
+    /**
+     * The wait before the first fetch on start(), from the saved reading's time, the last failure and the last request
+     * sent in this process: -1 while a request is still on its way (its answer plans the next one), else
+     * {@link #firstDelayMs} from the latest of them, with the retry wait when the failure is the newest news.
+     */
+    static long startDelayMs(long savedAtMs, long failedAtMs, long attemptAtMs, boolean inFlight, long nowMs) {
+        if (inFlight) return -1;
+        long last = Math.max(savedAtMs, Math.max(failedAtMs, attemptAtMs));
+        return firstDelayMs(last, failedAtMs > savedAtMs, nowMs);
     }
 }

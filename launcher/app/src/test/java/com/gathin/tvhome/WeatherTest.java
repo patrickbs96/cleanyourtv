@@ -45,6 +45,24 @@ public class WeatherTest {
         assertEquals(3 * min, Weather.firstDelayMs(10 * min, true, 12 * min));     // failed 2 min ago
         assertEquals(30 * min, Weather.firstDelayMs(90 * min, false, 10 * min));   // clock set back: one period
     }
+    @Test public void aStartDuringARequestWaitsForItsAnswer() {
+        long min = 60_000L;
+        // Home left and back (or a world switch) while the request sent a minute ago is still out: no second one.
+        assertEquals(-1, Weather.startDelayMs(0, 0, 9 * min, true, 10 * min));
+        // Its answer is in: planned from it, not fetched again at once.
+        assertEquals(29 * min, Weather.startDelayMs(10 * min, 0, 9 * min, false, 11 * min));
+        assertEquals(4 * min, Weather.startDelayMs(0, 10 * min, 9 * min, false, 11 * min));
+        // Sent at 9, no answer recorded: one period from sending, never at once.
+        assertEquals(28 * min, Weather.startDelayMs(0, 0, 9 * min, false, 11 * min));
+        // An old failure under a newer good reading counts as good.
+        assertEquals(20 * min, Weather.startDelayMs(10 * min, 5 * min, 9 * min, false, 20 * min));
+        // Nothing yet: at once.
+        assertEquals(0, Weather.startDelayMs(0, 0, 0, false, 20 * min));
+    }
+    @Test public void theUserAgentNamesNoDevice() {
+        // Android's default would be "Dalvik/2.1.0 (Linux; U; Android 11; <model> Build/<id>)".
+        assertEquals("tvhome", Weather.USER_AGENT);
+    }
     @Test public void wmoWordsCoverEveryRange() {
         int[][] ranges = {{1, 2}, {3, 3}, {45, 45}, {48, 48}, {51, 57}, {61, 67}, {71, 77}, {80, 82}, {85, 86}, {95, 99}};
         String[] keys = {"wmo_fair", "wmo_cloudy", "wmo_fog", "wmo_fog", "wmo_drizzle", "wmo_rain", "wmo_snow",

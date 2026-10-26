@@ -1304,7 +1304,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         endReorder();   // Home or another app while reordering keeps the order so far
         wallpaperPlayer.stop();
         worldScene.stop();
-        weather.stop();   // never fetched in the background
+        weather.stop();   // no new request in the background
         resumed = false;
         updateWorldOverlay();
         if (worldOverlay != null) {

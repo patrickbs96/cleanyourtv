@@ -398,7 +398,7 @@
     <string name="longitude" translatable="false">13.41</string>
     <!-- Weather line under the date ("12° · Cloudy", spec § 4.10c): the launcher's only network access, one HTTPS GET
          to api.open-meteo.com with latitude and longitude above (two decimals, about 1 km), every 30 minutes while Home
-         is in front, 5 minutes after a failure, never in the background; the last reading shows at once on a start
+         is in front, 5 minutes after a failure, no new request in the background; the last reading shows at once on a start
          within 2 hours. false, or no latitude or longitude, turns it off and nothing is fetched. Can also be set with
          "weather": false in a theme's config.json. -->
     <bool name="weather">true</bool>

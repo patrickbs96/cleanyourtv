@@ -134,7 +134,8 @@ Never do these in a PR:
 - **No uninstalling.** No `pm uninstall` in a list or a script. `pm hide` or `pm block` only with the matching
   undo written in the list header.
 - **No network in the launcher:** no `INTERNET` permission, no network features, no analytics or telemetry, no
-  background services or polling, no blur or video. It targets TVs with 1 GB of RAM.
+  background services or polling, no blur or video. It targets TVs with 1 GB of RAM. (The `vier-welten` fork's one
+  exception is the weather line, spec § 4.10c, off with `weather=false`; see the top of `README.md`.)
 - **No new launcher dependencies** without discussing them in an issue first.
 - **No changes to the safety rules** in `PROMPT.md`, the Home guard and other safety checks in
   `tools/disable.sh`, `tools/check.py` and `launcher/build-and-install.sh`, or the list of packages the TV
