@@ -82,6 +82,8 @@ final class SupernaturalOverlay extends WorldOverlay {
     private final float[][] boltUnits = new float[BOLTS][BOLT_SEGS * 4], boltPx = new float[BOLTS][BOLT_SEGS * 4];
     private final int[] boltSegs = new int[BOLTS];
     private final Shader[] letterFade = new Shader[SupernaturalScene.NEON_MOTEL_X.length];
+    /** Each motel letter's cover box in units (motelLetterBox), worked out once rather than per night frame. */
+    private final float[][] letterBox = new float[SupernaturalScene.NEON_MOTEL_X.length][];
 
     private final Paint rainPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     /** Radial glows of radius 1, each scaled to its ellipse: the cracks' red light, the star, tail light, sheen. */
@@ -135,7 +137,7 @@ final class SupernaturalOverlay extends WorldOverlay {
         // Each letter's cover across a unit square: full over its ink, fading out over the margin on both sides.
         int none = MOTEL_OFF & 0x00FFFFFF;
         for (int i = 0; i < letterFade.length; i++) {
-            float[] b = motelLetterBox(i);
+            float[] b = letterBox[i] = motelLetterBox(i);
             float fade = LETTER_MARGIN / (b[2] - b[0]);
             letterFade[i] = new LinearGradient(0f, 0f, 1f, 0f, new int[]{none, MOTEL_OFF, MOTEL_OFF, none},
                     new float[]{0f, fade, 1f - fade, 1f}, Shader.TileMode.CLAMP);
@@ -345,7 +347,7 @@ final class SupernaturalOverlay extends WorldOverlay {
         float m = motelDim(now, SEED, true);
         if (m > 0f) {
             int letter = motelLetter(now, SEED);
-            float[] b = motelLetterBox(letter);
+            float[] b = letterBox[letter];
             motelOff.setShader(letterFade[letter]);
             motelOff.setAlpha((int) (255 * 0.85f * m));
             c.save();
