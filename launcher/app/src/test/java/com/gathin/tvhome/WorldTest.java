@@ -25,8 +25,58 @@ public class WorldTest {
         assertSame(World.HOGWARTS, World.forKeyCode(KeyEvent.KEYCODE_2));
         assertSame(World.MARVEL, World.forKeyCode(KeyEvent.KEYCODE_3));
         assertSame(World.STARWARS, World.forKeyCode(KeyEvent.KEYCODE_4));
-        assertNull(World.forKeyCode(KeyEvent.KEYCODE_5));   // free for the next world
+        assertSame(World.SUPERNATURAL, World.forKeyCode(KeyEvent.KEYCODE_5));
+        assertNull(World.forKeyCode(KeyEvent.KEYCODE_6));   // free for the next world
         assertNull(World.forKeyCode(KeyEvent.KEYCODE_9));
+    }
+    @Test public void supernaturalHasNoColourKey() {
+        for (int k = KeyEvent.KEYCODE_PROG_RED; k <= KeyEvent.KEYCODE_PROG_BLUE; k++) assertNotSame(World.SUPERNATURAL, World.forKeyCode(k));
+        for (int scan = 398; scan <= 401; scan++) assertNotSame(World.SUPERNATURAL, World.forScanCode(scan));
+    }
+    @Test public void supernaturalValuesAsSpecified() {
+        assertSame(World.SUPERNATURAL, World.parse("supernatural"));
+        assertEquals(R.string.world_supernatural, World.SUPERNATURAL.labelRes);
+        assertEquals(0xFFE0A24A, World.SUPERNATURAL.keyColor);
+        assertEquals(0xFFE0A24A, World.SUPERNATURAL.accent);
+        assertEquals(0xFFE0A24A, World.SUPERNATURAL.ambientColor);
+        assertEquals(30, World.SUPERNATURAL.ambientAlphaPercent);
+        assertEquals(0xFF0B0D10, World.SUPERNATURAL.backgroundColor);
+        assertEquals(0, World.SUPERNATURAL.heroPrefixRes);
+        assertTrue(World.SUPERNATURAL.forcesIconOnlyPills());
+    }
+    /** Supernatural's words come after the day's greeting, the same in every language: on the road by day, a hunt by night. */
+    @Test public void supernaturalGreetsAfterTheGreeting() {
+        assertEquals("", World.SUPERNATURAL.greetingPrefix(true));
+        assertEquals("", World.SUPERNATURAL.greetingPrefix(false));
+        assertEquals("Back on the road", World.SUPERNATURAL.greetingSuffix(true));
+        assertEquals("Something's out there", World.SUPERNATURAL.greetingSuffix(false));
+        // The others keep theirs, day or night.
+        assertEquals("Äußerer Rand", World.STARWARS.greetingSuffix(true));
+        assertEquals("Äußerer Rand", World.STARWARS.greetingSuffix(false));
+        assertEquals("", World.HOGWARTS.greetingSuffix(false));
+        assertEquals("", World.CLEAN.greetingSuffix(true));
+    }
+    /**
+     * Until its own skin arrives (Tasks 2 to 8) Supernatural takes the neutral paths everywhere a world branches:
+     * no picture, Clean's pills, Clean's spring, no launch effect, a plain fade in; never another world's skin.
+     */
+    @Test public void supernaturalFallsBackToNeutralPaths() {
+        World w = World.SUPERNATURAL;
+        assertEquals(0, WorldScene.resFor(w, true));
+        assertEquals(0, WorldScene.resFor(w, false));
+        assertEquals(R.drawable.pill_bg, WorldChrome.pillBackground(w));
+        assertFalse(WorldChrome.ownsNetworkIcon(w));
+        assertNull(WorldFocusMotion.springFor(w, false));
+        assertEquals(0L, WorldFocusMotion.frameDelayMs(w, true));
+        assertEquals(0L, WorldLaunchMotion.durationMs(w));
+        assertFalse(WorldLaunchMotion.shouldPlay(w, true, false));
+        assertEquals(1f, WorldLaunchMotion.sceneZoom(w, 500), 0f);
+        assertEquals(1f, WorldLaunchMotion.tileAlpha(w, 500), 0f);
+        assertEquals(WorldTransition.peak(World.CLEAN), WorldTransition.peak(w), 0f);
+        assertEquals(0f, WorldTransition.revealLine(w, 400), 0f);
+        assertEquals(1f, WorldTransition.sceneZoom(w, 400, true), 0f);
+        assertEquals(0xFF0B0D10, WorldTransition.coverColor(w));
+        assertEquals("Netflix", WorldTypography.heroLabel(w, "Netflix"));
     }
     @Test public void seasonsHasNoColourKey() {
         for (int k = KeyEvent.KEYCODE_PROG_RED; k <= KeyEvent.KEYCODE_PROG_BLUE; k++) assertNotSame(World.SEASONS, World.forKeyCode(k));
@@ -39,6 +89,7 @@ public class WorldTest {
         assertTrue(World.HOGWARTS.hasOwnMotion());
         assertTrue(World.MARVEL.hasOwnMotion());
         assertTrue(World.STARWARS.hasOwnMotion());
+        assertTrue(World.SUPERNATURAL.hasOwnMotion());
     }
     @Test public void seasonsValuesAsSpecified() {
         assertEquals(0xFFE8A33D, World.SEASONS.keyColor);
@@ -48,7 +99,7 @@ public class WorldTest {
         assertEquals(0xFF0D0F14, World.SEASONS.backgroundColor);
         assertEquals(0, World.SEASONS.heroPrefixRes);
         assertEquals("", World.SEASONS.greetingPrefix(true));
-        assertEquals("", World.SEASONS.greetingSuffix());
+        assertEquals("", World.SEASONS.greetingSuffix(true));
     }
     /** Seasons is a world with its own scene: icon-only pills as in the others. */
     @Test public void seasonsShowsIconOnlyPills() { assertTrue(World.SEASONS.forcesIconOnlyPills()); }
@@ -63,7 +114,7 @@ public class WorldTest {
         }
     }
     @Test public void scanCodesMapLikeKeys() { assertSame(World.MARVEL, World.forScanCode(398)); assertSame(World.CLEAN, World.forScanCode(399)); assertSame(World.HOGWARTS, World.forScanCode(400)); assertSame(World.STARWARS, World.forScanCode(401)); assertNull(World.forScanCode(1)); }
-    @Test public void hogwartsGreetsLumosByDayNoxByNight() { assertEquals("Lumos", World.HOGWARTS.greetingPrefix(true)); assertEquals("Nox", World.HOGWARTS.greetingPrefix(false)); assertEquals("", World.CLEAN.greetingPrefix(true)); assertEquals("Äußerer Rand", World.STARWARS.greetingSuffix()); }
+    @Test public void hogwartsGreetsLumosByDayNoxByNight() { assertEquals("Lumos", World.HOGWARTS.greetingPrefix(true)); assertEquals("Nox", World.HOGWARTS.greetingPrefix(false)); assertEquals("", World.CLEAN.greetingPrefix(true)); assertEquals("Äußerer Rand", World.STARWARS.greetingSuffix(true)); }
     @Test public void onlyCleanKeepsTextPills() { assertFalse(World.CLEAN.forcesIconOnlyPills()); assertTrue(World.MARVEL.forcesIconOnlyPills()); }
 
     @Test public void dockStyleNeedsPlainDockRow() {

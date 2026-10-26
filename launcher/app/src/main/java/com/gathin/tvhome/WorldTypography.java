@@ -23,7 +23,8 @@ import java.util.Locale;
 
 /**
  * The header and the hero name in a world's type (spec § 4.4): Cormorant Garamond in Hogwarts, Oswald in Marvel,
- * Michroma in Star Wars, with each world's colours, spacing and hero style, and the greeting words of § 4.9.
+ * Michroma in Star Wars, Courier Prime in Supernatural, with each world's colours, spacing and hero style, and the
+ * greeting words of § 4.9.
  * Clean returns before touching anything, so its views keep what the layout and Config gave them.
  */
 final class WorldTypography {
@@ -33,6 +34,9 @@ final class WorldTypography {
     static final int HOG_GOLD = 0xFFC9A84C;
     static final int MARVEL_GOLD = 0xFFE6B85A;
     static final int STARWARS_HOLO = 0xFF8FB3FF;
+    /** Supernatural's amber (its accent) and the warm paper white of its clock and hero. */
+    static final int SUPERNATURAL_AMBER = 0xFFE0A24A;
+    static final int SUPERNATURAL_PAPER = 0xFFF2E6CF;
 
     /** The greeting's size and spacing next to Clean's 12sp/0.22, from the mockup (vier-welten-v3). */
     private static final float HOG_GREETING_SCALE = 1.27f;
@@ -131,6 +135,25 @@ final class WorldTypography {
                 heroMeta.setTypeface(michroma);
                 break;
             }
+            case SUPERNATURAL: {
+                // Courier Prime, a typewriter face: the clock and the hero in bold on old paper, greeting and date in
+                // the regular cut in amber (Supernatural spec § 3, § 4.3).
+                Typeface regular = UiFont.get(c, R.string.font_world_supernatural_regular);
+                Typeface bold = UiFont.get(c, R.string.font_world_supernatural_bold);
+                clock.setTypeface(bold);
+                clock.setLetterSpacing(0f);
+                clock.setTextColor(SUPERNATURAL_PAPER);
+                greeting.setTypeface(regular);
+                greeting.setLetterSpacing(0.2f);
+                date.setTypeface(regular);
+                date.setTextColor(SUPERNATURAL_AMBER);
+                clockDivider.setBackgroundColor(0x66E0A24A);   // amber, 40 %
+                heroName.setTypeface(bold);
+                heroName.setLetterSpacing(0.02f);
+                heroName.setTextColor(SUPERNATURAL_PAPER);
+                heroMeta.setTypeface(regular);
+                break;
+            }
             default:
                 break;
         }
@@ -210,10 +233,13 @@ final class WorldTypography {
         return label;
     }
 
-    /** "Nox · Guten Abend", "Guten Abend · Äußerer Rand": the world's words around the day's greeting. */
+    /**
+     * "Nox · Guten Abend", "Guten Abend · Äußerer Rand", "Guten Abend · Something's out there": the world's words
+     * around the day's greeting.
+     */
     static String greetingText(World w, String base, boolean day) {
         String prefix = w.greetingPrefix(day);
-        String suffix = w.greetingSuffix();
+        String suffix = w.greetingSuffix(day);
         String text = prefix.isEmpty() ? base : prefix + " · " + base;
         return suffix.isEmpty() ? text : text + " · " + suffix;
     }
@@ -224,6 +250,7 @@ final class WorldTypography {
             case HOGWARTS: return 0xFFE8C87A;
             case MARVEL: return MARVEL_GOLD;
             case STARWARS: return STARWARS_HOLO;
+            case SUPERNATURAL: return SUPERNATURAL_AMBER;
             default: return fallback;
         }
     }

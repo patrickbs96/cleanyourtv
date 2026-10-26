@@ -67,6 +67,18 @@ public class PersonalGreetingTest {
                 PersonalGreeting.text(DE, World.STARWARS, PI_DAY_2026, true));
     }
 
+    /** Supernatural is a themed world: the plain wish, then its day or night words. */
+    @Test
+    public void birthdayInSupernaturalTakesItsDayOrNightWords() {
+        assertEquals("Alles Gute, Alex · Back on the road",
+                PersonalGreeting.text(DE, World.SUPERNATURAL, PI_DAY_2026, true));
+        assertEquals("Happy birthday, Alex · Something's out there",
+                PersonalGreeting.text(EN, World.SUPERNATURAL, PI_DAY_2026, false));
+        SeasonsToday anniversary = on(2026, 3, 14, ANNIVERSARY);
+        assertEquals("7 Jahre · Alex & Robin · Something's out there",
+                PersonalGreeting.text(DE, World.SUPERNATURAL, anniversary, false));
+    }
+
     @Test
     public void twoBirthdaysShareOneGreeting() {
         SeasonsToday both = on(2026, 3, 14, ALEX_BIRTHDAY, ROBIN_BIRTHDAY);

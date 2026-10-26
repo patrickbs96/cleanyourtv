@@ -96,9 +96,10 @@ public class LaunchGuardTest {
         assertEquals(1f, WorldLaunchMotion.blendAlpha(World.STARWARS, 1200), 1e-6);
         assertEquals(0xFF000000, WorldLaunchMotion.blendColor(World.HOGWARTS));
         assertEquals(0xFFFFFFFF, WorldLaunchMotion.blendColor(World.MARVEL));
-        // Every effect is full at its own end: the app never comes up over a half-faded Home. Clean and Seasons have none.
+        // Every effect is full at its own end: the app never comes up over a half-faded Home. Clean and Seasons have
+        // none, nor has a world whose effect is still to come (Supernatural before its launch task): shouldPlay skips it.
         for (World w : World.values()) {
-            if (w.hasOwnMotion()) assertEquals(1f, WorldLaunchMotion.blendAlpha(w, WorldLaunchMotion.durationMs(w)), 1e-6);
+            if (w.hasOwnMotion() && WorldLaunchMotion.durationMs(w) > 0) assertEquals(1f, WorldLaunchMotion.blendAlpha(w, WorldLaunchMotion.durationMs(w)), 1e-6);
         }
     }
 

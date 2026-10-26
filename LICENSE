@@ -30,3 +30,7 @@ The Cormorant Garamond, Oswald and Michroma typefaces in launcher/app/src/main/r
 (cormorant_garamond_*.ttf, oswald_*.ttf, michroma.ttf) are copyright their project authors
 and licensed under the SIL Open Font License 1.1, see launcher/FONT-LICENSE-OFL-cormorant.txt,
 launcher/FONT-LICENSE-OFL-oswald.txt and launcher/FONT-LICENSE-OFL-michroma.txt.
+
+The Courier Prime typeface in launcher/app/src/main/res/font/ (courier_prime_*.ttf) is
+copyright The Courier Prime Project Authors and licensed under the SIL Open Font License 1.1,
+see launcher/FONT-LICENSE-OFL-courierprime.txt.

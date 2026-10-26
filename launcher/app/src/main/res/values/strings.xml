@@ -158,7 +158,8 @@
     <string name="world_hogwarts">Hogwarts</string>
     <string name="world_marvel">Marvel</string>
     <string name="world_starwars">Star Wars</string>
-    <string name="world_hint">The remote\'s colour keys or 0 to 4 switch directly</string>
+    <string name="world_supernatural">Supernatural</string>
+    <string name="world_hint">The remote\'s colour keys or 0 to 5 switch directly</string>
     <!-- Seasons' personal days (Launcher settings; SeasonsActivity, Jahreskreis spec § 4.7). They stay on the TV. -->
     <string name="seasons_settings_hint">Birthdays, anniversaries and wedding days that Seasons celebrates, the anniversary crawl text, Mother\'s Day and Father\'s Day</string>
     <string name="seasons_hint">The entries stay on this TV only. OK on an entry changes or removes it.</string>

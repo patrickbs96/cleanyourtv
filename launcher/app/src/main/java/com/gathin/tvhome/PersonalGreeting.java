@@ -67,7 +67,10 @@ final class PersonalGreeting {
                 .withAnniversary(PersonalDays.anniversaryGreeting(prefs, standard));
     }
 
-    /** The greeting for today's entries in world {@code w}; {@code day} picks Hogwarts' Lumos or Nox. */
+    /**
+     * The greeting for today's entries in world {@code w}; {@code day} picks Hogwarts' Lumos or Nox and Supernatural's
+     * day or night words.
+     */
     static String text(Resources r, SharedPreferences prefs, World w, SeasonsToday t, boolean day) {
         if (t == null || t.personal.isEmpty()) return "";
         return text(templates(r, prefs), w, t, day);
@@ -95,7 +98,7 @@ final class PersonalGreeting {
         String text = String.join(SEPARATOR, phrases);
         if (!themed) return text;
         String prefix = w.greetingPrefix(day);
-        String suffix = w.greetingSuffix();
+        String suffix = w.greetingSuffix(day);
         if (!prefix.isEmpty()) text = prefix + SEPARATOR + text;
         return suffix.isEmpty() ? text : text + SEPARATOR + suffix;
     }

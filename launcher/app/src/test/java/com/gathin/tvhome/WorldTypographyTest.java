@@ -12,6 +12,21 @@ public class WorldTypographyTest {
         assertEquals("Guten Abend", WorldTypography.greetingText(World.CLEAN, "Guten Abend", true));
     }
 
+    /** Supernatural's words follow the day's greeting: on the road by day, something out there by night. */
+    @Test public void supernaturalWordsFollowTheGreeting() {
+        assertEquals("Guten Morgen · Back on the road",
+                WorldTypography.greetingText(World.SUPERNATURAL, "Guten Morgen", true));
+        assertEquals("Good evening · Something's out there",
+                WorldTypography.greetingText(World.SUPERNATURAL, "Good evening", false));
+        // Star Wars keeps its words at night too.
+        assertEquals("Guten Abend · Äußerer Rand", WorldTypography.greetingText(World.STARWARS, "Guten Abend", false));
+    }
+
+    @Test public void supernaturalGreetsInAmber() {
+        assertEquals(0xFFE0A24A, WorldTypography.greetingColor(World.SUPERNATURAL, 0x12345678));
+        assertEquals(0xFFE0A24A, WorldTypography.greetingColor(World.SUPERNATURAL, 0x12345678, Look.HALLOWEEN.accent));
+    }
+
     @Test public void lumosByDay() {
         assertEquals("Lumos · Guten Morgen", WorldTypography.greetingText(World.HOGWARTS, "Guten Morgen", true));
     }

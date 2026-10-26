@@ -75,7 +75,8 @@
     <string name="world_hogwarts">Hogwarts</string>
     <string name="world_marvel">Marvel</string>
     <string name="world_starwars">Star Wars</string>
-    <string name="world_hint">Farbtasten oder 0 bis 4 der Fernbedienung wechseln direkt</string>
+    <string name="world_supernatural">Supernatural</string>
+    <string name="world_hint">Farbtasten oder 0 bis 5 der Fernbedienung wechseln direkt</string>
     <string name="seasons_settings_hint">Geburtstage, Jahrestage und Hochzeitstage, die Jahreskreis feiert, der Vorspann-Text zum Jahrestag, Muttertag und Vatertag</string>
     <string name="seasons_hint">Die Einträge bleiben nur auf diesem TV. OK auf einem Eintrag ändert oder entfernt ihn.</string>
     <string name="seasons_add">Eintrag hinzufügen</string>
