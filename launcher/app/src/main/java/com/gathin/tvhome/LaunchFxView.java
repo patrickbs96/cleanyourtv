@@ -4,6 +4,8 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.RadialGradient;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Shader;
@@ -15,7 +17,9 @@ import java.util.Random;
 /**
  * The worlds' app-start overlay (spec § 4.7), drawn over all of Home: Hogwarts' white-gold glow round the tile, its
  * conic spark swirl and the black of "Nox"; Marvel's three reactor rings, the anamorphic light streak and the cut to
- * white; Star Wars' 70 hyperspace streaks and the white. The tile's own growth, the frame's fade and the scene's zoom
+ * white; Star Wars' 70 hyperspace streaks and the white; Supernatural's headlights, the lamp and its two cones growing
+ * out of the car's front till their light fills the screen, and the white. The tile's own growth, the frame's fade
+ * and the scene's zoom
  * are WorldLaunchMotion's; this view only draws what lies over them, at the time {@link #setElapsed} gives it.
  *
  * <p>Built like PetalShowerView: no focus, clicks or accessibility, every paint, shader and per-streak value made
@@ -40,6 +44,10 @@ final class LaunchFxView extends View {
     private final Paint flare = new Paint();
     private final Paint streak = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint blend = new Paint();
+    private final Paint beam = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint lamp = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint wash = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Path unitCone = new Path();
     private final float[] cos = new float[STREAKS], sin = new float[STREAKS];
     private final long[] delay = new long[STREAKS];
     private final RectF box = new RectF();
@@ -68,6 +76,18 @@ final class LaunchFxView extends View {
                 new float[]{0f, 0.5f, 1f}, Shader.TileMode.CLAMP));
         streak.setColor(0xFFFFFFFF);
         streak.setStrokeCap(Paint.Cap.BUTT);
+        // Supernatural's headlights in warm white: a cone from its apex at the origin to x = -1, y = ±1, its light
+        // fading along it; the lamp's hot point and the wash its cones throw, radius 1 each.
+        unitCone.moveTo(0f, 0f);
+        unitCone.lineTo(-1f, -1f);
+        unitCone.lineTo(-1f, 1f);
+        unitCone.close();
+        beam.setShader(new LinearGradient(0f, 0f, -1f, 0f, new int[]{0xF2FFF4DC, 0x8CFFF4DC, 0x00FFF4DC},
+                new float[]{0f, 0.45f, 1f}, Shader.TileMode.CLAMP));
+        lamp.setShader(new RadialGradient(0f, 0f, 1f, new int[]{0xFFFFFFF0, 0x99FFF4DC, 0x00FFF4DC},
+                new float[]{0f, 0.35f, 1f}, Shader.TileMode.CLAMP));
+        wash.setShader(new RadialGradient(0f, 0f, 1f, new int[]{0xFFFFF4DC, 0xB3FFF4DC, 0x00FFF4DC},
+                new float[]{0f, 0.5f, 1f}, Shader.TileMode.CLAMP));
     }
 
     /**
@@ -123,6 +143,9 @@ final class LaunchFxView extends View {
                 break;
             case STARWARS:
                 drawStarWars(c, t, k);
+                break;
+            case SUPERNATURAL:
+                drawSupernatural(c, t);
                 break;
             default:
                 break;
@@ -224,5 +247,60 @@ final class LaunchFxView extends View {
             streak.setAlpha(Math.round(255 * alpha));
             c.drawLine(mx + cos[i] * d, my + sin[i] * d, mx + cos[i] * (d + len), my + sin[i] * (d + len), streak);
         }
+    }
+
+    private void drawSupernatural(Canvas c, long t) {
+        // The headlamp where the scene paints it (SupernaturalScene, 192 x 108 units mapped as the scene's
+        // CENTER_CROP maps the picture, as WorldOverlay does).
+        int w = getWidth(), h = getHeight();
+        float u = Math.max(w / SupernaturalScene.UNITS_W, h / SupernaturalScene.UNITS_H);
+        float hx = (w - SupernaturalScene.UNITS_W * u) / 2f + SupernaturalScene.CAR_HEADLIGHT[0] * u;
+        float hy = (h - SupernaturalScene.UNITS_H * u) / 2f + SupernaturalScene.CAR_HEADLIGHT[1] * u;
+        float reach = WorldLaunchMotion.beamReach(t);
+        if (reach > 0f) {
+            // The light the cones throw: a warm wash round the car that has grown over the whole screen by the white.
+            float r = (12f + 300f * reach) * u;
+            glowAt(c, wash, 0.75f * reach, hx, hy, r, r);
+            // Two cones out of the front (the car faces left): the low beam down along the road, the high beam a
+            // little up, both opening until they reach past the screen's edges.
+            float len = (8f + 200f * reach) * u;
+            cone(c, hx, hy, -7f, len, 0.16f + 1.3f * reach, reach);
+            cone(c, hx, hy, 3f, 1.1f * len, 0.10f + 1.0f * reach, 0.8f * reach);
+        }
+        glowAt(c, lamp, WorldLaunchMotion.lampGlow(t), hx, hy, 3.2f * u, 2.2f * u);
+    }
+
+    /**
+     * One light cone from (x, y), turned {@code deg} from straight left, {@code len} px long and opening to
+     * {@code spread} × len on either side at its end; soft round its edge (a wider, fainter cone under it).
+     */
+    private void cone(Canvas c, float x, float y, float deg, float len, float spread, float alpha) {
+        float a = WorldLaunchMotion.clamp(alpha);
+        c.save();
+        c.translate(x, y);
+        c.rotate(deg);
+        c.scale(len, len * spread * 1.5f);
+        beam.setAlpha(Math.round(255 * 0.35f * a));
+        c.drawPath(unitCone, beam);
+        c.restore();
+        c.save();
+        c.translate(x, y);
+        c.rotate(deg);
+        c.scale(len, len * spread);
+        beam.setAlpha(Math.round(255 * a));
+        c.drawPath(unitCone, beam);
+        c.restore();
+    }
+
+    /** A radial glow of radius 1 drawn as an ellipse round (x, y) with these half axes in px, at this alpha. */
+    private static void glowAt(Canvas c, Paint p, float alpha, float x, float y, float rx, float ry) {
+        float a = WorldLaunchMotion.clamp(alpha);
+        if (a <= 0f) return;
+        p.setAlpha(Math.round(255 * a));
+        c.save();
+        c.translate(x, y);
+        c.scale(rx, ry);
+        c.drawCircle(0f, 0f, 1f, p);
+        c.restore();
     }
 }

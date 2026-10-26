@@ -22,7 +22,10 @@ import java.util.function.Consumer;
  * anamorphic light streak wipes across in 800 ms, at 1.0 s a cut to white (200 ms), then the app at 1.2 s. Star
  * Wars: 70 streaks shoot out of the screen's middle (150 to 500 ms apart, 900 ms, 900 mockup px), the scene zooms to
  * 1.4× in 1.1 s, the tile stretches to 6×1.6 from 100 ms for 1 s and fades, white at 1.0 s (200 ms), then the app at
- * 1.2 s. No effect runs longer than 1.2 s (the mockup's whites were 300 and 250 ms).
+ * 1.2 s. Supernatural (its own spec § 4.3): the car's headlights flare up, the lamp in 250 ms, and from 100 ms its
+ * two light cones grow out of the car's front until, at 1.0 s, they and their light fill the screen; the white
+ * (200 ms) and the app at 1.2 s; the tile stays as it is. No effect runs longer than 1.2 s (the mockup's whites were
+ * 300 and 250 ms).
  *
  * <p>Clean, reduced motion and animations off never get here: MainActivity starts the app at once
  * ({@link #shouldPlay}), so Clean adds no view. While an effect plays a second OK is swallowed ({@link #begin} and
@@ -38,7 +41,10 @@ final class WorldLaunchMotion {
 
     /** All at most 1.2 s, the limit for every effect (ruling R12 revised): the white cut is 200 ms. */
     static final long WHITE_MS = 200;
-    static final long HOGWARTS_MS = 1200, MARVEL_MS = 1000 + WHITE_MS, STARWARS_MS = 1000 + WHITE_MS;
+    static final long HOGWARTS_MS = 1200, MARVEL_MS = 1000 + WHITE_MS, STARWARS_MS = 1000 + WHITE_MS,
+            SUPERNATURAL_MS = 1000 + WHITE_MS;
+    /** Supernatural: the lamp flares up in LAMP_MS; the cones grow from BEAM_FROM_MS until the white starts. */
+    static final long LAMP_MS = 250, BEAM_FROM_MS = 100;
     /** The app starts at the latest this long after the effect should have ended (a stalled frame, a lost tick). */
     static final long TIMEOUT_GRACE_MS = 200;
     /** The blend stays this long after the start: the app's window is in front by then. */
@@ -56,6 +62,7 @@ final class WorldLaunchMotion {
             case HOGWARTS: return HOGWARTS_MS;
             case MARVEL: return MARVEL_MS;
             case STARWARS: return STARWARS_MS;
+            case SUPERNATURAL: return SUPERNATURAL_MS;
             default: return 0L;
         }
     }
@@ -81,9 +88,20 @@ final class WorldLaunchMotion {
                 return p < 0.6f ? 0f : ease((p - 0.6f) / 0.4f);
             }
             case MARVEL:
-            case STARWARS: return t < 1000 ? 0f : ease(clamp((t - 1000) / (float) WHITE_MS));
+            case STARWARS:
+            case SUPERNATURAL: return t < 1000 ? 0f : ease(clamp((t - 1000) / (float) WHITE_MS));
             default: return 0f;
         }
+    }
+
+    /** Supernatural's headlamp at {@code t} ms, 0 to 1: it flares up first, then holds. */
+    static float lampGlow(long t) {
+        return ease(clamp(t / (float) LAMP_MS));
+    }
+
+    /** How far Supernatural's light cones have grown at {@code t} ms, 0 to 1: full (the screen filled) at the white. */
+    static float beamReach(long t) {
+        return ease(clamp((t - BEAM_FROM_MS) / (float) (1000 - BEAM_FROM_MS)));
     }
 
     /** The blend's colour: Hogwarts goes dark (Nox), the others cut to white. */

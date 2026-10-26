@@ -57,10 +57,10 @@ public class WorldTest {
         assertEquals("", World.CLEAN.greetingSuffix(true));
     }
     /**
-     * Until the rest of its own skin arrives (Tasks 7 and 8) Supernatural takes the neutral paths everywhere a world
-     * branches: its own pictures (Task 3), its own overlay (Task 4), its own pills, dock and frame (Task 5) and its
-     * flicker (Task 6: it jumps, so no spring and no wait of its own), but no launch effect, a plain fade in; never
-     * another world's skin.
+     * Until its transition arrives (Task 8) Supernatural takes the neutral paths everywhere a world branches: its own
+     * pictures (Task 3), its own overlay (Task 4), its own pills, dock and frame (Task 5), its flicker (Task 6: it
+     * jumps, so no spring and no wait of its own) and its headlights at an app start (Task 7, the tile itself stays),
+     * but a plain fade in; never another world's skin.
      */
     @Test public void supernaturalFallsBackToNeutralPaths() {
         World w = World.SUPERNATURAL;
@@ -70,8 +70,8 @@ public class WorldTest {
         assertFalse(WorldChrome.ownsNetworkIcon(w));
         assertNull(WorldFocusMotion.springFor(w, false));
         assertEquals(0L, WorldFocusMotion.frameDelayMs(w, true));
-        assertEquals(0L, WorldLaunchMotion.durationMs(w));
-        assertFalse(WorldLaunchMotion.shouldPlay(w, true, false));
+        assertEquals(1200L, WorldLaunchMotion.durationMs(w));
+        assertTrue(WorldLaunchMotion.shouldPlay(w, true, false));
         assertEquals(1f, WorldLaunchMotion.sceneZoom(w, 500), 0f);
         assertEquals(1f, WorldLaunchMotion.tileAlpha(w, 500), 0f);
         assertEquals(WorldTransition.peak(World.CLEAN), WorldTransition.peak(w), 0f);

@@ -32,6 +32,53 @@ public class LaunchGuardTest {
         assertEquals(1200, WorldLaunchMotion.durationMs(World.HOGWARTS));
         assertEquals(1200, WorldLaunchMotion.durationMs(World.MARVEL));
         assertEquals(1200, WorldLaunchMotion.durationMs(World.STARWARS));
+        assertEquals(1200, WorldLaunchMotion.durationMs(World.SUPERNATURAL));
+    }
+
+    /**
+     * Supernatural (spec § 4.3): the car's headlights flare up, the lamp first, then its two cones grow until they
+     * fill the screen when the white comes, which is cut as the others' at 1.0 s over 200 ms. The tile stays as it is.
+     */
+    @Test
+    public void supernaturalHeadlightsFlareUpAndFillTheScreen() {
+        World w = World.SUPERNATURAL;
+        assertTrue(WorldLaunchMotion.shouldPlay(w, true, false));
+        assertFalse(WorldLaunchMotion.shouldPlay(w, true, true));
+        assertFalse(WorldLaunchMotion.shouldPlay(w, false, false));
+        assertEquals(0f, WorldLaunchMotion.lampGlow(0), 1e-6);
+        assertEquals(1f, WorldLaunchMotion.lampGlow(WorldLaunchMotion.LAMP_MS), 1e-6);
+        assertEquals(0f, WorldLaunchMotion.beamReach(WorldLaunchMotion.BEAM_FROM_MS), 1e-6);
+        assertEquals(1f, WorldLaunchMotion.beamReach(1000), 1e-6);
+        float last = 0f;
+        for (long t = 0; t <= 1200; t += 33) {
+            float r = WorldLaunchMotion.beamReach(t);
+            assertTrue("reach falls at " + t, r >= last - 1e-5f);
+            last = r;
+        }
+        // The cones are full before the white starts, and the white only comes at 1.0 s.
+        assertEquals(0f, WorldLaunchMotion.blendAlpha(w, 999), 1e-6);
+        assertTrue(WorldLaunchMotion.blendAlpha(w, 1100) < 1f);
+        assertEquals(1f, WorldLaunchMotion.blendAlpha(w, 1200), 1e-6);
+        assertEquals(0xFFFFFFFF, WorldLaunchMotion.blendColor(w));
+        assertEquals(1.07f, WorldLaunchMotion.tileScaleX(w, 600, 1.07f), 1e-6);
+        assertEquals(1.07f, WorldLaunchMotion.tileScaleY(w, 600, 1.07f), 1e-6);
+        assertEquals(1f, WorldLaunchMotion.tileAlpha(w, 600), 1e-6);
+        assertEquals(1f, WorldLaunchMotion.sceneZoom(w, 600), 1e-6);
+    }
+
+    /** Back while the headlights flare: the app does not start, nothing of the effect stays, the next OK plays anew. */
+    @Test
+    public void backCancelsTheHeadlights() {
+        WorldLaunchMotion m = new WorldLaunchMotion();
+        int[] starts = {0};
+        assertTrue(m.begin(World.SUPERNATURAL, () -> starts[0]++));
+        m.cancel();
+        m.finish();
+        assertEquals(0, starts[0]);
+        assertFalse(m.isBusy());
+        assertTrue(m.begin(World.SUPERNATURAL, () -> starts[0]++));
+        m.finish();
+        assertEquals(1, starts[0]);
     }
 
     @Test
@@ -96,10 +143,12 @@ public class LaunchGuardTest {
         assertEquals(1f, WorldLaunchMotion.blendAlpha(World.STARWARS, 1200), 1e-6);
         assertEquals(0xFF000000, WorldLaunchMotion.blendColor(World.HOGWARTS));
         assertEquals(0xFFFFFFFF, WorldLaunchMotion.blendColor(World.MARVEL));
-        // Every effect is full at its own end: the app never comes up over a half-faded Home. Clean and Seasons have
-        // none, nor has a world whose effect is still to come (Supernatural before its launch task): shouldPlay skips it.
+        // Every themed world has an effect, and it is full at its own end: the app never comes up over a half-faded
+        // Home. Clean and Seasons have none (shouldPlay skips them).
         for (World w : World.values()) {
-            if (w.hasOwnMotion() && WorldLaunchMotion.durationMs(w) > 0) assertEquals(1f, WorldLaunchMotion.blendAlpha(w, WorldLaunchMotion.durationMs(w)), 1e-6);
+            if (!w.hasOwnMotion()) continue;
+            assertTrue(w.name(), WorldLaunchMotion.durationMs(w) > 0);
+            assertEquals(w.name(), 1f, WorldLaunchMotion.blendAlpha(w, WorldLaunchMotion.durationMs(w)), 1e-6);
         }
     }
 
