@@ -24,7 +24,8 @@ import android.widget.TextView;
 
 /**
  * The header's world chrome (spec § 4.4): each world's pill backgrounds (gold medallions, HUD switches, holo
- * switches) on every pill of the top bar, Hogwarts' candle, owl and star icons and its "⟡ ✦ ⟡" under the date,
+ * switches, brass-rimmed plates) on every pill of the top bar, Hogwarts' candle, owl and star icons and its "⟡ ✦ ⟡"
+ * under the date, Supernatural's star in a circle on Settings,
  * Marvel's HUD corners and Star Wars' scanline field around the greeting, clock and date. The pills' icon-only shape
  * comes from MainActivity (World.forcesIconOnlyPills) and the header's type from WorldTypography. Clean returns before
  * touching anything, so its pills keep pill_bg and the three views stay gone.
@@ -53,7 +54,7 @@ final class WorldChrome {
             case HOGWARTS:
                 setIcon(btnInputs, R.drawable.ic_world_hog_candle);
                 setIcon(btnWifi, R.drawable.ic_world_hog_owl);   // kept by updateWifi (ownsNetworkIcon)
-                setIcon(btnSettings, R.drawable.ic_world_hog_star);
+                setIcon(btnSettings, settingsIcon(w));
                 worldOrnament.setText(HOG_ORNAMENT);
                 worldOrnament.setTextColor(WorldTypography.HOG_GOLD);
                 worldOrnament.setAlpha(0.8f);
@@ -68,6 +69,9 @@ final class WorldChrome {
                 scanlines.setBackground(scanlineField(a));
                 fitToHeader(scanlines, a, dp);
                 scanlines.setVisibility(View.VISIBLE);
+                break;
+            case SUPERNATURAL:
+                setIcon(btnSettings, settingsIcon(w));
                 break;
             default:
                 break;
@@ -128,8 +132,23 @@ final class WorldChrome {
             case HOGWARTS: return R.drawable.pill_bg_hogwarts;
             case MARVEL: return R.drawable.pill_bg_marvel;
             case STARWARS: return R.drawable.pill_bg_starwars;
+            case SUPERNATURAL: return R.drawable.pill_bg_supernatural;
             default: return R.drawable.pill_bg;
         }
+    }
+
+    /** The world's own icon on the Settings pill (Hogwarts' star, Supernatural's star in a circle), 0 for the gear. */
+    static int settingsIcon(World w) {
+        switch (w) {
+            case HOGWARTS: return R.drawable.ic_world_hog_star;
+            case SUPERNATURAL: return R.drawable.ic_world_sn_settings;
+            default: return 0;
+        }
+    }
+
+    /** Whether the world's focus frame glows warm (GlassView.setWarmGlow): Supernatural's amber lamp light. */
+    static boolean warmFocusGlow(World w) {
+        return w == World.SUPERNATURAL;
     }
 
     /**

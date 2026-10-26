@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Supernatural's Settings pill (spec § 4.3): a five-pointed star in a circle with sixteen short rays round it, as the
+     star on the road (make_scene.star_lines: the star at 92 % of the circle, the rays from 1.14 to 1.32 of it). An own,
+     generic shape. One colour, tinted by the pill (pill_text). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="22dp" android:height="22dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.4"
+        android:pathData="M4,12a8,8 0 1,0 16,0a8,8 0 1,0 -16,0Z" />
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.2" android:strokeLineJoin="round"
+        android:pathData="M12,4.64L16.33,17.95L5,9.73L19,9.73L7.67,17.95Z" />
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1" android:strokeLineCap="round"
+        android:pathData="M21.12,12L22.56,12M20.43,15.49L21.76,16.04M18.45,18.45L19.47,19.47M15.49,20.43L16.04,21.76M12,21.12L12,22.56M8.51,20.43L7.96,21.76M5.55,18.45L4.53,19.47M3.57,15.49L2.24,16.04M2.88,12L1.44,12M3.57,8.51L2.24,7.96M5.55,5.55L4.53,4.53M8.51,3.57L7.96,2.24M12,2.88L12,1.44M15.49,3.57L16.04,2.24M18.45,5.55L19.47,4.53M20.43,8.51L21.76,7.96" />
+</vector>

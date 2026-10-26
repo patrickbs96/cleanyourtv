@@ -26,6 +26,8 @@ public class GlassView extends View {
     private int glowRgb = 0xFFFFFF;
     /** Glow strength: the white glow stays faint, a coloured one needs more alpha to read as warm light. */
     private int glowAlpha = 0x30;
+    /** Supernatural: the exact accent glows stronger, as warm light round the frame (setWarmGlow). */
+    private boolean warm;
     /** glass_style rim or halo: no sheen and no fill, only the crisp rim (and, for halo, a lighter outer glow). */
     private boolean flat;
     private boolean halo;
@@ -68,23 +70,35 @@ public class GlassView extends View {
      * it towards white. The glow is the same either way.
      */
     void setAccent(int argb, boolean exact) {
+        glowAlpha = glowAlpha(argb, exact, warm);
         if (exact && argb != 0) {
             glowRgb = argb & 0xFFFFFF;
-            glowAlpha = 0x70;
             rim.setColor(argb);
         } else if (argb == 0) {
             glowRgb = 0xFFFFFF;
-            glowAlpha = 0x30;
             rim.setColor(0xCCFFFFFF);
         } else {
             glowRgb = argb & 0xFFFFFF;
-            glowAlpha = 0x70;
             // The rim is the accent lifted towards white, so the edge still reads as glass, not paint.
             int r = (((glowRgb >> 16) & 0xFF) + 255 * 2) / 3, g = (((glowRgb >> 8) & 0xFF) + 255 * 2) / 3,
                     b = ((glowRgb & 0xFF) + 255 * 2) / 3;
             rim.setColor(0xE6000000 | (r << 16) | (g << 8) | b);
         }
         invalidate();
+    }
+
+    /**
+     * The glow's alpha for this accent: 0x30 for the plain white glass, 0x70 in a colour, 0xC0 for a warm glow in an
+     * exact accent (Supernatural's amber frame, spec § 4.3: the light of a lamp, not a tint). Halo draws half of it.
+     */
+    static int glowAlpha(int argb, boolean exact, boolean warm) {
+        if (argb == 0) return 0x30;
+        return exact && warm ? 0xC0 : 0x70;
+    }
+
+    /** A warm glow for the world's exact accent (WorldChrome.warmFocusGlow); set before the accent. */
+    void setWarmGlow(boolean on) {
+        warm = on;
     }
 
     /** One of Config's GLASS_* styles. */

@@ -537,6 +537,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             glass.setBrackets(true);
             glass.setBracketsLocked(true);
         }
+        // Supernatural's amber frame glows warm, like lamp light (spec § 4.3); before the accent, which sets the glow.
+        glass.setWarmGlow(WorldChrome.warmFocusGlow(world));
         // A world's accent wins over a festival's, the way the festival's wins over the app colours.
         if (!world.isClean()) glass.setAccent(worldAccent(), true);
         else if (festive) glass.setAccent(festival.accentColor());

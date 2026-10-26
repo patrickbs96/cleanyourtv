@@ -57,16 +57,15 @@ public class WorldTest {
         assertEquals("", World.CLEAN.greetingSuffix(true));
     }
     /**
-     * Until the rest of its own skin arrives (Tasks 5 to 8) Supernatural takes the neutral paths everywhere a world
-     * branches: its own pictures (Task 3) and its own overlay (Task 4), but Clean's pills, Clean's spring, no launch
-     * effect, a plain fade in; never another world's skin.
+     * Until the rest of its own skin arrives (Tasks 6 to 8) Supernatural takes the neutral paths everywhere a world
+     * branches: its own pictures (Task 3), its own overlay (Task 4) and its own pills, dock and frame (Task 5), but
+     * Clean's spring, no launch effect, a plain fade in; never another world's skin.
      */
     @Test public void supernaturalFallsBackToNeutralPaths() {
         World w = World.SUPERNATURAL;
         assertEquals(R.drawable.world_supernatural_day, WorldScene.resFor(w, true));
         assertEquals(R.drawable.world_supernatural_night, WorldScene.resFor(w, false));
         assertTrue(WorldOverlay.hasOverlay(w, false));
-        assertEquals(R.drawable.pill_bg, WorldChrome.pillBackground(w));
         assertFalse(WorldChrome.ownsNetworkIcon(w));
         assertNull(WorldFocusMotion.springFor(w, false));
         assertEquals(0L, WorldFocusMotion.frameDelayMs(w, true));
@@ -79,6 +78,23 @@ public class WorldTest {
         assertEquals(1f, WorldTransition.sceneZoom(w, 400, true), 0f);
         assertEquals(0xFF0B0D10, WorldTransition.coverColor(w));
         assertEquals("Netflix", WorldTypography.heroLabel(w, "Netflix"));
+    }
+    /** Supernatural's own chrome (spec § 4.3): brass pills with the star in a circle on Settings, a warm amber frame. */
+    @Test public void supernaturalHasBrassPillsAndAWarmFrame() {
+        World w = World.SUPERNATURAL;
+        assertEquals(R.drawable.pill_bg_supernatural, WorldChrome.pillBackground(w));
+        assertEquals(R.drawable.ic_world_sn_settings, WorldChrome.settingsIcon(w));
+        assertTrue(WorldChrome.warmFocusGlow(w));
+        // The others keep theirs: Hogwarts its star, Marvel and Star Wars the plain gear, none of them the warm glow.
+        assertEquals(R.drawable.ic_world_hog_star, WorldChrome.settingsIcon(World.HOGWARTS));
+        assertEquals(0, WorldChrome.settingsIcon(World.MARVEL));
+        assertEquals(0, WorldChrome.settingsIcon(World.STARWARS));
+        assertEquals(0, WorldChrome.settingsIcon(World.CLEAN));
+        for (World other : World.values()) {
+            if (other != w) assertFalse(other.name(), WorldChrome.warmFocusGlow(other));
+        }
+        assertEquals(R.drawable.pill_bg, WorldChrome.pillBackground(World.CLEAN));
+        assertEquals(R.drawable.pill_bg, WorldChrome.pillBackground(World.SEASONS));
     }
     @Test public void seasonsHasNoColourKey() {
         for (int k = KeyEvent.KEYCODE_PROG_RED; k <= KeyEvent.KEYCODE_PROG_BLUE; k++) assertNotSame(World.SEASONS, World.forKeyCode(k));

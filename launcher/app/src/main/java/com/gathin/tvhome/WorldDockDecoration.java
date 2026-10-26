@@ -1,5 +1,7 @@
 package com.gathin.tvhome;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapShader;
 import android.graphics.Canvas;
 import android.graphics.LinearGradient;
 import android.graphics.Matrix;
@@ -15,7 +17,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 /**
  * The worlds' dock (spec § 4.4): Hogwarts' gold frame with the house stripe, Marvel's metal bar with rivets and six
- * dots, Star Wars' targeting scale. It extends {@link DockDecoration} and keeps its getItemOffsets, so the dock row's
+ * dots, Star Wars' targeting scale, Supernatural's dark band with its amber edge and the salt line on top. It extends {@link DockDecoration} and keeps its getItemOffsets, so the dock row's
  * geometry is the same as Clean's in every world; only onDraw differs. MainActivity uses it only where
  * {@link World#dockStyleSupported(Config)} holds (plain dock row, no single row), so the row is never a single row.
  * Every Paint, Path and shader is made once here: onDraw allocates nothing.
@@ -28,6 +30,10 @@ public class WorldDockDecoration extends DockDecoration {
     private static final int[] STONE_COLORS = {0xFFA855F7, 0xFF3B82F6, 0xFFEF4444, 0xFFF59E0B, 0xFF22C55E, 0xFFF97316};
     /** Star Wars' scale: a tick every 3.2 % of the dock's width. */
     private static final float TICK_STEP = 0.032f;
+    /** Supernatural's salt line: one tile of grain this many pixels wide, repeated along the band's top edge. */
+    static final int SALT_TILE_PX = 211;
+    /** Its grain is the same on every start: a fixed seed, never noise per frame. */
+    private static final long SALT_SEED = 0x5A17L;
 
     private final World world;
     private final int dockSize;
@@ -49,6 +55,11 @@ public class WorldDockDecoration extends DockDecoration {
     private final Paint dotGlow = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint line = new Paint();
     private final Paint lineLit = new Paint();
+    /** Supernatural's salt line: the grain tile as a shader, unfiltered so each grain stays one crisp pixel. */
+    private final Paint salt = new Paint();
+    private final Matrix saltMatrix = new Matrix();
+    private final int saltHeight;
+    private float saltTop = Float.NaN;
     /** Hogwarts' "❖": four small diamonds round a centre, in coordinates round (0,0). */
     private final Path diamond = new Path();
     private final float glyph;
@@ -90,6 +101,16 @@ public class WorldDockDecoration extends DockDecoration {
             lineLit.setStrokeWidth(density);
             lineLit.setColor(0xFFFFFFFF);
         }
+        saltHeight = Math.max(2, Math.round(2.5f * density));
+        if (world == World.SUPERNATURAL) {
+            // The mockup's dock: dark at 70 %, a 1 dp amber rim at 35 % and a 2 dp amber top edge at 60 %.
+            band.setColor(0xB30E0C0A);
+            border.setColor(0x59E0A24A);
+            fill.setColor(0x99E0A24A);
+            Bitmap tile = Bitmap.createBitmap(saltGrain(SALT_TILE_PX, saltHeight), SALT_TILE_PX, saltHeight,
+                    Bitmap.Config.ARGB_8888);
+            salt.setShader(new BitmapShader(tile, Shader.TileMode.REPEAT, Shader.TileMode.CLAMP));
+        }
         glyph = 12 * density;
         float a = glyph * 0.2f, d = glyph * 0.28f;
         addDiamond(0, -d, a);
@@ -116,6 +137,44 @@ public class WorldDockDecoration extends DockDecoration {
     static int tickCount(float dockWidthPx, float density) {
         float step = Math.max(TICK_STEP * dockWidthPx, 3f * density);
         return Math.max(0, (int) (dockWidthPx / step));
+    }
+
+    /**
+     * Supernatural's salt grain, {@code w} x {@code h} pixels (ARGB, row by row): about four in ten pixels a white
+     * grain at 25 to 100 %, the rest clear; denser along the middle row, so the line reads as poured salt, not dust.
+     * No two clear columns in a row, round the tile's end too: the line has gaps between grains, never holes. Always
+     * the same grain (a fixed seed); made once, in the constructor.
+     */
+    static int[] saltGrain(int w, int h) {
+        java.util.Random rnd = new java.util.Random(SALT_SEED);
+        int[] px = new int[w * h];
+        float middle = (h - 1) / 2f;
+        for (int y = 0; y < h; y++) {
+            // 0.55 on the middle row, falling towards 0.3 on the outer rows.
+            float chance = 0.55f - 0.25f * (h > 1 ? Math.abs(y - middle) / middle : 0f);
+            for (int x = 0; x < w; x++) {
+                if (rnd.nextFloat() < chance) px[y * w + x] = grain(rnd);
+            }
+        }
+        boolean[] empty = new boolean[w];
+        for (int x = 0; x < w; x++) {
+            empty[x] = true;
+            for (int y = 0; y < h; y++) empty[x] &= px[y * w + x] == 0;
+        }
+        for (int x = 0; x < w; x++) {
+            int next = (x + 1) % w;
+            if (empty[x] && empty[next]) {
+                px[(h / 2) * w + next] = grain(rnd);
+                empty[next] = false;
+            }
+        }
+        return px;
+    }
+
+    /** One grain: white at 25 to 100 %. */
+    private static int grain(java.util.Random rnd) {
+        int alpha = 0x40 + rnd.nextInt(0xC0);
+        return alpha << 24 | 0xFFFFFF;
     }
 
     /** Lights the Star Wars scale under this dock slot; -1 (or a tile below the dock) lights none. */
@@ -164,6 +223,7 @@ public class WorldDockDecoration extends DockDecoration {
         if (world == World.HOGWARTS) drawHogwarts(c, tileRadius);
         else if (world == World.MARVEL) drawMarvel(c, tileRadius);
         else if (world == World.STARWARS) drawStarWars(c, focusFound, focusL, focusR);
+        else if (world == World.SUPERNATURAL) drawSupernatural(c, tileRadius);
     }
 
     /** Stretches the band's 0..1 gradient over the band; the shader only changes when the band moves. */
@@ -245,6 +305,27 @@ public class WorldDockDecoration extends DockDecoration {
         c.translate(cx, cy);
         c.drawCircle(0, 0, 2.5f * density, rivet);
         c.restore();
+    }
+
+    private void drawSupernatural(Canvas c, float tileRadius) {
+        // The mockup's corners: 0.8em against the tiles' 0.5em.
+        float radius = 1.6f * tileRadius;
+        c.drawRoundRect(rect, radius, radius, band);
+        c.drawRoundRect(rect, radius, radius, border);
+        // The 2 dp amber top edge follows the rounded corners: the band's shape, clipped to its top 2 dp.
+        c.save();
+        c.clipRect(rect.left, rect.top, rect.right, rect.top + 2 * density);
+        c.drawRoundRect(rect, radius, radius, fill);
+        c.restore();
+        // The salt line on the top edge, straight between the corners, half over the amber edge. The grain tile
+        // moves with the band; its shader only changes when the band does.
+        float top = rect.top - saltHeight / 2f;
+        if (top != saltTop) {
+            saltMatrix.setTranslate(0f, top);
+            salt.getShader().setLocalMatrix(saltMatrix);
+            saltTop = top;
+        }
+        c.drawRect(rect.left + radius, top, rect.right - radius, top + saltHeight, salt);
     }
 
     private void drawStarWars(Canvas c, boolean focusFound, float focusL, float focusR) {
