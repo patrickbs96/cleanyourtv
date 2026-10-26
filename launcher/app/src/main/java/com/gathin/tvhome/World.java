@@ -111,6 +111,14 @@ enum World {
         return this == HOGWARTS || this == MARVEL || this == STARWARS;
     }
 
+    /**
+     * The accent Home paints with: in Seasons the day's look's (spec § 6, coloured by the occasion), in every other
+     * world its own {@link #accent}, whatever the look; also Seasons' own while no look is known.
+     */
+    int accentFor(Look look) {
+        return this == SEASONS && look != null ? look.accent : accent;
+    }
+
     /** The word in front of the greeting: Lumos by day and Nox by night in Hogwarts, Suit up in Marvel. */
     String greetingPrefix(boolean day) {
         if (this == HOGWARTS) return day ? "Lumos" : "Nox";

@@ -25,7 +25,8 @@ import java.util.Random;
  * draw one timeline of the target world, 0 to leaveMs + enterMs, the leave half up to the cut and the enter half from
  * it, so the cover the old Home ends on is the one the new Home starts from:
  * <ul>
- * <li>Clean: 250 ms to black and 250 ms back (the only full black).</li>
+ * <li>Clean: 250 ms to black and 250 ms back.</li>
+ * <li>Seasons: a plain cross-fade through black, 250 ms down and 350 ms up (Jahreskreis spec § 4.8, § 6).</li>
  * <li>Hogwarts: the old scene darkens in 300 ms; then the candles light one by one from the middle, 60 ms apart, and
  * the new scene comes up under them in 600 ms.</li>
  * <li>Marvel: the old scene darkens in 250 ms; then the HUD boots, the new Home drawn in line by line from the top in
@@ -46,7 +47,10 @@ final class WorldTransition {
     /** Hogwarts' candles light this far apart, from the middle of the cluster out. */
     static final long IGNITE_STEP_MS = 60;
     static final long FRAME_MS = 33;
-    /** How dark the cover gets at the cut: Clean goes to black, the worlds only dim (no hard black between them). */
+    /**
+     * How dark the cover gets at the cut: Clean and Seasons go to black, the themed worlds only dim (no hard black
+     * between them).
+     */
     static final float CLEAN_PEAK = 1f, HOGWARTS_PEAK = 0.85f, MARVEL_PEAK = 0.9f, STARWARS_PEAK = 0.6f;
     /** Star Wars: 70 streaks, each 400 ms long, starting within the first 300 ms of the 700. */
     static final int STREAKS = 70;
@@ -65,7 +69,7 @@ final class WorldTransition {
         switch (target) {
             case HOGWARTS: return 300;
             case STARWARS: return 400;
-            default: return 250;   // Clean and Marvel
+            default: return 250;   // Clean, Seasons and Marvel
         }
     }
 
@@ -75,6 +79,7 @@ final class WorldTransition {
             case HOGWARTS: return 600;
             case MARVEL: return 500;
             case STARWARS: return 300;
+            case SEASONS: return 350;
             default: return 250;
         }
     }
@@ -103,6 +108,11 @@ final class WorldTransition {
             case STARWARS: return STARWARS_PEAK;
             default: return CLEAN_PEAK;
         }
+    }
+
+    /** The cover's colour: black for Clean and Seasons (a fade through black), the world's own dark one otherwise. */
+    static int coverColor(World target) {
+        return target.isClean() || target == World.SEASONS ? 0xFF000000 : target.backgroundColor;
     }
 
     /** The dark cover's opacity at {@code t} ms of the whole timeline: up to the peak at the cut, down to 0 at the end. */
@@ -379,8 +389,8 @@ final class WorldTransition {
         void prepare(World w, long t, @Nullable HogwartsOverlay candles) {
             world = w;
             this.candles = candles;
-            // A world covers with its own dark colour, Clean with black.
-            cover.setColor(w.isClean() ? 0xFF000000 : w.backgroundColor);
+            // A themed world covers with its own dark colour, Clean and Seasons with black.
+            cover.setColor(coverColor(w));
             time = t;
             invalidate();
         }

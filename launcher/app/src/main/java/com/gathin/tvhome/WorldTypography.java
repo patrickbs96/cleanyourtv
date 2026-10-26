@@ -228,6 +228,25 @@ final class WorldTypography {
         }
     }
 
+    /**
+     * The same with the accent Home paints with (World.accentFor): Seasons writes its greeting in the day's accent
+     * lifted towards white, as a festival's greeting is (spec § 6); without one (0) it keeps the fallback. The other
+     * worlds ignore the accent.
+     */
+    static int greetingColor(World w, int fallback, int accent) {
+        if (w == World.SEASONS) return accent != 0 ? liftTowardsWhite(accent, 0.25f) : fallback;
+        return greetingColor(w, fallback);
+    }
+
+    /** Moves each colour channel {@code amount} of the way to white, opaque: the festival's and Seasons' greeting. */
+    static int liftTowardsWhite(int argb, float amount) {
+        int r = (argb >> 16) & 0xFF, g = (argb >> 8) & 0xFF, b = argb & 0xFF;
+        r += (int) ((255 - r) * amount);
+        g += (int) ((255 - g) * amount);
+        b += (int) ((255 - b) * amount);
+        return 0xFF000000 | (r << 16) | (g << 8) | b;
+    }
+
     /** Day for the greeting words until the scene's sun times arrive (Task 4): 7:00 to 18:59. */
     static boolean isDayHour(int hour) {
         return hour >= 7 && hour <= 18;

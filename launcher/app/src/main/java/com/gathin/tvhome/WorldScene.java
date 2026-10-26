@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.LightingColorFilter;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,12 +14,18 @@ import android.widget.ImageView;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.function.ToIntFunction;
 
 /**
  * A world's scene behind Home: its day or its night picture (launcher/worlds/<id>/make_scene.py), by the sun at
  * config.xml's latitude and longitude, as wallpaper_moods has it (morning and evening are day, night is night). When
  * the mood changes the new picture fades in over the old one in 300 ms, never a hard cut, and only the picture on
  * screen stays in memory after that. Clean has no scene and adds no views at all.
+ *
+ * <p>Jahreskreis (Seasons) shows the day's {@link Look} instead (setLook): its picture is found by name
+ * ({@link #drawableName}), a day and a night one for the seasons, one for every other look, and a look without a
+ * picture keeps the world's plain colour. A new look (midnight, a test date) fades in like a mood change; bright looks
+ * are dimmed by {@link #NIGHT_DIM} at night with a colour filter on the scene's views only (OLED rule, spec § 4.8).
  */
 final class WorldScene {
     /** forceMood's choices: the sun decides, or always day, or always night (the hidden test switch, Task 11). */
@@ -33,9 +40,14 @@ final class WorldScene {
     /** Day lasts this long after sunset, while the sky still glows: wallpaper_moods' evening. */
     private static final int DUSK_MINUTES = 30;
     private static final long FADE_MS = 300;
+    /** How much darker a bright look's picture is at night (Jahreskreis, OLED rule). */
+    static final float NIGHT_DIM = 0.55f;
 
     private final FrameLayout root;
     private final World world;
+    /** Seasons: the day and look to show (setLook), and the ones on screen; null in the other worlds. */
+    private LocalDate date, shownDate;
+    private Look look, shownLook;
     /** The picture on screen, and above it the next one while it fades in; null in Clean. */
     private final ImageView bottom, top;
     private final String latitude, longitude;
@@ -49,9 +61,14 @@ final class WorldScene {
     private boolean fading;
     private Runnable listener;
 
-    WorldScene(Context context, FrameLayout root, World w) {
+    /** {@code date} and {@code look}: Seasons' day and its look (SeasonsToday); ignored, and best null, elsewhere. */
+    WorldScene(Context context, FrameLayout root, World w, LocalDate date, Look look) {
         this.root = root;
         this.world = w;
+        if (w == World.SEASONS) {
+            this.date = date;
+            this.look = look;
+        }
         String[] place = Config.location(context);
         latitude = place[0];
         longitude = place[1];
@@ -70,13 +87,22 @@ final class WorldScene {
         root.addView(top, 1, matchParent());
         // The first picture is decoded right here, so Home's first frame already has it, as with the wallpaper.
         boolean day = isDay();
-        Bitmap first = decode(context, resFor(w, day));
+        int res = resFor(context, w, day, this.look);
+        Bitmap first = decode(context, res);
         if (first != null) {
             bottom.setImageBitmap(first);
+            dim(bottom, this.look, day);
             shown = first;
             shownDay = day;
+            shownDate = this.date;
+            shownLook = this.look;
             // The picture covers the whole screen: the world's plain colour under it is overdraw.
             root.setBackground(null);
+        } else if (res == 0 && w == World.SEASONS) {
+            // A look without a picture yet: its plain colour is what it shows, so the minute tick has nothing to load.
+            shownDay = day;
+            shownDate = this.date;
+            shownLook = this.look;
         }
     }
 
@@ -132,8 +158,8 @@ final class WorldScene {
     }
 
     /**
-     * The world's picture for day or night, R.drawable.world_<id>_<day|night>; 0 for Clean, which has none, and for
-     * Seasons until its looks arrive (it shows its background colour).
+     * The themed world's picture for day or night, R.drawable.world_&lt;id&gt;_&lt;day|night&gt;; 0 for Clean, which has
+     * none, and for Seasons, whose pictures go by look ({@link #resFor(Context, World, boolean, Look)}).
      */
     static int resFor(World w, boolean day) {
         switch (w) {
@@ -142,6 +168,66 @@ final class WorldScene {
             case STARWARS: return day ? R.drawable.world_starwars_day : R.drawable.world_starwars_night;
             default: return 0;
         }
+    }
+
+    /** Seasons' picture name for a look: world_seasons_&lt;id&gt;, with _day or _night for the looks that have both. */
+    static String drawableName(Look look, boolean day) {
+        String name = "world_seasons_" + look.id;
+        return look.hasNight ? name + (day ? "_day" : "_night") : name;
+    }
+
+    /**
+     * The picture for this world, mood and look: Seasons' found by name (the looks add theirs without code), 0 when
+     * it has none (its plain colour stays); the other worlds' as {@link #resFor(World, boolean)}.
+     */
+    static int resFor(Context context, World w, boolean day, Look look) {
+        return resFor(w, day, look,
+                name -> context.getResources().getIdentifier(name, "drawable", context.getPackageName()));
+    }
+
+    /** The same with the lookup by name given (getIdentifier in the app, a stand-in in tests). */
+    static int resFor(World w, boolean day, Look look, ToIntFunction<String> byName) {
+        if (w != World.SEASONS) return resFor(w, day);
+        return look != null ? byName.applyAsInt(drawableName(look, day)) : 0;
+    }
+
+    /**
+     * Whether Seasons' scene must load another picture: nothing is on screen yet, the look has changed (Nikolaus' eve
+     * to Nikolaus at midnight, a test date), or the mood has and that shows in this look (a season's other picture, a
+     * bright look's dimming). The same look on a new day keeps its picture: what changes with the day (Advent's
+     * candles) is the overlay's.
+     */
+    static boolean needsReload(LocalDate shownDate, Look shownLook, LocalDate now, Look nowLook, Boolean shownDay,
+                               boolean day) {
+        if (shownDate == null || shownLook == null || shownDay == null) return true;
+        if (nowLook != shownLook) return true;
+        if (shownDay == day) return false;
+        return nowLook != null && (nowLook.hasNight || dimFor(nowLook, true) != dimFor(nowLook, false));
+    }
+
+    /** How much a look's picture is darkened: {@link #NIGHT_DIM} for a bright look at night, otherwise none. */
+    static float dimFor(Look look, boolean day) {
+        return look != null && look.bright && !day ? NIGHT_DIM : 0f;
+    }
+
+    /** Seasons only: darkens the scene view for this look and mood, or clears it; the other worlds stay untouched. */
+    private void dim(ImageView view, Look l, boolean day) {
+        if (world != World.SEASONS) return;
+        float d = dimFor(l, day);
+        if (d <= 0f) {
+            view.clearColorFilter();
+            return;
+        }
+        int k = Math.round(255 * (1f - d));
+        view.setColorFilter(new LightingColorFilter(0xFF000000 | (k << 16) | (k << 8) | k, 0));
+    }
+
+    /** Seasons' day and look (SeasonsToday, on resume and the minute tick); a change fades the new picture in. */
+    void setLook(LocalDate date, Look look) {
+        if (world != World.SEASONS) return;
+        this.date = date;
+        this.look = look;
+        update();
     }
 
     /** Whether it is day now, by the sun (worked out once a day) or by forceMood. Also for Hogwarts' Lumos/Nox. */
@@ -183,24 +269,48 @@ final class WorldScene {
         update();
     }
 
-    /** From the minute tick: when the mood has changed, fades the other picture in. */
+    /** From the minute tick: when the mood (or Seasons' look) has changed, fades the other picture in. */
     void update() {
         if (bottom == null || !active || fading) return;
         boolean day = isDay();
-        if (shownDay != null && shownDay == day) return;
-        int res = resFor(world, day);
-        // A world without a picture (Seasons until its looks arrive) keeps its plain colour: no decode thread a minute.
-        if (res == 0) return;
+        if (world == World.SEASONS) {
+            if (!needsReload(shownDate, shownLook, date, look, shownDay, day)) return;
+        } else if (shownDay != null && shownDay == day) {
+            return;
+        }
         Context context = root.getContext();
+        int res = resFor(context, world, day, look);
+        if (res == 0) {
+            // A look without a picture keeps the plain colour, and is marked shown: no lookup or decode a minute.
+            if (world == World.SEASONS) showPlainColour(day);
+            return;
+        }
         fading = true;
-        // Decoded off the UI thread; it happens twice a day.
+        Look nextLook = look;
+        LocalDate nextDate = date;
+        // Decoded off the UI thread; it happens twice a day (and when Seasons' look changes).
         new Thread(() -> {
             Bitmap next = decode(context, res);
-            root.post(() -> show(next, day));
+            root.post(() -> show(next, day, nextLook, nextDate));
         }, "WorldScene").start();
     }
 
-    private void show(Bitmap next, boolean day) {
+    /** Seasons on a look without a picture: the world's plain colour, the last picture (if any) released. */
+    private void showPlainColour(boolean day) {
+        shownDay = day;
+        shownLook = look;
+        shownDate = date;
+        if (shown == null) return;
+        Bitmap old = shown;
+        shown = null;
+        bottom.setImageDrawable(null);
+        bottom.clearColorFilter();
+        root.setBackgroundColor(world.backgroundColor);
+        bottom.postDelayed(old::recycle, 500);
+        if (listener != null) listener.run();
+    }
+
+    private void show(Bitmap next, boolean day, Look nextLook, LocalDate nextDate) {
         if (next == null) {
             fading = false;
             return;   // unreadable: keep the picture on screen (or the world's colour)
@@ -213,17 +323,25 @@ final class WorldScene {
         }
         Runnable changed = listener;
         if (shown == null) {
-            // Nothing to fade from (the first picture could not be read): put it on screen.
+            // Nothing to fade from (the first picture could not be read, or Seasons came from a plain colour): put
+            // it on screen.
             bottom.setImageBitmap(next);
+            dim(bottom, nextLook, day);
             shown = next;
             shownDay = day;
+            shownLook = nextLook;
+            shownDate = nextDate;
             root.setBackground(null);
             fading = false;
             if (changed != null) changed.run();
+            if (world == World.SEASONS) update();   // the look may have changed meanwhile
             return;
         }
         shownDay = day;
+        shownLook = nextLook;
+        shownDate = nextDate;
         top.setImageBitmap(next);
+        dim(top, nextLook, day);
         top.setAlpha(0f);
         top.setVisibility(View.VISIBLE);
         if (changed != null) changed.run();
@@ -232,6 +350,7 @@ final class WorldScene {
             // released after a frame has drawn without it.
             Bitmap old = shown;
             bottom.setImageBitmap(next);
+            dim(bottom, nextLook, day);
             shown = next;
             top.setVisibility(View.INVISIBLE);
             top.setImageDrawable(null);

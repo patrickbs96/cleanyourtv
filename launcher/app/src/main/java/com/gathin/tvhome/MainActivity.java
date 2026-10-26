@@ -306,6 +306,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private World world = World.CLEAN;
     /** The world's day or night picture behind Home; adds no views in Clean. */
     private WorldScene worldScene;
+    /**
+     * Seasons: the day it shows (the real one or the test date, PersonalDays.today) and its look, worked out in
+     * onCreate and again on resume and every minute (refreshSeasons); null in every other world.
+     */
+    private LocalDate seasonsDate;
+    private SeasonsToday seasonsToday;
     /** The world's dock (gold frame, metal bar, targeting scale); null in Clean and where the layout keeps Clean's dock. */
     private WorldDockDecoration worldDock;
     /** The world's continuous motion over its scene (WorldOverlay); null in Clean. */
@@ -417,6 +423,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private final Runnable minuteTick = new Runnable() {
         @Override
         public void run() {
+            // Seasons' look first (midnight): the greeting below takes its accent.
+            refreshSeasons();
             updateGreeting();
             updateRace();
             // The pill follows the network callbacks and each return to Home; only the diya's flame follows the
@@ -485,7 +493,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // the theme's background, so launch looks the same.
         getWindow().setBackgroundDrawable(null);
         // Before the wallpaper, whose picture then goes under the scene: a world wins over the theme's background.
-        worldScene = new WorldScene(this, root, world);
+        // Seasons first works out today's look: the scene, overlay, accent and greeting follow it.
+        if (world == World.SEASONS) {
+            seasonsDate = seasonsDay();
+            seasonsToday = seasonsToday(seasonsDate);
+        }
+        worldScene = new WorldScene(this, root, world, seasonsDate,
+                seasonsToday != null ? seasonsToday.look : null);
         wallpaperPlayer = new WallpaperPlayer(this, root, cfg);
         sky = findViewById(R.id.sky);
         sky.setIntensity(cfg.skyIntensity);
@@ -499,7 +513,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             glass.setBracketsLocked(true);
         }
         // A world's accent wins over a festival's, the way the festival's wins over the app colours.
-        if (!world.isClean()) glass.setAccent(world.accent, true);
+        if (!world.isClean()) glass.setAccent(worldAccent(), true);
         else if (festive) glass.setAccent(festival.accentColor());
         ambient = findViewById(R.id.ambient);
         // The glow is one bitmap, so its alpha can be applied while drawing it. Otherwise every frame of
@@ -517,7 +531,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         heroDots = findViewById(R.id.heroDots);
         heroArt = findViewById(R.id.heroArt);
         // The world's motion: right above the scene's two pictures, under the sky backdrop and heroArt.
-        worldOverlay = WorldOverlay.create(this, world, worldScene.isDay());
+        worldOverlay = WorldOverlay.create(this, world, worldScene.isDay(), seasonsToday);
         if (worldOverlay != null) {
             root.addView(worldOverlay, root.indexOfChild(sky), new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -1103,6 +1117,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 break;
         }
         if (openLiveTvAfterBoot()) return;
+        // Seasons' look may have moved on while Home was away (past midnight); before the greeting takes its accent.
+        refreshSeasons();
         updateGreeting();
         updateRace();
         // The network and Inputs pills keep their state while Home is in the background, and callbacks update them
@@ -1704,7 +1720,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         drop();
         reordering = false;
         adapter.setReordering(false);
-        if (!world.isClean()) glass.setAccent(world.accent, true);
+        if (!world.isClean()) glass.setAccent(worldAccent(), true);
         else glass.setAccent(festive ? festival.accentColor() : 0);
         btnReorder.setActivated(false);
         List<String> keys = adapter.movableKeys();
@@ -2897,6 +2913,51 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
+    /**
+     * The accent Home paints with (focus frame, greeting): today's look's in Seasons, the world's own everywhere else
+     * (World.accentFor), so Clean and the themed worlds stay exactly as they were.
+     */
+    int worldAccent() {
+        return world.accentFor(seasonsToday != null ? seasonsToday.look : null);
+    }
+
+    /** The day Seasons shows: the test date while this process has one (SeasonsActivity's force_date), else today. */
+    private LocalDate seasonsDay() {
+        return PersonalDays.today(getSharedPreferences(PersonalDays.PREFS, MODE_PRIVATE), LocalDate.now());
+    }
+
+    /** The look of that day from the saved personal days and the Mother's and Father's Day switches. */
+    private SeasonsToday seasonsToday(LocalDate day) {
+        SharedPreferences prefs = getSharedPreferences(PersonalDays.PREFS, MODE_PRIVATE);
+        return SeasonsToday.resolve(day, PersonalDays.load(prefs), PersonalDays.mothersDay(prefs),
+                PersonalDays.fathersDay(prefs));
+    }
+
+    /**
+     * Seasons, on resume and every minute: works today's look out again and, on a new day (midnight) or a new look,
+     * hands it to the scene (which fades the new picture in), the overlay (a new motion) and the accent. Nothing in
+     * the other worlds.
+     */
+    private void refreshSeasons() {
+        if (world != World.SEASONS) return;
+        LocalDate day = seasonsDay();
+        SeasonsToday next = seasonsToday(day);
+        if (day.equals(seasonsDate) && seasonsToday != null && next.look == seasonsToday.look) {
+            // The same day and look; the overlay still follows a mood change the scene did not show (no picture).
+            if (worldOverlay != null) worldOverlay.setDay(worldScene.isDay());
+            return;
+        }
+        seasonsDate = day;
+        seasonsToday = next;
+        worldScene.setLook(day, next.look);
+        if (worldOverlay instanceof SeasonsOverlay) {
+            worldOverlay.setDay(worldScene.isDay());
+            ((SeasonsOverlay) worldOverlay).setToday(next);
+        }
+        // Reorder mode keeps its own blue until it ends (endReorder puts the accent back).
+        if (!reordering) glass.setAccent(worldAccent(), true);
+    }
+
     /** Day or night for the world's greeting words (Lumos/Nox): the scene's, by the sun at config.xml's place. */
     private boolean worldDay() {
         return worldScene.isDay();
@@ -2942,7 +3003,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         String festiveGreeting = festive && world.isClean() ? festival.greetingText(getResources()) : "";
         if (!festiveGreeting.isEmpty()) {
             greeting.setText(festiveGreeting);
-            greeting.setTextColor(liftTowardsWhite(festival.accentColor(), 0.25f));
+            greeting.setTextColor(WorldTypography.liftTowardsWhite(festival.accentColor(), 0.25f));
         } else {
             String base = greetingName.isEmpty() ? getString(res)
                     : getString(R.string.greeting_with_name, getString(res), greetingName);
@@ -2952,7 +3013,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // the length; it looks the same, as the view writes in capitals anyway.
             greeting.setText(world.isClean() ? base
                     : WorldTypography.greetingText(world, base, worldDay()).toUpperCase(Locale.getDefault()));
-            greeting.setTextColor(WorldTypography.greetingColor(world, greetingColor));
+            greeting.setTextColor(WorldTypography.greetingColor(world, greetingColor, worldAccent()));
         }
         if (shamsi) shamsiDate.setText(Shamsi.today(getResources()));
         if (lunar) lunarDate.setText(Lunar.today(getResources(), lunarOffset));
@@ -3210,14 +3271,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         root.addView(shower, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         shower.play(60, 2200, () -> root.removeView(shower));
-    }
-
-    private static int liftTowardsWhite(int argb, float amount) {
-        int r = (argb >> 16) & 0xFF, g = (argb >> 8) & 0xFF, b = argb & 0xFF;
-        r += (int) ((255 - r) * amount);
-        g += (int) ((255 - g) * amount);
-        b += (int) ((255 - b) * amount);
-        return 0xFF000000 | (r << 16) | (g << 8) | b;
     }
 
     /** The Ambilight pill (and its top_menu row): the ambient-light menu, a fresh copy as open() adds a flag. */

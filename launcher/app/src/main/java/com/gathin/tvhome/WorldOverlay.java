@@ -9,7 +9,7 @@ import android.view.View;
  * A world's continuous motion over its scene (WorldScene): Hogwarts' candles and stars, Marvel's reactor, streak and
  * beacon, Star Wars' hyperspace streaks and stars. One transparent full-screen view per world, built like
  * PetalShowerView: no focus, clicks or accessibility, nothing allocated per frame. It ticks every 33 ms (30 fps at
- * most) and invalidates the regions that move. Clean has none.
+ * most) and invalidates the regions that move. Clean has none; Seasons' follows the day's look (SeasonsOverlay).
  *
  * <p>No hardware layer: the overlay runs the whole time Home shows a world, and a full-screen layer would hold ~8 MB
  * and be redrawn in full on every tick anyway (from API 21 on a hardware-accelerated view ignores the dirty rect of
@@ -42,12 +42,16 @@ abstract class WorldOverlay extends View {
         setWillNotDraw(false);
     }
 
-    /** The overlay for this world; null for Clean, which has none, and for Seasons until its looks arrive. */
-    static WorldOverlay create(Context context, World w, boolean day) {
+    /**
+     * The overlay for this world; null for Clean, which has none. Seasons' follows {@code today}'s look
+     * (SeasonsOverlay) and needs it: without one it has none either.
+     */
+    static WorldOverlay create(Context context, World w, boolean day, SeasonsToday today) {
         switch (w) {
             case HOGWARTS: return new HogwartsOverlay(context, day);
             case MARVEL: return new MarvelOverlay(context, day);
             case STARWARS: return new StarWarsOverlay(context, day);
+            case SEASONS: return today != null ? new SeasonsOverlay(context, day, today) : null;
             default: return null;
         }
     }
@@ -94,8 +98,23 @@ abstract class WorldOverlay extends View {
     void ignite(long at) {
     }
 
-    private void frame() {
+    /**
+     * Nothing moves: the ticks stop (the overlay still counts as running) until {@link #wake}. Only Seasons on a still
+     * look; the themed worlds always move.
+     */
+    protected boolean idle() {
+        return false;
+    }
+
+    /** What moves has changed (Seasons' new look): ticks again if running and not idle, without a second loop. */
+    protected final void wake() {
         if (!running) return;
+        removeCallbacks(frame);
+        frame();
+    }
+
+    private void frame() {
+        if (!running || idle()) return;
         onFrame(SystemClock.uptimeMillis());
         for (Rect r : regions) {
             if (!r.isEmpty()) invalidate(r);

@@ -37,6 +37,22 @@ public class WorldTypographyTest {
         assertEquals("Netflix", WorldTypography.heroLabel(World.SEASONS, "Netflix"));
     }
 
+    /** Seasons' greeting is the day's accent lifted towards white, as the festival's; the other worlds keep theirs. */
+    @Test public void seasonsGreetingTakesTheLiftedAccent() {
+        assertEquals(WorldTypography.liftTowardsWhite(Look.HALLOWEEN.accent, 0.25f),
+                WorldTypography.greetingColor(World.SEASONS, 0x12345678, Look.HALLOWEEN.accent));
+        assertEquals(0x12345678, WorldTypography.greetingColor(World.CLEAN, 0x12345678, Look.HALLOWEEN.accent));
+        assertEquals(0xFFE8C87A, WorldTypography.greetingColor(World.HOGWARTS, 0, Look.HALLOWEEN.accent));
+        // Seasons without a look (accent 0) keeps the fallback.
+        assertEquals(0x12345678, WorldTypography.greetingColor(World.SEASONS, 0x12345678, 0));
+    }
+
+    @Test public void liftTowardsWhiteMovesEachChannelAQuarter() {
+        assertEquals(0xFF3F3F3F, WorldTypography.liftTowardsWhite(0xFF000000, 0.25f));
+        assertEquals(0xFFFFFFFF, WorldTypography.liftTowardsWhite(0x00FFFFFF, 0.25f));
+        assertEquals(0xFFFF573F, WorldTypography.liftTowardsWhite(0xFFFF2000, 0.25f));
+    }
+
     @Test public void dayIsSevenToEighteen() {
         assertEquals(false, WorldTypography.isDayHour(6));
         assertEquals(true, WorldTypography.isDayHour(7));

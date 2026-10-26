@@ -22,6 +22,20 @@ public class WorldTransitionTest {
         assertEquals(400, WorldTransition.leaveMs(World.STARWARS)); assertEquals(300, WorldTransition.enterMs(World.STARWARS));
     }
 
+    @Test public void seasonsTransitionStaysShort() { assertTrue(WorldTransition.leaveMs(World.SEASONS) + WorldTransition.enterMs(World.SEASONS) <= 900); }
+
+    /** Jahreskreis: 250 ms down to black, 350 ms back up, a plain cross-fade (spec § 4.8, § 6). */
+    @Test public void seasonsFadesThroughBlack() {
+        assertEquals(250, WorldTransition.leaveMs(World.SEASONS));
+        assertEquals(350, WorldTransition.enterMs(World.SEASONS));
+        assertEquals(1f, WorldTransition.coverAlpha(World.SEASONS, 250), 1e-4f);
+        assertEquals(0xFF000000, WorldTransition.coverColor(World.SEASONS));
+        assertEquals(0xFF000000, WorldTransition.coverColor(World.CLEAN));
+        assertEquals(World.HOGWARTS.backgroundColor, WorldTransition.coverColor(World.HOGWARTS));
+        assertEquals(0f, WorldTransition.revealLine(World.SEASONS, 400), 1e-6f);
+        assertEquals(1f, WorldTransition.sceneZoom(World.SEASONS, 300, true), 1e-6f);
+    }
+
     @Test public void hardCutWithReducedMotionOrAnimationsOff() {
         assertTrue(WorldTransition.shouldPlay(true, false));
         assertFalse(WorldTransition.shouldPlay(true, true));
@@ -38,7 +52,7 @@ public class WorldTransitionTest {
         }
     }
 
-    /** Only Clean goes all the way to black (spec § 4.8); the worlds dim. */
+    /** Only Clean (and Seasons, seasonsFadesThroughBlack) goes all the way to black (spec § 4.8); the themed worlds dim. */
     @Test public void onlyCleanGoesFullyBlack() {
         assertEquals(1f, WorldTransition.coverAlpha(World.CLEAN, WorldTransition.leaveMs(World.CLEAN)), 1e-4f);
         for (World w : new World[]{World.HOGWARTS, World.MARVEL, World.STARWARS}) {
