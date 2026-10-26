@@ -52,3 +52,6 @@ fits the rules; keys from before the rule sit on its wanted list until a screens
 | `library_ok_opens` | <img src="switches/library_ok_opens.jpg" width="320" alt="library_ok_opens on a TV"> |
 | `date_below_clock` | <img src="switches/date_below_clock.jpg" width="320" alt="date_below_clock on a TV"> |
 | `power_on_home` | <img src="switches/power_on_home.jpg" width="320" alt="power_on_home on a TV"> |
+| `oled_shift` | <img src="switches/oled_shift.jpg" width="320" alt="Home on a TV; oled_shift moves its header, pills and grid a few pixels each minute"> |
+| `ambilight_action` | <img src="switches/ambilight_action.jpg" width="320" alt="the Ambilight pill opening the TV's Ambilight menu"> |
+| `weather` | <img src="switches/weather.jpg" width="320" alt="the weather line under the date on a TV"> |
